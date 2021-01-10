@@ -31,7 +31,7 @@ type QueryEngine interface {
 
 // QueryResult is the result after any QueryEngine execute a query
 type QueryResult struct {
-	Columns     []ColumnResult
+	Columns     map[string]ColumnResult
 	ColumnIndex map[string]int
 	DevoQueryID string
 	Values      [][]interface{} // FIXME typefied this
