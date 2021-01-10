@@ -282,20 +282,22 @@ func parseQueryResult(d []byte) (*QueryResult, error) {
 	// Fill data
 	result := QueryResult{
 		DevoQueryID: data.CID,
-		Columns:     make([]ColumnResult, len(data.Object.Fields)),
-		ColumnIndex: map[string]int{},
+		Columns:     map[string]ColumnResult{},
 		Values:      data.Object.Data,
 	}
 
 	// Fill columns specification
 	for name, def := range data.Object.Fields {
-		result.Columns[def.Index] = ColumnResult{
+		// Checks column was not proviously added
+		_, ok := result.Columns[name]
+		if ok {
+			return &result, fmt.Errorf("Duplicated column name (%s) is not allowed, please consider rewrite query to avoid it", name)
+		}
+		result.Columns[name] = ColumnResult{
 			Name:  name,
 			Index: def.Index,
 			Type:  def.DevoType,
 		}
-
-		result.ColumnIndex[name] = def.Index
 	}
 
 	return &result, nil
