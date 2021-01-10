@@ -16,7 +16,7 @@ const (
 	DevoQueryApiv2EU = "https://apiv2-eu.devo.com/search/query"
 )
 
-// QueryEngineToken is the engine to make queries from Data to Devo
+// QueryEngineToken follow QueryEngine interface to make queries based on Token go get Data from Devo
 type QueryEngineToken struct {
 	token        string
 	apiURL       string
