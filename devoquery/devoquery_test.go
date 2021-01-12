@@ -211,6 +211,20 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"Error: Unparseable content",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.exists.org", // Empty response
+			},
+			args{
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
