@@ -9,3 +9,7 @@ Package with tools and helper functions to run LinQ queries using Devo API V2. S
 
 See next code examples:
 * [querytoken.go](./examples/querytoken.go) Query to Devo authenticated with token
+
+## devosender
+
+Package with tools to send data to Devo to central relay or through relay-in-house.
