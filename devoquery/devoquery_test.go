@@ -211,20 +211,6 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			nil,
 			true,
 		},
-		{
-			"Error: Unparseable content",
-			fields{
-				token:  "token",
-				apiURL: "http://api.does.not.exists.org", // Empty response
-			},
-			args{
-				from:  time.Now().Add(time.Minute * -5),
-				to:    time.Now(),
-				query: "from test.keep.free",
-			},
-			nil,
-			true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -296,10 +282,10 @@ func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
 			true,
 		},
 		{
-			"Error: Unparseable content",
+			"Error: HTTP response code",
 			fields{
 				token:        "token",
-				apiURL:       "http://api.does.not.exists.org", // Empty response
+				apiURL:       DevoQueryApiv2EU,
 				DefaultQuery: &q,
 			},
 			args{
@@ -463,20 +449,6 @@ func TestRunNewQuery(t *testing.T) {
 		want    *QueryResult
 		wantErr bool
 	}{
-		{
-			"QueryEngineToken Parsed content",
-			args{
-				qe: func() *QueryEngineToken {
-					q, _ := NewTokenEngine("http://api.does.not.exists.org", "token") // empty content
-					return q
-				}(),
-				from:  time.Now().Add(time.Minute * -5),
-				to:    time.Now(),
-				query: "from test.keep.free",
-			},
-			nil,
-			true,
-		},
 		{
 			"QueryEngineToken HTTP respose code error",
 			args{
