@@ -13,3 +13,7 @@ See next code examples:
 ## devosender
 
 Package with tools to send data to Devo to central relay or through relay-in-house.
+
+See next code examples:
+* [senderclean.go](./examples/senderclean.go) Example to send data to Devo relay-in house
+* [sendercentralrelay.go](./examples/sendercentralrelay.go) Example to send data to Devo central relay
