@@ -314,3 +314,124 @@ func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
 		})
 	}
 }
+
+func Test_parseQueryResult(t *testing.T) {
+	type args struct {
+		d []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *QueryResult
+		wantErr bool
+	}{
+		{
+			"Error: Unexpected input format",
+			args{
+				d: []byte("this is not valid json"),
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: Unexpected status code",
+			args{
+				d: []byte(`{"status": 123}`),
+			},
+			nil,
+			true,
+		},
+		{
+			"Columns definition",
+			args{
+				d: []byte(`{
+					"status": 0,
+					"object": {
+						"m": {
+							"col1": {
+								"index": 0,
+								"type" : "int8"
+							},
+							"col2": {
+								"index": 1,
+								"type" : "float32"
+							}
+						}
+					}
+				}`),
+			},
+			&QueryResult{
+				Columns: map[string]ColumnResult{
+					"col1": {
+						Name:  "col1",
+						Index: 0,
+						Type:  "int8",
+					},
+					"col2": {
+						Name:  "col2",
+						Index: 1,
+						Type:  "float32",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"Data",
+			args{
+				d: []byte(`{
+					"status": 0,
+					"cid": "CID",
+					"object": {
+						"m": {
+							"col1": {
+								"index": 0,
+								"type" : "float32"
+							},
+							"col2": {
+								"index": 1,
+								"type" : "float32"
+							}
+						},
+						"d": [
+							[1.1, 1.2],
+							[2.1, 2.2]
+						]
+					}
+				}`),
+			},
+			&QueryResult{
+				DevoQueryID: "CID",
+				Columns: map[string]ColumnResult{
+					"col1": {
+						Name:  "col1",
+						Index: 0,
+						Type:  "float32",
+					},
+					"col2": {
+						Name:  "col2",
+						Index: 1,
+						Type:  "float32",
+					},
+				},
+				Values: [][]interface{}{
+					{1.1, 1.2},
+					{2.1, 2.2},
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseQueryResult(tt.args.d)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseQueryResult() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("parseQueryResult() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
