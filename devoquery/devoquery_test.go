@@ -145,7 +145,7 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			"Error: Empty query",
 			fields{
 				token:  "token",
-				apiURL: "http://api.does.not.extis.org",
+				apiURL: "http://api.does.not.exists.org",
 			},
 			args{
 				from:  time.Now().Add(time.Minute * -5),
@@ -159,7 +159,7 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			"Error: to value equal to from value with precission to second",
 			fields{
 				token:  "token",
-				apiURL: "http://api.does.not.extis.org",
+				apiURL: "http://api.does.not.exists.org",
 			},
 			args{
 				from:  time.Now(),
@@ -173,7 +173,7 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			"Error: to value before from value",
 			fields{
 				token:  "token",
-				apiURL: "http://api.does.not.extis.org",
+				apiURL: "http://api.does.not.exists.org",
 			},
 			args{
 				from:  time.Now().Add(time.Minute * 5),
@@ -258,7 +258,7 @@ func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
 			"Error: Default query not defined",
 			fields{
 				token:  "token",
-				apiURL: "http://api.does.not.extis.org",
+				apiURL: "http://api.does.not.exists.org",
 			},
 			args{
 				from: time.Now().Add(time.Minute * -5),
@@ -271,7 +271,7 @@ func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
 			"Error: Default query empty",
 			fields{
 				token:        "token",
-				apiURL:       "http://api.does.not.extis.org",
+				apiURL:       "http://api.does.not.exists.org",
 				DefaultQuery: &qEmpty,
 			},
 			args{
