@@ -449,3 +449,59 @@ func Test_parseQueryResult(t *testing.T) {
 		})
 	}
 }
+
+func TestRunNewQuery(t *testing.T) {
+	type args struct {
+		qe    QueryEngine
+		from  time.Time
+		to    time.Time
+		query string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *QueryResult
+		wantErr bool
+	}{
+		{
+			"QueryEngineToken Parsed content",
+			args{
+				qe: func() *QueryEngineToken {
+					q, _ := NewTokenEngine("http://api.does.not.exists.org", "token") // empty content
+					return q
+				}(),
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+		{
+			"QueryEngineToken HTTP respose code error",
+			args{
+				qe: func() *QueryEngineToken {
+					q, _ := NewTokenEngine(DevoQueryApiv2EU, "token")
+					return q
+				}(),
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RunNewQuery(tt.args.qe, tt.args.from, tt.args.to, tt.args.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RunNewQuery() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RunNewQuery() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
