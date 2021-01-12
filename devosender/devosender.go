@@ -234,6 +234,10 @@ func (dsc *Client) WaitForPendingAsyngMessages() error {
 	dsc.waitGroup.Wait()
 	return nil
 }
+
+// AsyncErrors return errors from async calls collected until now
+func (dsc *Client) AsyncErrors() map[string]error {
+	return dsc.asyncErrors
 }
 
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
