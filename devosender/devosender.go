@@ -231,7 +231,9 @@ func (dsc *Client) SendWTagAsync(t, m string) error {
 
 // WaitForPendingAsyngMessages wait for all Async messages that are pending to send
 func (dsc *Client) WaitForPendingAsyngMessages() error {
-	return fmt.Errorf("Not implemented jet")
+	dsc.waitGroup.Wait()
+	return nil
+}
 }
 
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
