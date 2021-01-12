@@ -8,16 +8,20 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
 type DevoSender interface {
 	Send(m string) error
 	SendWTag(t, m string) error
-	SendAsync(m string) error
-	SendWTagAsync(t, m string) error
+	SendAsync(m string) string
+	SendWTagAsync(t, m string) string
 	WaitForPendingAsyngMessages() error
+	AsyncErrors() map[string]error
 }
 
 type tlsSetup struct {
@@ -26,12 +30,15 @@ type tlsSetup struct {
 
 // Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
 type Client struct {
-	entryPoint       string
-	syslogHostname   string
-	defaultTag       string
-	conn             net.Conn
-	ReplaceSequences map[string]string
-	tls              *tlsSetup
+	entryPoint        string
+	syslogHostname    string
+	defaultTag        string
+	conn              net.Conn
+	ReplaceSequences  map[string]string
+	tls               *tlsSetup
+	waitGroup         sync.WaitGroup
+	asyncErrors       map[string]error
+	asyncErrorsMutext sync.Mutex
 }
 
 const (
@@ -117,6 +124,7 @@ func NewDevoSenderTLSWithConfig(entrypoint string, key []byte, cert []byte, chai
 		ReplaceSequences: make(map[string]string),
 		tls:              tlsSetup,
 		entryPoint:       entrypoint,
+		asyncErrors:      make(map[string]error),
 	}
 
 	// Create connection
@@ -139,6 +147,7 @@ func NewDevoSender(entrypoint string) (*Client, error) {
 	result := Client{
 		ReplaceSequences: make(map[string]string),
 		entryPoint:       entrypoint,
+		asyncErrors:      make(map[string]error),
 	}
 
 	err := result.makeConnection()
@@ -213,18 +222,54 @@ func (dsc *Client) SendWTag(t, m string) error {
 }
 
 // SendAsync is similar to Send but send events in async wayt (goroutine)
-func (dsc *Client) SendAsync(t string) error {
-	return fmt.Errorf("Not implemented jet")
+func (dsc *Client) SendAsync(m string) string {
+	dsc.waitGroup.Add(1)
+	id := uuid.NewV4().String()
+
+	// Run Send with go routine (concurrent call)
+	go func(id string) {
+		err := dsc.Send(m)
+		if err != nil {
+			dsc.asyncErrorsMutext.Lock()
+			dsc.asyncErrors[id] = err
+			dsc.asyncErrorsMutext.Unlock()
+		}
+
+		dsc.waitGroup.Done()
+	}(id)
+
+	return id
 }
 
 // SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
-func (dsc *Client) SendWTagAsync(t, m string) error {
-	return fmt.Errorf("Not implemented jet")
+func (dsc *Client) SendWTagAsync(t, m string) string {
+	dsc.waitGroup.Add(1)
+	id := uuid.NewV4().String()
+
+	// Run Send with go routine (concurrent call)
+	go func(id string) {
+		err := dsc.SendWTag(t, m)
+		if err != nil {
+			dsc.asyncErrorsMutext.Lock()
+			dsc.asyncErrors[id] = err
+			dsc.asyncErrorsMutext.Unlock()
+		}
+
+		dsc.waitGroup.Done()
+	}(id)
+
+	return id
 }
 
 // WaitForPendingAsyngMessages wait for all Async messages that are pending to send
 func (dsc *Client) WaitForPendingAsyngMessages() error {
-	return fmt.Errorf("Not implemented jet")
+	dsc.waitGroup.Wait()
+	return nil
+}
+
+// AsyncErrors return errors from async calls collected until now
+func (dsc *Client) AsyncErrors() map[string]error {
+	return dsc.asyncErrors
 }
 
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
