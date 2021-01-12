@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,12 +28,15 @@ type tlsSetup struct {
 
 // Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
 type Client struct {
-	entryPoint       string
-	syslogHostname   string
-	defaultTag       string
-	conn             net.Conn
-	ReplaceSequences map[string]string
-	tls              *tlsSetup
+	entryPoint        string
+	syslogHostname    string
+	defaultTag        string
+	conn              net.Conn
+	ReplaceSequences  map[string]string
+	tls               *tlsSetup
+	waitGroup         sync.WaitGroup
+	asyncErrors       map[string]error
+	asyncErrorsMutext sync.Mutex
 }
 
 const (
