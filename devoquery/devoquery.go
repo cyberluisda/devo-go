@@ -179,8 +179,8 @@ func (dqt *QueryEngineToken) RunNewQuery(from time.Time, to time.Time, query str
 		return nil, fmt.Errorf("query can not be empty")
 	}
 
-	if from.Equal(to) {
-		return nil, fmt.Errorf("'from' value (%s) can not be equal to 'to' value (%s)", from, to)
+	if from.Unix() == to.Unix() {
+		return nil, fmt.Errorf("'from' value (%s) can not be equal to 'to' value (%s) with precission to second", from, to)
 	}
 
 	if from.After(to) {
