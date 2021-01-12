@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/satori/go.uuid"
 )
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
@@ -220,8 +222,21 @@ func (dsc *Client) SendWTag(t, m string) error {
 }
 
 // SendAsync is similar to Send but send events in async wayt (goroutine)
-func (dsc *Client) SendAsync(t string) error {
-	return fmt.Errorf("Not implemented jet")
+func (dsc *Client) SendAsync(m string) string {
+	dsc.waitGroup.Add(1)
+	id := uuid.NewV4().String()
+	go func(id string) {
+		err := dsc.Send(m)
+		if err != nil {
+			dsc.asyncErrorsMutext.Lock()
+			dsc.asyncErrors[id] = err
+			dsc.asyncErrorsMutext.Unlock()
+		}
+
+		dsc.waitGroup.Done()
+	}(id)
+
+	return id
 }
 
 // SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
