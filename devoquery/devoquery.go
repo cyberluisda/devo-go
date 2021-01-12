@@ -184,7 +184,7 @@ func (dqt *QueryEngineToken) RunNewQuery(from time.Time, to time.Time, query str
 	}
 
 	if from.After(to) {
-		return nil, fmt.Errorf("'from' value (%s) can not be 'after' to 'to' value (%s)", from, to)
+		return nil, fmt.Errorf("'from' value (%s) can not be after 'to' value (%s)", from, to)
 	}
 
 	r, err := dqt.devoRequest(from.Unix(), to.Unix(), query)
