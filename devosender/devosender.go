@@ -122,6 +122,7 @@ func NewDevoSenderTLSWithConfig(entrypoint string, key []byte, cert []byte, chai
 		ReplaceSequences: make(map[string]string),
 		tls:              tlsSetup,
 		entryPoint:       entrypoint,
+		asyncErrors:      make(map[string]error),
 	}
 
 	// Create connection
@@ -144,6 +145,7 @@ func NewDevoSender(entrypoint string) (*Client, error) {
 	result := Client{
 		ReplaceSequences: make(map[string]string),
 		entryPoint:       entrypoint,
+		asyncErrors:      make(map[string]error),
 	}
 
 	err := result.makeConnection()
