@@ -288,11 +288,6 @@ func parseQueryResult(d []byte) (*QueryResult, error) {
 
 	// Fill columns specification
 	for name, def := range data.Object.Fields {
-		// Checks column was not proviously added
-		_, ok := result.Columns[name]
-		if ok {
-			return &result, fmt.Errorf("Duplicated column name (%s) is not allowed, please consider rewrite query to avoid it", name)
-		}
 		result.Columns[name] = ColumnResult{
 			Name:  name,
 			Index: def.Index,
