@@ -187,7 +187,7 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 			"Error: HTTP request failling",
 			fields{
 				token:  "token",
-				apiURL: "http://api.does.not.extis.org",
+				apiURL: "http://api.does.not.exists.123454311878197982173187918273912873192837.org",
 			},
 			args{
 				from:  time.Now().Add(time.Minute * -5),
