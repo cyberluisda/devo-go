@@ -240,8 +240,22 @@ func (dsc *Client) SendAsync(m string) string {
 }
 
 // SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
-func (dsc *Client) SendWTagAsync(t, m string) error {
-	return fmt.Errorf("Not implemented jet")
+func (dsc *Client) SendWTagAsync(t, m string) string {
+
+	dsc.waitGroup.Add(1)
+	id := uuid.NewV4().String()
+	go func(id string) {
+		err := dsc.SendWTag(t, m)
+		if err != nil {
+			dsc.asyncErrorsMutext.Lock()
+			dsc.asyncErrors[id] = err
+			dsc.asyncErrorsMutext.Unlock()
+		}
+
+		dsc.waitGroup.Done()
+	}(id)
+
+	return id
 }
 
 // WaitForPendingAsyngMessages wait for all Async messages that are pending to send
