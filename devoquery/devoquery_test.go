@@ -296,10 +296,10 @@ func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
 			true,
 		},
 		{
-			"Error: HTTP request failling",
+			"Error: Unparseable content",
 			fields{
 				token:        "token",
-				apiURL:       "http://api.does.not.extis.org",
+				apiURL:       "http://api.does.not.exists.org", // Empty response
 				DefaultQuery: &q,
 			},
 			args{
