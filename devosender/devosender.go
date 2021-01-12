@@ -225,6 +225,8 @@ func (dsc *Client) SendWTag(t, m string) error {
 func (dsc *Client) SendAsync(m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+
+	// Run Send with go routine (concurrent call)
 	go func(id string) {
 		err := dsc.Send(m)
 		if err != nil {
@@ -241,9 +243,10 @@ func (dsc *Client) SendAsync(m string) string {
 
 // SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
 func (dsc *Client) SendWTagAsync(t, m string) string {
-
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+
+	// Run Send with go routine (concurrent call)
 	go func(id string) {
 		err := dsc.SendWTag(t, m)
 		if err != nil {
