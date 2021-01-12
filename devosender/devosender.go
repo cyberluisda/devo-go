@@ -16,7 +16,7 @@ type DevoSender interface {
 	Send(m string) error
 	SendWTag(t, m string) error
 	SendAsync(m string) string
-	SendWTagAsync(t, m string) error
+	SendWTagAsync(t, m string) string
 	WaitForPendingAsyngMessages() error
 }
 
