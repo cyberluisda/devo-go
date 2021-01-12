@@ -3,6 +3,7 @@ package devoquery
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestNewTokenEngine(t *testing.T) {
@@ -117,6 +118,114 @@ func TestNewTokenEngineDefaultQuery(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewTokenEngineDefaultQuery() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQueryEngineToken_RunNewQuery(t *testing.T) {
+	type fields struct {
+		token        string
+		apiURL       string
+		DefaultQuery *string
+	}
+	type args struct {
+		from  time.Time
+		to    time.Time
+		query string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *QueryResult
+		wantErr bool
+	}{
+		{
+			"Error: Empty query",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.extis.org",
+			},
+			args{
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: to value equal to from value with precission to second",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.extis.org",
+			},
+			args{
+				from:  time.Now(),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: to value before from value",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.extis.org",
+			},
+			args{
+				from:  time.Now().Add(time.Minute * 5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: HTTP request failling",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.extis.org",
+			},
+			args{
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: HTTP response code not valid",
+			fields{
+				token:  "token",
+				apiURL: DevoQueryApiv2EU,
+			},
+			args{
+				from:  time.Now().Add(time.Minute * -5),
+				to:    time.Now(),
+				query: "from test.keep.free",
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dqt := &QueryEngineToken{
+				token:        tt.fields.token,
+				apiURL:       tt.fields.apiURL,
+				DefaultQuery: tt.fields.DefaultQuery,
+			}
+			got, err := dqt.RunNewQuery(tt.args.from, tt.args.to, tt.args.query)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryEngineToken.RunNewQuery() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("QueryEngineToken.RunNewQuery() = %v, want %v", got, tt.want)
 			}
 		})
 	}
