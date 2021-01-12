@@ -230,3 +230,87 @@ func TestQueryEngineToken_RunNewQuery(t *testing.T) {
 		})
 	}
 }
+
+func TestQueryEngineToken_RunDefaultQuery(t *testing.T) {
+	// Values
+
+	q := "from test.keep.free"
+	qEmpty := ""
+
+	type fields struct {
+		token        string
+		apiURL       string
+		DefaultQuery *string
+	}
+	type args struct {
+		from time.Time
+		to   time.Time
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *QueryResult
+		wantErr bool
+	}{
+
+		{
+			"Error: Default query not defined",
+			fields{
+				token:  "token",
+				apiURL: "http://api.does.not.extis.org",
+			},
+			args{
+				from: time.Now().Add(time.Minute * -5),
+				to:   time.Now(),
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: Default query empty",
+			fields{
+				token:        "token",
+				apiURL:       "http://api.does.not.extis.org",
+				DefaultQuery: &qEmpty,
+			},
+			args{
+				from: time.Now().Add(time.Minute * -5),
+				to:   time.Now(),
+			},
+			nil,
+			true,
+		},
+		{
+			"Error: HTTP request failling",
+			fields{
+				token:        "token",
+				apiURL:       "http://api.does.not.extis.org",
+				DefaultQuery: &q,
+			},
+			args{
+				from: time.Now().Add(time.Minute * -5),
+				to:   time.Now(),
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dqt := &QueryEngineToken{
+				token:        tt.fields.token,
+				apiURL:       tt.fields.apiURL,
+				DefaultQuery: tt.fields.DefaultQuery,
+			}
+			got, err := dqt.RunDefaultQuery(tt.args.from, tt.args.to)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("QueryEngineToken.RunDefaultQuery() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("QueryEngineToken.RunDefaultQuery() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
