@@ -477,3 +477,43 @@ func TestRunNewQuery(t *testing.T) {
 		})
 	}
 }
+
+func TestRunDefaultQuery(t *testing.T) {
+	type args struct {
+		qe   QueryEngine
+		from time.Time
+		to   time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *QueryResult
+		wantErr bool
+	}{
+		{
+			"QueryEngineToken HTTP respose code error",
+			args{
+				qe: func() *QueryEngineToken {
+					q, _ := NewTokenEngineDefaultQuery(DevoQueryApiv2EU, "token", "from test.keep.free") // empty content
+					return q
+				}(),
+				from: time.Now().Add(time.Minute * -5),
+				to:   time.Now(),
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RunDefaultQuery(tt.args.qe, tt.args.from, tt.args.to)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RunDefaultQuery() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RunDefaultQuery() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
