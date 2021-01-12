@@ -179,12 +179,12 @@ func (dqt *QueryEngineToken) RunNewQuery(from time.Time, to time.Time, query str
 		return nil, fmt.Errorf("query can not be empty")
 	}
 
-	if from.Equal(to) {
-		return nil, fmt.Errorf("'from' value (%s) can not be equal to 'to' value (%s)", from, to)
+	if from.Unix() == to.Unix() {
+		return nil, fmt.Errorf("'from' value (%s) can not be equal to 'to' value (%s) with precission to second", from, to)
 	}
 
 	if from.After(to) {
-		return nil, fmt.Errorf("'from' value (%s) can not be 'after' to 'to' value (%s)", from, to)
+		return nil, fmt.Errorf("'from' value (%s) can not be after 'to' value (%s)", from, to)
 	}
 
 	r, err := dqt.devoRequest(from.Unix(), to.Unix(), query)
@@ -288,11 +288,6 @@ func parseQueryResult(d []byte) (*QueryResult, error) {
 
 	// Fill columns specification
 	for name, def := range data.Object.Fields {
-		// Checks column was not proviously added
-		_, ok := result.Columns[name]
-		if ok {
-			return &result, fmt.Errorf("Duplicated column name (%s) is not allowed, please consider rewrite query to avoid it", name)
-		}
 		result.Columns[name] = ColumnResult{
 			Name:  name,
 			Index: def.Index,
