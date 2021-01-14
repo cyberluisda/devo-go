@@ -49,3 +49,72 @@ func Test_replaceSequences(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_makeConnection(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"Empty entryPoint",
+			fields{},
+			true,
+		},
+		{
+			"Unexpected entryPoint format",
+			fields{
+				entryPoint: "this is not valid",
+			},
+			true,
+		},
+		{
+			"Error when create clean connection",
+			fields{
+				entryPoint: "udp://",
+			},
+			true,
+		},
+		{
+			"Error when create tls connection",
+			fields{
+				entryPoint: "tcp://doesnot.exist.12345678987654321.org:13003",
+				tls: func() *tlsSetup {
+					t := tlsSetup{}
+
+					return &t
+				}(),
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if err := dsc.makeConnection(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.makeConnection() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
