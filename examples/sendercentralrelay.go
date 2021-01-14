@@ -23,6 +23,7 @@ func main() {
 		fmt.Println("usage:", os.Args[0], "keyFile certFile chainFile US|EU #seconds")
 		fmt.Println("This command is an example of sending data to Central Devo Relay. See https://docs.devo.com/confluence/ndt/sending-data-to-devo for more info")
 		fmt.Println("keyFile certFile chainFile are the files required to stablish TLS connection and authenticate to your Devo domain. See https://docs.devo.com/confluence/ndt/domain-administration/security-credentials/x-509-certificates for more info")
+		fmt.Println("US|UE select the Devo site")
 		fmt.Println("#seconds is the number of seconds that current program will be sending events to Devo (one event per second)")
 		os.Exit(1)
 	}
