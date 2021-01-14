@@ -19,6 +19,13 @@ See next code examples:
 * [sendercentralrelay.go](./examples/sendercentralrelay.go) Example to send data to Devo central relay
 * [senderasync.go](./examples/senderasync.go) Example to send data to Devo relay-in house in _asynchronous_ mode
 
+## devologtable
+
+Package to abstract a Key Value structure (log table) using Devo tables as a persistence.
+
+See next code examples:
+* [logtable.go](./examples/logtable.go) Example to add, delete, get and dump values using `logtable` abstraction
+
 # Running examples
 
 To run examples you need to get Golang installed and configured. See [Golang official site](https://golang.org/) for more info.
