@@ -297,6 +297,7 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 	return nil
 }
 
+// Write allow Client struct to follow io.Writer interface
 func (dsc *Client) Write(p []byte) (n int, err error) {
 	msg := string(p)
 
@@ -308,6 +309,7 @@ func (dsc *Client) Write(p []byte) (n int, err error) {
 	return len(msg), nil
 }
 
+// Close is the method to close all interanl elements like connection that should be closed at end
 func (dsc *Client) Close() error {
 	if dsc.conn == nil {
 		return fmt.Errorf("Connection is nil")
