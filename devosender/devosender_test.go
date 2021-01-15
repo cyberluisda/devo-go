@@ -118,3 +118,69 @@ func TestClient_makeConnection(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_AddReplaceSequences(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	type args struct {
+		old string
+		new string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"Error: empty old string",
+			fields{},
+			args{},
+			true,
+		},
+		{
+			"Error: empty new string",
+			fields{},
+			args{
+				old: "old",
+			},
+			true,
+		},
+		{
+			"Error: empty new string",
+			fields{},
+			args{
+				old: "old",
+				new: "new",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if err := dsc.AddReplaceSequences(tt.args.old, tt.args.new); (err != nil) != tt.wantErr {
+				t.Errorf("Client.AddReplaceSequences() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
