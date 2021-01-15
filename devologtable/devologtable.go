@@ -15,6 +15,7 @@ import (
 type LogTableEngine interface {
 	SetValue(name string, value string) error
 	SetValueAndCheck(name string, value string, checkInterval time.Duration, maxRetries int)
+	SetBatchValues(values map[string]string) error
 	DeleteValue(name string) error
 	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int)
 	GetValue(name string) (*string, error)
