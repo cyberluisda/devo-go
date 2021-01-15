@@ -309,6 +309,9 @@ func (dsc *Client) Write(p []byte) (n int, err error) {
 }
 
 func (dsc *Client) Close() error {
+	if dsc.conn == nil {
+		return fmt.Errorf("Connection is nil")
+	}
 	return dsc.conn.Close()
 }
 
