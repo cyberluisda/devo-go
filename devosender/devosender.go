@@ -286,6 +286,10 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 		return fmt.Errorf("old and new param values can not be the same")
 	}
 
+	if dsc.ReplaceSequences == nil {
+		dsc.ReplaceSequences = make(map[string]string)
+	}
+
 	dsc.ReplaceSequences[old] = new
 
 	return nil
