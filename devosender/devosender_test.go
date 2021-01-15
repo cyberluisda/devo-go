@@ -408,3 +408,65 @@ func TestClient_Send(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_SetDefaultTag(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	type args struct {
+		t string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+		wantTag string
+	}{
+		{
+			"Set empty tag",
+			fields{},
+			args{},
+			true,
+			"",
+		},
+		{
+			"Set tag",
+			fields{},
+			args{
+				t: "new.tag",
+			},
+			false,
+			"new.tag",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if err := dsc.SetDefaultTag(tt.args.t); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SetDefaultTag() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantTag != dsc.defaultTag {
+				t.Errorf("Client.SetDefaultTag() defaultTag = %s, wantTag %s", dsc.defaultTag, tt.wantTag)
+			}
+		})
+	}
+}
