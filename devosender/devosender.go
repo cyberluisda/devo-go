@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
 type DevoSender interface {
+	io.WriteCloser
 	Send(m string) error
 	SendWTag(t, m string) error
 	SendAsync(m string) string
