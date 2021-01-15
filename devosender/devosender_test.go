@@ -559,3 +559,43 @@ func TestClient_Close(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Write(t *testing.T) {
+	type args struct {
+		p []byte
+	}
+	tests := []struct {
+		name    string
+		client  *Client
+		args    args
+		wantN   int
+		wantErr bool
+	}{
+		{
+			"Send using udp",
+			func() *Client {
+				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
+				sender.SetDefaultTag("tag")
+				return sender
+			}(),
+			args{
+				p: []byte("message"),
+			},
+			len("message"),
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			gotN, err := dsc.Write(tt.args.p)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.Write() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotN != tt.wantN {
+				t.Errorf("Client.Write() = %v, want %v", gotN, tt.wantN)
+			}
+		})
+	}
+}
