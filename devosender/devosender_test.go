@@ -3,6 +3,7 @@ package devosender
 import (
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"regexp"
 	"sync"
@@ -466,6 +467,64 @@ func TestClient_SetDefaultTag(t *testing.T) {
 			}
 			if tt.wantTag != dsc.defaultTag {
 				t.Errorf("Client.SetDefaultTag() defaultTag = %s, wantTag %s", dsc.defaultTag, tt.wantTag)
+			}
+		})
+	}
+}
+
+func TestClient_SetSyslogHostName(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	type args struct {
+		host string
+	}
+	tests := []struct {
+		name               string
+		fields             fields
+		args               args
+		wantSyslogHostname string
+	}{
+		{
+			"Empty hostname parameter",
+			fields{},
+			args{},
+			func() string {
+				h, _ := os.Hostname()
+				return h
+			}(),
+		},
+		{
+			"Set host parameter",
+			fields{},
+			args{"tarari"},
+			"tarari",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			dsc.SetSyslogHostName(tt.args.host)
+			if tt.wantSyslogHostname != dsc.syslogHostname {
+				t.Errorf("Client.SetDefaultTag() syslogHostname = %s, want = %s", dsc.syslogHostname, tt.wantSyslogHostname)
 			}
 		})
 	}
