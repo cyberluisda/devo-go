@@ -341,3 +341,37 @@ func TestClient_SendAsync(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_SendWTag(t *testing.T) {
+	type args struct {
+		t string
+		m string
+	}
+	tests := []struct {
+		name    string
+		client  *Client
+		args    args
+		wantErr bool
+	}{
+		{
+			"Send using udp",
+			func() *Client {
+				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
+				return sender
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if err := dsc.SendWTag(tt.args.t, tt.args.m); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
