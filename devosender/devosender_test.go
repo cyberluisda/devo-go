@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"regexp"
 	"sync"
 	"testing"
 )
@@ -270,6 +271,58 @@ func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
 			}
 			if err := dsc.WaitForPendingAsyngMessages(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.WaitForPendingAsyngMessages() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_SendWTagAsync(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	type args struct {
+		t string
+		m string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *regexp.Regexp
+	}{
+		{
+			"Expected id pattern",
+			fields{},
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile(`^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if got := dsc.SendWTagAsync(tt.args.t, tt.args.m); !tt.want.Match([]byte(got)) {
+				t.Errorf("Client.SendWTagAsync() = %v, want matching with %v", got, tt.want.String())
 			}
 		})
 	}
