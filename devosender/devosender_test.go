@@ -1,7 +1,9 @@
 package devosender
 
 import (
+	"fmt"
 	"net"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -180,6 +182,51 @@ func TestClient_AddReplaceSequences(t *testing.T) {
 			}
 			if err := dsc.AddReplaceSequences(tt.args.old, tt.args.new); (err != nil) != tt.wantErr {
 				t.Errorf("Client.AddReplaceSequences() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_AsyncErrors(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   map[string]error
+	}{
+		{
+			"Return asyncMap",
+			fields{
+				asyncErrors: map[string]error{"id1": fmt.Errorf("Error 1")},
+			},
+			map[string]error{"id1": fmt.Errorf("Error 1")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if got := dsc.AsyncErrors(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.AsyncErrors() = %v, want %v", got, tt.want)
 			}
 		})
 	}
