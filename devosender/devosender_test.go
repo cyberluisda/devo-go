@@ -96,7 +96,7 @@ func TestClient_makeConnection(t *testing.T) {
 					return &t
 				}(),
 			},
-			false,
+			true,
 		},
 	}
 	for _, tt := range tests {
