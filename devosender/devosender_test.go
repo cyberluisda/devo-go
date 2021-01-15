@@ -529,3 +529,33 @@ func TestClient_SetSyslogHostName(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Close(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  *Client
+		wantErr bool
+	}{
+		{
+			"Empty connection",
+			&Client{},
+			true,
+		},
+		{
+			"Close connection",
+			func() *Client {
+				s, _ := NewDevoSender("udp://examle.org:80")
+				return s
+			}(),
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if err := dsc.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
