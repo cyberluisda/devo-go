@@ -218,6 +218,44 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 	return fmt.Errorf("I can not be sure if element with name '%s' was set to '%s' after %d retries with pauses of %v between checks", name, value, maxRetries, checkInterval)
 }
 
+func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) error {
+	rawMessages := make([]string, len(values))
+	i := 0
+	for k, v := range values {
+		rawMessage, err := solveTpl(
+			ltoc.saveTpl,
+			oneColumnSaveData{
+				Command: "S",
+				Name:    k,
+				Value:   v,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("Error when create raw data from template '%s', to save name '%s', value '%s': %w", oneStringColumnSaveTpl, k, v, err)
+		}
+		rawMessages[i] = rawMessage
+		i++
+	}
+
+	for _, v := range rawMessages {
+		ltoc.devoSender.SendWTagAsync(ltoc.Table, v)
+	}
+
+	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	if err != nil {
+		return fmt.Errorf("Error when wait for pending async messages: %w", err)
+	}
+
+	if len(ltoc.devoSender.AsyncErrors()) > 0 {
+		err := fmt.Errorf("Errors returned when send data in async mode:")
+		for k, v := range ltoc.devoSender.AsyncErrors() {
+			err = fmt.Errorf("%w, %s: %v", err, k, v)
+		}
+		return err
+	}
+	return nil
+}
+
 // DeleteValue mark a value as deleted. This method only run save data withot any check about state
 // name is the name of the value to be deleted: The key
 func (ltoc *LogTableOneStringColumn) DeleteValue(name string) error {
