@@ -311,29 +311,21 @@ func TestClient_SendWTagAsync(t *testing.T) {
 }
 
 func TestClient_SendAsync(t *testing.T) {
-	type fields struct {
-		entryPoint        string
-		syslogHostname    string
-		defaultTag        string
-		conn              net.Conn
-		ReplaceSequences  map[string]string
-		tls               *tlsSetup
-		waitGroup         sync.WaitGroup
-		asyncErrors       map[string]error
-		asyncErrorsMutext sync.Mutex
-	}
 	type args struct {
 		m string
 	}
 	tests := []struct {
 		name   string
-		fields fields
+		client *Client
 		args   args
 		want   *regexp.Regexp
 	}{
 		{
 			"Expected id pattern",
-			fields{},
+			func() *Client {
+				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
+				return sender
+			}(),
 			args{
 				m: "message",
 			},
@@ -342,17 +334,7 @@ func TestClient_SendAsync(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dsc := &Client{
-				entryPoint:        tt.fields.entryPoint,
-				syslogHostname:    tt.fields.syslogHostname,
-				defaultTag:        tt.fields.defaultTag,
-				conn:              tt.fields.conn,
-				ReplaceSequences:  tt.fields.ReplaceSequences,
-				tls:               tt.fields.tls,
-				waitGroup:         tt.fields.waitGroup,
-				asyncErrors:       tt.fields.asyncErrors,
-				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
-			}
+			dsc := tt.client
 			if got := dsc.SendAsync(tt.args.m); !tt.want.Match([]byte(got)) {
 				t.Errorf("Client.SendWTagAsync() = %v, want matching with %v", got, tt.want.String())
 			}
