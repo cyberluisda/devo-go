@@ -297,6 +297,21 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 	return nil
 }
 
+func (dsc *Client) Write(p []byte) (n int, err error) {
+	msg := string(p)
+
+	err = dsc.Send(msg)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(msg), nil
+}
+
+func (dsc *Client) Close() error {
+	return dsc.conn.Close()
+}
+
 func (dsc *Client) makeConnection() error {
 	if dsc.entryPoint == "" {
 		return fmt.Errorf("Entrypoint can not be empty")
