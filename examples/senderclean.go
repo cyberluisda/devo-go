@@ -43,6 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error when initialize Devo Sender: %v\n", err)
 	}
+	defer sender.Close()
 
 	sender.SetDefaultTag(defaultTag)
 

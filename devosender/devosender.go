@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
 type DevoSender interface {
+	io.WriteCloser
 	Send(m string) error
 	SendWTag(t, m string) error
 	SendAsync(m string) string
@@ -293,6 +295,26 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 	dsc.ReplaceSequences[old] = new
 
 	return nil
+}
+
+// Write allow Client struct to follow io.Writer interface
+func (dsc *Client) Write(p []byte) (n int, err error) {
+	msg := string(p)
+
+	err = dsc.Send(msg)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(msg), nil
+}
+
+// Close is the method to close all interanl elements like connection that should be closed at end
+func (dsc *Client) Close() error {
+	if dsc.conn == nil {
+		return fmt.Errorf("Connection is nil")
+	}
+	return dsc.conn.Close()
 }
 
 func (dsc *Client) makeConnection() error {

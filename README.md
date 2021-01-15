@@ -18,6 +18,7 @@ See next code examples:
 * [senderclean.go](./examples/senderclean.go) Example to send data to Devo relay-in house
 * [sendercentralrelay.go](./examples/sendercentralrelay.go) Example to send data to Devo central relay
 * [senderasync.go](./examples/senderasync.go) Example to send data to Devo relay-in house in _asynchronous_ mode
+* [senderfileasevent.go](./examples/senderfileasevent.go) Example to send content of a file as only one event to Devo relay-in house. Using `io.Copy` func
 
 ## devologtable
 
