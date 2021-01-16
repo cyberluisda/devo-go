@@ -370,10 +370,10 @@ func (ltoc *LogTableOneStringColumn) GetValue(name string) (*string, error) {
 
 }
 
-// GetValueAsNumber is similar to GetValue but parse value to float64
-func (ltoc *LogTableOneStringColumn) GetValueAsNumber(name string) (*float64, error) {
+// GetValueAsNumber is similar to lte.GetValue but parse value to float64
+func GetValueAsNumber(lte LogTableEngine, name string) (*float64, error) {
 	// Load as string
-	val, err := ltoc.GetValue(name)
+	val, err := lte.GetValue(name)
 	if err != nil {
 		return nil, err
 	}
@@ -391,10 +391,10 @@ func (ltoc *LogTableOneStringColumn) GetValueAsNumber(name string) (*float64, er
 	return &f, nil
 }
 
-// GetValueAsBool is similar to GetValue but parse value to boolean
-func (ltoc *LogTableOneStringColumn) GetValueAsBool(name string) (*bool, error) {
+// GetValueAsBool is similar to lte.GetValue but parse returned value to boolean
+func GetValueAsBool(lte LogTableEngine, name string) (*bool, error) {
 	// Load as string
-	val, err := ltoc.GetValue(name)
+	val, err := lte.GetValue(name)
 	if err != nil {
 		return nil, err
 	}
