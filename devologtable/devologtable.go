@@ -14,10 +14,10 @@ import (
 // LogTableEngine define the required behaviour to work with LogTable
 type LogTableEngine interface {
 	SetValue(name string, value string) error
-	SetValueAndCheck(name string, value string, checkInterval time.Duration, maxRetries int)
+	SetValueAndCheck(name string, value string, checkInterval time.Duration, maxRetries int) error
 	SetBatchValues(values map[string]string) error
 	DeleteValue(name string) error
-	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int)
+	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int) error
 	GetValue(name string) (*string, error)
 	GetAll() (map[string]string, error)
 	GetValueAsNumber(name string) (*float64, error)
