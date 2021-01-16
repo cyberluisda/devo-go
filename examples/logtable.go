@@ -170,7 +170,7 @@ func main() {
 	fmt.Println("Number values:")
 	for k := range data {
 		fmt.Print(k, "--> ")
-		v, err := logtable.GetValueAsNumber(k)
+		v, err := devologtable.GetValueAsNumber(logtable, k)
 		if err == nil {
 			fmt.Println("v", *v)
 		} else {
@@ -181,7 +181,7 @@ func main() {
 	fmt.Println("Bool values:")
 	for k := range data {
 		fmt.Print(k, "--> ")
-		v, err := logtable.GetValueAsBool(k)
+		v, err := devologtable.GetValueAsBool(logtable, k)
 		if err == nil {
 			fmt.Println("v", *v)
 		} else {
