@@ -599,3 +599,55 @@ func TestClient_Write(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_PurgeAsyncErrors(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			"Empty internal structure",
+			fields{},
+		},
+		{
+			"With data",
+			fields{
+				asyncErrors: map[string]error{
+					"error1": fmt.Errorf("Error 1"),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			dsc.PurgeAsyncErrors()
+
+			if len(dsc.asyncErrors) > 0 {
+				t.Errorf("Client.PurgeAsyncErrors() tt.asyncErrors = %v, want empty", dsc.asyncErrors)
+				return
+			}
+		})
+	}
+}
