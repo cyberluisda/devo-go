@@ -394,6 +394,45 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 
 	return result, nil
 }
+
+func (ltoc *LogTableOneStringColumn) DeleteBatchValues(names []string) error {
+
+	rawMessages := make([]string, len(names))
+	for i, name := range names {
+		rawMessage, err := solveTpl(
+			ltoc.saveTpl,
+			oneColumnSaveData{
+				Command: "D",
+				Name:    name,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("Error when create raw data from template '%s', to delete name '%s': %w", oneStringColumnSaveTpl, name, err)
+		}
+
+		rawMessages[i] = rawMessage
+	}
+
+	ltoc.devoSender.PurgeAsyncErrors()
+	for _, msg := range rawMessages {
+		ltoc.devoSender.SendWTagAsync(ltoc.Table, msg)
+	}
+
+	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	if err != nil {
+		return fmt.Errorf("Error when wait for pending async messages: %w", err)
+	}
+
+	if len(ltoc.devoSender.AsyncErrors()) > 0 {
+		err := fmt.Errorf("Errors returned when send data in async mode:")
+		for k, v := range ltoc.devoSender.AsyncErrors() {
+			err = fmt.Errorf("%w, %s: %v", err, k, v)
+		}
+		return err
+	}
+	return nil
+}
+
 // GetValue return the value saved for located by name, or return nil if value does not exists or was removed
 func (ltoc *LogTableOneStringColumn) GetValue(name string) (*string, error) {
 	query, err := solveTpl(
