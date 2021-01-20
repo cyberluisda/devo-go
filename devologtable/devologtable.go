@@ -18,6 +18,7 @@ type LogTableEngine interface {
 	SetBatchValues(values map[string]string) error
 	DeleteValue(name string) error
 	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int) error
+	DeleteBatchValues(names []string) error
 	GetValue(name string) (*string, error)
 	GetAll() (map[string]string, error)
 	GetNames(devoRegexp string) ([]string, error)
