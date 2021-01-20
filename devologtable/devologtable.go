@@ -41,6 +41,7 @@ type LogTableOneStringColumn struct {
 	queryGetValueTpl      *template.Template
 	queryLastControlPoint string
 	queryFirstDataLive    string
+	queryGetNamesTpl *template.Template
 }
 
 type oneColumnSaveData struct {
@@ -103,6 +104,16 @@ const (
 	select first(eventdate) as initdata
 	`
 
+	oneStringColumnQueryGetAllNamesTpl = `from {{.Table}}
+	select
+		split({{.Column}}, "^##|", 0) as command,
+		split({{.Column}}, "^##|", 1) as name
+	where name ~ re("{{.Name}}")
+	group every 0 by name
+	select last(command) as command
+	where command != "D"
+	`
+
 	oneStringColumnSaveTpl = `{{.Command}}^##|{{.Name}}^##|{{.Value}}^##|{{.Meta}}`
 )
 
@@ -123,6 +134,7 @@ func NewLogTableOneStringColumn(qe devoquery.QueryEngine, ds devosender.DevoSend
 
 	tplSave := template.Must(template.New("save").Parse(oneStringColumnSaveTpl))
 	tplQueryGetValue := template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl))
+	tplQueryGetNames := template.Must(template.New("queryGetNames").Parse(oneStringColumnQueryGetAllNamesTpl))
 
 	result := &LogTableOneStringColumn{
 		Table:            table,
@@ -133,6 +145,7 @@ func NewLogTableOneStringColumn(qe devoquery.QueryEngine, ds devosender.DevoSend
 		maxBeginTable:    maxBeginTable,
 		saveTpl:          tplSave,
 		queryGetValueTpl: tplQueryGetValue,
+		queryGetNamesTpl: tplQueryGetNames,
 	}
 
 	tpl := template.Must(template.New("query").Parse(oneStringColumnQueryAllTpl))
