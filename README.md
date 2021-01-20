@@ -28,6 +28,7 @@ Package to abstract a Key Value structure (log table) using Devo tables as a per
 See next code examples:
 * [logtable.go](./examples/logtable.go) Example to add, delete, get and dump values using `logtable` abstraction
 * [logtable_batch.go](./examples/logtable_batch.go) Example to add/set a batch of values in a `logtable`
+* [logtable_prefixnames.go](./examples/logtable_prefixnames.go) Example to list and optionally delete a batch of values in a `logtable`
 
 # Running examples
 
