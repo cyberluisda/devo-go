@@ -72,6 +72,7 @@ const (
   	last(command) as command,
     last(value) as value,
     last(meta) as meta
+	where command != 'D'
   `
 
 	oneStringColumnQueryGetValueTpl = `from {{.Table}}
@@ -330,7 +331,7 @@ func (ltoc *LogTableOneStringColumn) GetAll() (map[string]string, error) {
 	for _, row := range data.Values {
 		command := fmt.Sprintf("%s", row[data.Columns["command"].Index])
 
-		if command == "S" {
+		if command == "S" { // Double check
 			name := fmt.Sprintf("%s", row[data.Columns["name"].Index])
 			value := fmt.Sprintf("%s", row[data.Columns["value"].Index])
 			result[name] = value
