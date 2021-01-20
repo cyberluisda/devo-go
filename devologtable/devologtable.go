@@ -20,6 +20,7 @@ type LogTableEngine interface {
 	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int) error
 	GetValue(name string) (*string, error)
 	GetAll() (map[string]string, error)
+	GetNames(devoRegexp string) ([]string, error)
 	AddControlPoint() error
 	RefreshDataHead() error
 }
