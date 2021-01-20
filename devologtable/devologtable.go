@@ -250,6 +250,7 @@ func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) er
 		i++
 	}
 
+	ltoc.devoSender.PurgeAsyncErrors()
 	for _, v := range rawMessages {
 		ltoc.devoSender.SendWTagAsync(ltoc.Table, v)
 	}
