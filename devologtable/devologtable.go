@@ -340,6 +340,57 @@ func (ltoc *LogTableOneStringColumn) GetAll() (map[string]string, error) {
 	return result, nil
 }
 
+// GetNames return the list of nambes based on regeular expression. devoRegexp must be in Devo regular expression
+// format (https://docs.devo.com/confluence/ndt/searching-data/building-a-query/operations-reference/string-group/matches-matches)
+// The only requirement is that regeular expression must start with '^' and end with '$'
+func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, error) {
+	result := []string{}
+
+	if devoRegexp == "" || devoRegexp == "^$" {
+		return result, fmt.Errorf("devoRegexp can not be empty ('^$' is considered empty too)")
+	}
+
+	if len(devoRegexp) < 3 {
+		return result, fmt.Errorf("len of devoRegexp param  must be greater than 3")
+	}
+
+	if devoRegexp[0] != '^' {
+		return result, fmt.Errorf("devoRegexp must start with '^' char")
+	}
+
+	if devoRegexp[len(devoRegexp) - 1 ] != '$' {
+		return result, fmt.Errorf("devoRegexp must end with '$' char")
+	}
+
+	// We reuse oneColumnQueryByName struct in template
+	query, err := solveTpl(
+		ltoc.queryGetNamesTpl,
+		oneColumnQueryByName{
+			Table: ltoc.Table,
+			Column: ltoc.Column,
+			Name: devoRegexp,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Error when create raw data from template '%s', to get names using '%s' regexp: %w", oneStringColumnQueryGetAllNamesTpl, devoRegexp, err)
+	}
+
+	data, err := ltoc.queryEngine.RunNewQuery(ltoc.BeginTable, time.Now(), query)
+	if err != nil {
+		return nil, fmt.Errorf("Error when run query for get names, regexp: '%s': %w", devoRegexp, err)
+	}
+
+	if len(data.Values) == 0 {
+		return result, nil
+	}
+
+	for _, r := range  data.Values {
+		v := fmt.Sprintf("%s", r[data.Columns["name"].Index])
+		result = append(result, v)
+	}
+
+	return result, nil
+}
 // GetValue return the value saved for located by name, or return nil if value does not exists or was removed
 func (ltoc *LogTableOneStringColumn) GetValue(name string) (*string, error) {
 	query, err := solveTpl(
