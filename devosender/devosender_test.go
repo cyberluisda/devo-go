@@ -720,3 +720,63 @@ func TestNewClientBuilder(t *testing.T) {
 		})
 	}
 }
+
+func TestClientBuilder_EntryPoint(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+	}
+	type args struct {
+		entrypoint string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set entrypoint",
+			fields{
+				"old entrypoint",
+				nil,
+				nil,
+				nil,
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+			},
+			args{"new entrypoint"},
+			&ClientBuilder{
+				entrypoint: "new entrypoint",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+			}
+			if got := dsb.EntryPoint(tt.args.entrypoint); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.EntryPoint() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
