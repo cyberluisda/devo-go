@@ -24,6 +24,7 @@ type DevoSender interface {
 	SendWTagAsync(t, m string) string
 	WaitForPendingAsyngMessages() error
 	AsyncErrors() map[string]error
+	PurgeAsyncErrors()
 }
 
 type tlsSetup struct {
