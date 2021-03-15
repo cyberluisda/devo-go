@@ -112,6 +112,17 @@ func (dsb *ClientBuilder) TLSRenegotiation(renegotiation tls.RenegotiationSuppor
 	return dsb
 }
 
+// DevoCentralEntryPoint Set One of the available Devo cental relays.
+// This value overwrite (and is overwritten) by EntryPoint
+func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRelay) *ClientBuilder {
+	if relay == ClientBuilderRelayEU {
+		dsb.EntryPoint(DevoCentralRelayEU)
+	} else if relay == ClientBuilderRelayUS {
+		dsb.EntryPoint(DevoCentralRelayUS)
+	}
+	return dsb
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
