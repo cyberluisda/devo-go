@@ -544,7 +544,11 @@ func TestClient_Close(t *testing.T) {
 		{
 			"Close connection",
 			func() *Client {
-				s, _ := NewDevoSender("udp://examle.org:80")
+				s, err := NewDevoSender("udp://example.org:80")
+				if err != nil {
+					fmt.Println("UNEXPECTED error found", err)
+				}
+
 				return s
 			}(),
 			false,
