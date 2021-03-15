@@ -100,6 +100,12 @@ func (dsb *ClientBuilder) TLSInsecureSkipVerify(insecureSkipVerify bool) *Client
 	return dsb
 }
 
+// TLSRenegotiation sets tlsRenegotiation support, this value is used only with TLS connections
+func (dsb *ClientBuilder) TLSRenegotiation(renegotiation tls.RenegotiationSupport) *ClientBuilder {
+	dsb.tlsRenegotiation = renegotiation
+	return dsb
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
