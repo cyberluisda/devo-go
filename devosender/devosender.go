@@ -64,6 +64,15 @@ type ClientBuilder struct {
 	tlsRenegotiation          tls.RenegotiationSupport
 }
 
+
+// NewClientBuilder returns new DevoSenderBuilder
+func NewClientBuilder() *ClientBuilder {
+	return &ClientBuilder{
+		tlsInsecureSkipVerify: false,
+		tlsRenegotiation:      tls.RenegotiateNever,
+	}
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
