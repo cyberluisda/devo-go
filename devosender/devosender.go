@@ -25,6 +25,7 @@ type DevoSender interface {
 	WaitForPendingAsyngMessages() error
 	AsyncErrors() map[string]error
 	PurgeAsyncErrors()
+	GetEntryPoint() string
 }
 
 type tlsSetup struct {
