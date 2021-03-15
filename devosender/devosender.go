@@ -284,6 +284,11 @@ func (dsc *Client) PurgeAsyncErrors() {
 	}
 }
 
+// GetEntryPoint return entrypoint used by client
+func (dsc *Client) GetEntryPoint() string {
+	return dsc.entryPoint
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
