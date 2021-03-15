@@ -1,6 +1,7 @@
 package devosender
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"os"
@@ -1034,3 +1035,87 @@ func TestClientBuilder_TLSInsecureSkipVerify(t *testing.T) {
 		})
 	}
 }
+
+func TestClientBuilder_TLSRenegotiation(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+	}
+	type args struct {
+		renegotiation tls.RenegotiationSupport
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set tlsRenegotitation to RenegotiateOnceAsClient value",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				tls.RenegotiateOnceAsClient,
+			},
+			&ClientBuilder{
+				tlsRenegotiation: tls.RenegotiateOnceAsClient,
+			},
+		},
+		{
+			"Set tlsRenegotitation to RenegotiateFreelyAsClient value",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				tls.RenegotiateFreelyAsClient,
+			},
+			&ClientBuilder{
+				tlsRenegotiation: tls.RenegotiateFreelyAsClient,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+			}
+			if got := dsb.TLSRenegotiation(tt.args.renegotiation); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TLSRenegotiation() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientBuilder_Build(t *testing.T) {
