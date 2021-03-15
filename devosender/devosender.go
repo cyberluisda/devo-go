@@ -455,3 +455,27 @@ func replaceSequences(s string, sequences map[string]string) string {
 
 	return s
 }
+
+func loadTlsFiles(keyFileName, certFileName string, chainFileName *string) ([]byte, []byte, []byte, error) {
+	var dataKey []byte
+	var dataCert []byte
+	var dataChain []byte
+	var err error
+	dataKey, err = ioutil.ReadFile(keyFileName)
+	if err != nil {
+		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Key file '%s': %w", keyFileName, err)
+	}
+
+	dataCert, err = ioutil.ReadFile(certFileName)
+	if err != nil {
+		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cert file '%s': %w", certFileName, err)
+	}
+
+	if chainFileName != nil {
+		dataChain, err = ioutil.ReadFile(*chainFileName)
+		if err != nil {
+			return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cahin (RootCA) file '%s': %w", *chainFileName, err)
+		}
+	}
+	return dataKey, dataCert, dataChain, nil
+}
