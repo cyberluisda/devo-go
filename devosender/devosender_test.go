@@ -884,3 +884,91 @@ func TestClientBuilder_TLSFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestClientBuilder_TLSCerts(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+	}
+	type args struct {
+		key   []byte
+		cert  []byte
+		chain []byte
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set nil values",
+			fields{
+				"",
+				[]byte("old key"),
+				[]byte("old cert"),
+				[]byte("old chain"),
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				nil,
+				nil,
+				nil,
+			},
+			&ClientBuilder{},
+		},
+		{
+			"Set values",
+			fields{
+				"",
+				[]byte("old key"),
+				[]byte("old cert"),
+				[]byte("old chain"),
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				[]byte("new key"),
+				[]byte("new cert"),
+				[]byte("new chain"),
+			},
+			&ClientBuilder{
+				key:   []byte("new key"),
+				cert:  []byte("new cert"),
+				chain: []byte("new chain"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+			}
+			if got := dsb.TLSCerts(tt.args.key, tt.args.cert, tt.args.chain); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TLSCerts() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
