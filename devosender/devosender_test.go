@@ -698,3 +698,25 @@ func TestClient_GetEntryPoint(t *testing.T) {
 		})
 	}
 }
+
+func TestNewClientBuilder(t *testing.T) {
+	tests := []struct {
+		name string
+		want *ClientBuilder
+	}{
+		{
+			"Builder instantiate with default values",
+			&ClientBuilder{
+				tlsRenegotiation:      tls.RenegotiateNever,
+				tlsInsecureSkipVerify: false,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewClientBuilder(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewClientBuilder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
