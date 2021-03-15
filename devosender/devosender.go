@@ -64,6 +64,7 @@ type ClientBuilder struct {
 	tlsRenegotiation          tls.RenegotiationSupport
 }
 
+type ClienBuilderDevoCentralRelay int
 
 // NewClientBuilder returns new DevoSenderBuilder
 func NewClientBuilder() *ClientBuilder {
