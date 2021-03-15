@@ -1118,4 +1118,59 @@ func TestClientBuilder_TLSRenegotiation(t *testing.T) {
 	}
 }
 
+func TestParseDevoCentralEntrySite(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    ClienBuilderDevoCentralRelay
+		wantErr bool
+	}{
+		{
+			"Parse US entrypoint",
+			args{"US"},
+			ClientBuilderRelayUS,
+			false,
+		},
+		{
+			"Parse us entrypoint",
+			args{"US"},
+			ClientBuilderRelayUS,
+			false,
+		},
+		{
+			"Parse EU entrypoint",
+			args{"EU"},
+			ClientBuilderRelayEU,
+			false,
+		},
+		{
+			"Parse eu entrypoint",
+			args{"eu"},
+			ClientBuilderRelayEU,
+			false,
+		},
+		{
+			"Parse invalid entrypoint",
+			args{"THIS IS NOT VALID"},
+			0,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseDevoCentralEntrySite(tt.args.s)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseDevoCentralEntrySite() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseDevoCentralEntrySite() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClientBuilder_Build(t *testing.T) {
