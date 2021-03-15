@@ -780,3 +780,107 @@ func TestClientBuilder_EntryPoint(t *testing.T) {
 		})
 	}
 }
+
+func TestClientBuilder_TLSFiles(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+	}
+	type args struct {
+		keyFileName   string
+		certFileName  string
+		chainFileName *string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set without chainFileName",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"old key file name",
+				"old cert file name",
+				func() *string {
+					oldChain := "old chain file name"
+					return &oldChain
+				}(),
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				"new key file name",
+				"new cert file name",
+				nil,
+			},
+			&ClientBuilder{
+				keyFileName:   "new key file name",
+				certFileName:  "new cert file name",
+				chainFileName: nil,
+			},
+		},
+		{
+			"Set all",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"old key file name",
+				"old cert file name",
+				func() *string {
+					oldChain := "old chain file name"
+					return &oldChain
+				}(),
+				false,
+				tls.RenegotiateNever,
+			},
+			args{
+				"new key file name",
+				"new cert file name",
+				func() *string {
+					chain := "new chain file name"
+					return &chain
+				}(),
+			},
+			&ClientBuilder{
+				keyFileName:  "new key file name",
+				certFileName: "new cert file name",
+				chainFileName: func() *string {
+					chain := "new chain file name"
+					return &chain
+				}(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+			}
+			if got := dsb.TLSFiles(tt.args.keyFileName, tt.args.certFileName, tt.args.chainFileName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TLSFiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
