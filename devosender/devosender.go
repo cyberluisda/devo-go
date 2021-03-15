@@ -143,23 +143,9 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
 func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
-
-	dataKey, err := ioutil.ReadFile(keyFileName)
+	dataKey, dataCert, dataChain, err := loadTlsFiles(keyFileName, certFileName, chainFileName)
 	if err != nil {
-		return nil, fmt.Errorf("Error when load Key file '%s': %w", keyFileName, err)
-	}
-
-	dataCert, err := ioutil.ReadFile(certFileName)
-	if err != nil {
-		return nil, fmt.Errorf("Error when load Cert file '%s': %w", certFileName, err)
-	}
-
-	var dataChain []byte
-	if chainFileName != nil {
-		dataChain, err = ioutil.ReadFile(*chainFileName)
-		if err != nil {
-			return nil, fmt.Errorf("Error when load Cahin (RootCA) file '%s': %w", *chainFileName, err)
-		}
+		return nil, err
 	}
 
 	return NewDevoSenderTLS(entrypoint, dataKey, dataCert, dataChain)
