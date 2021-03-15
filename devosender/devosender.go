@@ -73,6 +73,13 @@ func NewClientBuilder() *ClientBuilder {
 	}
 }
 
+// EntryPoint sets entrypoint in builder used to create Client
+// This value overwrite (and is overwritten) by DevoCentralEntryPoint
+func (dsb *ClientBuilder) EntryPoint(entrypoint string) *ClientBuilder {
+	dsb.entrypoint = entrypoint
+	return dsb
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
