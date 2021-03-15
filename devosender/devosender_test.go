@@ -603,3 +603,53 @@ func TestClient_Write(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_PurgeAsyncErrors(t *testing.T) {
+	type fields struct {
+		entryPoint        string
+		syslogHostname    string
+		defaultTag        string
+		conn              net.Conn
+		ReplaceSequences  map[string]string
+		tls               *tlsSetup
+		waitGroup         sync.WaitGroup
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			"nil asyncErrors",
+			fields{},
+		},
+		{
+			"Clean asyncErrors",
+			fields{
+				asyncErrors: map[string]error{
+					"a": fmt.Errorf("demo error"),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:        tt.fields.entryPoint,
+				syslogHostname:    tt.fields.syslogHostname,
+				defaultTag:        tt.fields.defaultTag,
+				conn:              tt.fields.conn,
+				ReplaceSequences:  tt.fields.ReplaceSequences,
+				tls:               tt.fields.tls,
+				waitGroup:         tt.fields.waitGroup,
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			dsc.PurgeAsyncErrors()
+			if dsc.asyncErrors != nil && len(dsc.asyncErrors) > 0 {
+				t.Errorf("PurgeAsyncErrors() async errors still existing: %d", len(dsc.asyncErrors))
+			}
+		})
+	}
+}
