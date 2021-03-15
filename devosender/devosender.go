@@ -143,7 +143,7 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
 func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
-	dataKey, dataCert, dataChain, err := loadTlsFiles(keyFileName, certFileName, chainFileName)
+	dataKey, dataCert, dataChain, err := loadTLSFiles(keyFileName, certFileName, chainFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ func replaceSequences(s string, sequences map[string]string) string {
 	return s
 }
 
-func loadTlsFiles(keyFileName, certFileName string, chainFileName *string) ([]byte, []byte, []byte, error) {
+func loadTLSFiles(keyFileName, certFileName string, chainFileName *string) ([]byte, []byte, []byte, error) {
 	var dataKey []byte
 	var dataCert []byte
 	var dataChain []byte
