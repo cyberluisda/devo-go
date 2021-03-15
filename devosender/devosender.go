@@ -69,6 +69,7 @@ type ClientBuilder struct {
 	tlsRenegotiation          tls.RenegotiationSupport
 }
 
+// ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
 type ClienBuilderDevoCentralRelay int
 
 // NewClientBuilder returns new DevoSenderBuilder
@@ -125,7 +126,7 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
-func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error){
+func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
 	if strings.EqualFold("US", s) {
 		return ClientBuilderRelayUS, nil
 	} else if strings.EqualFold("EU", s) {
@@ -142,7 +143,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 	}
 
 	if dsb.keyFileName != "" && dsb.certFileName != "" {
-		dataKey, dataCert, dataChain, err := loadTlsFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
+		dataKey, dataCert, dataChain, err := loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
 		if err != nil {
 			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
 		}
