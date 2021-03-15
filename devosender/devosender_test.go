@@ -1174,3 +1174,82 @@ func TestParseDevoCentralEntrySite(t *testing.T) {
 }
 
 func TestClientBuilder_Build(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    *Client
+		wantErr bool
+	}{
+		{
+			"Clean udp connection",
+			fields{
+				entrypoint: "udp://example.org:80",
+			},
+			func() *Client {
+				r, _ := NewDevoSender("udp://example.org:80")
+				return r
+			}(),
+			false,
+		},
+		{
+			"Error tcp connection",
+			fields{
+				entrypoint: "tcp://dosnotexiststhishostname:1234",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error keyFile and certFile",
+			fields{
+				entrypoint:   "udp://example.org:80",
+				keyFileName:  "/ensure/this/file/does/not/exists",
+				certFileName: "/ensure/this/file/does/not/exists",
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+			}
+			got, err := dsb.Build()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ClientBuilder.Build() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// Fields to be ignored assigned from source
+			if got != nil {
+				if got.conn != nil {
+					got.conn.Close()
+				}
+				got.conn = tt.want.conn
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.Build() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
