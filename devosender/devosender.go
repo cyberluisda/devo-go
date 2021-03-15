@@ -54,6 +54,16 @@ const (
 	DefaultSyslogLevel = "<14>"
 )
 
+// ClientBuilder defines builder for easy DevoSender instantiation
+type ClientBuilder struct {
+	entrypoint                string
+	key, cert, chain          []byte
+	keyFileName, certFileName string
+	chainFileName             *string
+	tlsInsecureSkipVerify     bool
+	tlsRenegotiation          tls.RenegotiationSupport
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
