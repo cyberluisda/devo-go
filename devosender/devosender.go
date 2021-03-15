@@ -135,6 +135,23 @@ func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error){
 	}
 }
 
+// Build implements build method of builder returning Client instance.
+func (dsb *ClientBuilder) Build() (*Client, error) {
+	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
+		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dsb.key, dsb.cert, dsb.chain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+
+	if dsb.keyFileName != "" && dsb.certFileName != "" {
+		dataKey, dataCert, dataChain, err := loadTlsFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
+		if err != nil {
+			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
+		}
+		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dataKey, dataCert, dataChain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+
+	return NewDevoSender(dsb.entrypoint)
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
