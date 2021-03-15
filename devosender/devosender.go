@@ -123,6 +123,18 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
+// ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
+// valid codes are 'US' and 'EU'
+func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error){
+	if strings.EqualFold("US", s) {
+		return ClientBuilderRelayUS, nil
+	} else if strings.EqualFold("EU", s) {
+		return ClientBuilderRelayEU, nil
+	} else {
+		return 0, fmt.Errorf("Site '%s' is not valid", s)
+	}
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
