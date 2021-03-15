@@ -28,6 +28,7 @@ select
 func main() {
 	if len(os.Args) < 4 {
 		fmt.Printf("Usage: %s devo_token from_timestamp_in_RFC3339_format to_timestamp_in_RFC3339_format \n", os.Args[0])
+		fmt.Println()
 		fmt.Println("devo_token is Token to authenticated in Devo. See 'OAuth token' section in https://docs.devo.com/confluence/ndt/api-reference/rest-api/authorizing-rest-api-requests for more info")
 		fmt.Println("from_timestamp_in_RFC3339_format is the begin of query time range in RFC3339 format. For example: '2021-01-01T00:00:00+00:00'")
 		fmt.Println("to_timestamp_in_RFC3339_format is the end of query time range in RFC3339 format. For example: '2021-01-02T00:00:00+00:00'")

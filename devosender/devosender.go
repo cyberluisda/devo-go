@@ -24,6 +24,8 @@ type DevoSender interface {
 	SendWTagAsync(t, m string) string
 	WaitForPendingAsyngMessages() error
 	AsyncErrors() map[string]error
+	PurgeAsyncErrors()
+	GetEntryPoint() string
 }
 
 type tlsSetup struct {
@@ -50,7 +52,105 @@ const (
 	DevoCentralRelayEU = "tcp://eu.elb.relay.logtrust.net:443"
 	// DefaultSyslogLevel is the code for facility and level used at raw syslog protocol. <14> = facility:user and level:info
 	DefaultSyslogLevel = "<14>"
+
+	// ClientBuilderRelayUS select DevoCentralRelayUS in builder
+	ClientBuilderRelayUS ClienBuilderDevoCentralRelay = iota
+	// ClientBuilderRelayEU select DevoCentralRelayEU in builder
+	ClientBuilderRelayEU
 )
+
+// ClientBuilder defines builder for easy DevoSender instantiation
+type ClientBuilder struct {
+	entrypoint                string
+	key, cert, chain          []byte
+	keyFileName, certFileName string
+	chainFileName             *string
+	tlsInsecureSkipVerify     bool
+	tlsRenegotiation          tls.RenegotiationSupport
+}
+
+type ClienBuilderDevoCentralRelay int
+
+// NewClientBuilder returns new DevoSenderBuilder
+func NewClientBuilder() *ClientBuilder {
+	return &ClientBuilder{
+		tlsInsecureSkipVerify: false,
+		tlsRenegotiation:      tls.RenegotiateNever,
+	}
+}
+
+// EntryPoint sets entrypoint in builder used to create Client
+// This value overwrite (and is overwritten) by DevoCentralEntryPoint
+func (dsb *ClientBuilder) EntryPoint(entrypoint string) *ClientBuilder {
+	dsb.entrypoint = entrypoint
+	return dsb
+}
+
+// TLSFiles sets keys and certs from files used to make Client using TLS connection
+// TLSCerts overwrites calls to this method
+func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chainFileName *string) *ClientBuilder {
+	dsb.keyFileName, dsb.certFileName, dsb.chainFileName = keyFileName, certFileName, chainFileName
+	return dsb
+}
+
+// TLSCerts sets keys and certs used to make Client using TLS connection
+// Call to this method overwrite TLSFiles
+func (dsb *ClientBuilder) TLSCerts(key []byte, cert []byte, chain []byte) *ClientBuilder {
+	dsb.key, dsb.cert, dsb.chain = key, cert, chain
+	return dsb
+}
+
+// TLSInsecureSkipVerify sets InsecureSkipFlag, this value is used only with TLS connetions
+func (dsb *ClientBuilder) TLSInsecureSkipVerify(insecureSkipVerify bool) *ClientBuilder {
+	dsb.tlsInsecureSkipVerify = insecureSkipVerify
+	return dsb
+}
+
+// TLSRenegotiation sets tlsRenegotiation support, this value is used only with TLS connections
+func (dsb *ClientBuilder) TLSRenegotiation(renegotiation tls.RenegotiationSupport) *ClientBuilder {
+	dsb.tlsRenegotiation = renegotiation
+	return dsb
+}
+
+// DevoCentralEntryPoint Set One of the available Devo cental relays.
+// This value overwrite (and is overwritten) by EntryPoint
+func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRelay) *ClientBuilder {
+	if relay == ClientBuilderRelayEU {
+		dsb.EntryPoint(DevoCentralRelayEU)
+	} else if relay == ClientBuilderRelayUS {
+		dsb.EntryPoint(DevoCentralRelayUS)
+	}
+	return dsb
+}
+
+// ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
+// valid codes are 'US' and 'EU'
+func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error){
+	if strings.EqualFold("US", s) {
+		return ClientBuilderRelayUS, nil
+	} else if strings.EqualFold("EU", s) {
+		return ClientBuilderRelayEU, nil
+	} else {
+		return 0, fmt.Errorf("Site '%s' is not valid", s)
+	}
+}
+
+// Build implements build method of builder returning Client instance.
+func (dsb *ClientBuilder) Build() (*Client, error) {
+	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
+		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dsb.key, dsb.cert, dsb.chain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+
+	if dsb.keyFileName != "" && dsb.certFileName != "" {
+		dataKey, dataCert, dataChain, err := loadTlsFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
+		if err != nil {
+			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
+		}
+		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dataKey, dataCert, dataChain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+
+	return NewDevoSender(dsb.entrypoint)
+}
 
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
@@ -60,23 +160,9 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
 func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
-
-	dataKey, err := ioutil.ReadFile(keyFileName)
+	dataKey, dataCert, dataChain, err := loadTLSFiles(keyFileName, certFileName, chainFileName)
 	if err != nil {
-		return nil, fmt.Errorf("Error when load Key file '%s': %w", keyFileName, err)
-	}
-
-	dataCert, err := ioutil.ReadFile(certFileName)
-	if err != nil {
-		return nil, fmt.Errorf("Error when load Cert file '%s': %w", certFileName, err)
-	}
-
-	var dataChain []byte
-	if chainFileName != nil {
-		dataChain, err = ioutil.ReadFile(*chainFileName)
-		if err != nil {
-			return nil, fmt.Errorf("Error when load Cahin (RootCA) file '%s': %w", *chainFileName, err)
-		}
+		return nil, err
 	}
 
 	return NewDevoSenderTLS(entrypoint, dataKey, dataCert, dataChain)
@@ -274,6 +360,20 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// PurgeAsyncErrors cleans internal AsyncErrors captured until now
+func (dsc *Client) PurgeAsyncErrors() {
+	if dsc.asyncErrors != nil {
+		for k := range dsc.asyncErrors {
+			delete(dsc.asyncErrors, k)
+		}
+	}
+}
+
+// GetEntryPoint return entrypoint used by client
+func (dsc *Client) GetEntryPoint() string {
+	return dsc.entryPoint
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
@@ -357,4 +457,28 @@ func replaceSequences(s string, sequences map[string]string) string {
 	}
 
 	return s
+}
+
+func loadTLSFiles(keyFileName, certFileName string, chainFileName *string) ([]byte, []byte, []byte, error) {
+	var dataKey []byte
+	var dataCert []byte
+	var dataChain []byte
+	var err error
+	dataKey, err = ioutil.ReadFile(keyFileName)
+	if err != nil {
+		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Key file '%s': %w", keyFileName, err)
+	}
+
+	dataCert, err = ioutil.ReadFile(certFileName)
+	if err != nil {
+		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cert file '%s': %w", certFileName, err)
+	}
+
+	if chainFileName != nil {
+		dataChain, err = ioutil.ReadFile(*chainFileName)
+		if err != nil {
+			return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cahin (RootCA) file '%s': %w", *chainFileName, err)
+		}
+	}
+	return dataKey, dataCert, dataChain, nil
 }
