@@ -52,6 +52,11 @@ const (
 	DevoCentralRelayEU = "tcp://eu.elb.relay.logtrust.net:443"
 	// DefaultSyslogLevel is the code for facility and level used at raw syslog protocol. <14> = facility:user and level:info
 	DefaultSyslogLevel = "<14>"
+
+	// ClientBuilderRelayUS select DevoCentralRelayUS in builder
+	ClientBuilderRelayUS ClienBuilderDevoCentralRelay = iota
+	// ClientBuilderRelayEU select DevoCentralRelayEU in builder
+	ClientBuilderRelayEU
 )
 
 // ClientBuilder defines builder for easy DevoSender instantiation
