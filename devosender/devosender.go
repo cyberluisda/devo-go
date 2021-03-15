@@ -80,6 +80,13 @@ func (dsb *ClientBuilder) EntryPoint(entrypoint string) *ClientBuilder {
 	return dsb
 }
 
+// TLSFiles sets keys and certs from files used to make Client using TLS connection
+// TLSCerts overwrites calls to this method
+func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chainFileName *string) *ClientBuilder {
+	dsb.keyFileName, dsb.certFileName, dsb.chainFileName = keyFileName, certFileName, chainFileName
+	return dsb
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
