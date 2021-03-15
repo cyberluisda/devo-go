@@ -274,6 +274,15 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// PurgeAsyncErrors cleans internal AsyncErrors captured until now
+func (dsc *Client) PurgeAsyncErrors() {
+	if dsc.asyncErrors != nil {
+		for k := range dsc.asyncErrors {
+			delete(dsc.asyncErrors, k)
+		}
+	}
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
