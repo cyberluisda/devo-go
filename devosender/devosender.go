@@ -94,6 +94,12 @@ func (dsb *ClientBuilder) TLSCerts(key []byte, cert []byte, chain []byte) *Clien
 	return dsb
 }
 
+// TLSInsecureSkipVerify sets InsecureSkipFlag, this value is used only with TLS connetions
+func (dsb *ClientBuilder) TLSInsecureSkipVerify(insecureSkipVerify bool) *ClientBuilder {
+	dsb.tlsInsecureSkipVerify = insecureSkipVerify
+	return dsb
+}
+
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
 	// Set default tls options
