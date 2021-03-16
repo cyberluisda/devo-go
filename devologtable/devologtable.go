@@ -312,7 +312,7 @@ func (ltoc *LogTableOneStringColumn) DeleteValueAndCheck(name string, checkInter
 		// check value
 		value, err := ltoc.GetValue(name)
 		if err != nil {
-			fmt.Errorf("Error when check if value was '%s' deleted': %w", name, err)
+			return fmt.Errorf("Error when check if value '%s' was deleted': %w", name, err)
 		}
 
 		if value == nil {
