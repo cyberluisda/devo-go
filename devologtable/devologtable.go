@@ -221,7 +221,7 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 		// check value
 		remoteValue, err := ltoc.GetValue(name)
 		if err != nil {
-			fmt.Errorf("Error when check if value was set, name: '%s', value '%s': %w", name, value, err)
+			return fmt.Errorf("Error when check if value was set, name: '%s', value '%s': %w", name, value, err)
 		}
 
 		if remoteValue != nil && *remoteValue == value {
