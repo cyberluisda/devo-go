@@ -263,7 +263,7 @@ func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) er
 	}
 
 	if len(ltoc.devoSender.AsyncErrors()) > 0 {
-		err := fmt.Errorf("Errors returned when send data in async mode:")
+		err := fmt.Errorf("Errors returned when send data in async mode: ")
 		for k, v := range ltoc.devoSender.AsyncErrors() {
 			err = fmt.Errorf("%w, %s: %v", err, k, v)
 		}
@@ -425,7 +425,7 @@ func (ltoc *LogTableOneStringColumn) DeleteBatchValues(names []string) error {
 	}
 
 	if len(ltoc.devoSender.AsyncErrors()) > 0 {
-		err := fmt.Errorf("Errors returned when send data in async mode:")
+		err := fmt.Errorf("Errors returned when send data in async mode: ")
 		for k, v := range ltoc.devoSender.AsyncErrors() {
 			err = fmt.Errorf("%w, %s: %v", err, k, v)
 		}
