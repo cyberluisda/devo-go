@@ -232,6 +232,7 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 	return fmt.Errorf("I can not be sure if element with name '%s' was set to '%s' after %d retries with pauses of %v between checks", name, value, maxRetries, checkInterval)
 }
 
+// SetBatchValues set all names values in async mode, then wait to all elements was sent and report errors.
 func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) error {
 	rawMessages := make([]string, len(values))
 	i := 0
