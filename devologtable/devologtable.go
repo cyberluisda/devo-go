@@ -214,7 +214,7 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 		return err
 	}
 
-	for i := maxRetries; maxRetries > 0; i-- {
+	for i := maxRetries; i > 0; i-- {
 		// Sleep
 		time.Sleep(checkInterval)
 
