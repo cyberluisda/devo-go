@@ -42,7 +42,7 @@ type LogTableOneStringColumn struct {
 	queryGetValueTpl      *template.Template
 	queryLastControlPoint string
 	queryFirstDataLive    string
-	queryGetNamesTpl *template.Template
+	queryGetNamesTpl      *template.Template
 }
 
 type oneColumnSaveData struct {
@@ -361,7 +361,7 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 		return result, fmt.Errorf("devoRegexp must start with '^' char")
 	}
 
-	if devoRegexp[len(devoRegexp) - 1 ] != '$' {
+	if devoRegexp[len(devoRegexp)-1] != '$' {
 		return result, fmt.Errorf("devoRegexp must end with '$' char")
 	}
 
@@ -369,9 +369,9 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 	query, err := solveTpl(
 		ltoc.queryGetNamesTpl,
 		oneColumnQueryByName{
-			Table: ltoc.Table,
+			Table:  ltoc.Table,
 			Column: ltoc.Column,
-			Name: devoRegexp,
+			Name:   devoRegexp,
 		},
 	)
 	if err != nil {
@@ -387,7 +387,7 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 		return result, nil
 	}
 
-	for _, r := range  data.Values {
+	for _, r := range data.Values {
 		v := fmt.Sprintf("%s", r[data.Columns["name"].Index])
 		result = append(result, v)
 	}
