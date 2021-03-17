@@ -524,8 +524,8 @@ func GetValueAsBool(lte LogTableEngine, name string) (*bool, error) {
 	return nil, fmt.Errorf("Error when parse '%s' as bool", *val)
 }
 
-// RefreshDataHead query to Devo in order to move internal "from" pointer more close to Now if possible.
-// This will improve performance becuase minimal time range intervals is better when make queries.
+// RefreshDataHead runs query to Devo in order to move internal "from" pointer more close to Now if possible.
+// This will improve performance because minimal time range intervals are better when make queries.
 // RefreshDataHead works better if you make control points with AddControlPoint
 func (ltoc *LogTableOneStringColumn) RefreshDataHead() error {
 
