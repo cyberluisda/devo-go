@@ -11,7 +11,7 @@ import (
 )
 
 func newQE() devoquery.QueryEngine {
-	qe, _ := devoquery.NewTokenEngineDefaultQuery("https://dummy.api", "dummy_token", "dummy.table")
+	qe, _ := devoquery.NewTokenEngineDefaultQuery("https://localhost:12345", "dummy_token", "dummy.table")
 	return qe
 }
 
