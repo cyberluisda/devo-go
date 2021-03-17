@@ -846,3 +846,84 @@ func TestLogTableOneStringColumn_DeleteBatchValues(t *testing.T) {
 		})
 	}
 }
+
+func TestLogTableOneStringColumn_GetValue(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *string
+		wantErr bool
+	}{
+		{
+			"Error in template",
+			fields{
+				Table:            "dummy_table",
+				Column:           "dummy_column",
+				queryGetValueTpl: template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl + "|{{.Value2}}")),
+			},
+			args{
+				"Name1",
+			},
+			nil,
+			true,
+		},
+		{
+			"Error when run Devo query",
+			fields{
+				Table:            "",
+				Column:           "dummy_column",
+				queryGetValueTpl: template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl)),
+				queryEngine:      newQE(),
+			},
+			args{
+				"Name1",
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			got, err := ltoc.GetValue(tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.GetValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("LogTableOneStringColumn.GetValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
