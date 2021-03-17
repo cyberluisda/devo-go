@@ -759,3 +759,90 @@ func TestLogTableOneStringColumn_GetNames(t *testing.T) {
 		})
 	}
 }
+
+func TestLogTableOneStringColumn_DeleteBatchValues(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	type args struct {
+		names []string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"Error in template",
+			fields{
+				Table:      "dummy_table",
+				Column:     "dummy_column",
+				saveTpl:    template.Must(template.New("save").Parse(oneStringColumnSaveTpl + "|{{.Value2}}")),
+				devoSender: newDS(),
+			},
+			args{
+				[]string{"Name1"},
+			},
+			true,
+		},
+		{
+			"Errors when send data",
+			fields{
+				Table:      "",
+				Column:     "dummy_column",
+				saveTpl:    template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				devoSender: newDS(),
+			},
+			args{
+				[]string{"Name1", "Name2"},
+			},
+			true,
+		},
+		{
+			"Send data",
+			fields{
+				Table:      "dummy_table",
+				Column:     "dummy_column",
+				saveTpl:    template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				devoSender: newDS(),
+			},
+			args{
+				[]string{"Name1", "Name2"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			if err := ltoc.DeleteBatchValues(tt.args.names); (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.DeleteBatchValues() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
