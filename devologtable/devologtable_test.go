@@ -214,7 +214,7 @@ func TestLogTableOneStringColumn_SetValueAndCheck(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Error when set part fails",
+			"Error when call set part return error",
 			fields{
 				Table:      "",
 				Column:     "dummy_column",
@@ -246,7 +246,7 @@ func TestLogTableOneStringColumn_SetValueAndCheck(t *testing.T) {
 			true,
 		},
 		{
-			"Error when Check 1 retry",
+			"Error when Check: 1 retry",
 			fields{
 				Table:            "dummy_table",
 				Column:           "dummy_column",
@@ -264,7 +264,7 @@ func TestLogTableOneStringColumn_SetValueAndCheck(t *testing.T) {
 			true,
 		},
 		{
-			"Error when Check 2 retry",
+			"Error when Check: 2 retries",
 			fields{
 				Table:            "dummy_table",
 				Column:           "dummy_column",
