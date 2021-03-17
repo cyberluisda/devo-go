@@ -486,3 +486,117 @@ func TestLogTableOneStringColumn_DeleteValue(t *testing.T) {
 		})
 	}
 }
+
+func TestLogTableOneStringColumn_DeleteValueAndCheck(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	type args struct {
+		name          string
+		checkInterval time.Duration
+		maxRetries    int
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"Error when call set part return error",
+			fields{
+				Table:      "",
+				Column:     "dummy_column",
+				saveTpl:    template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				devoSender: newDS(),
+			},
+			args{
+				"Name",
+				time.Second * 1,
+				1,
+			},
+			true,
+		},
+		{
+			"Error when no retries",
+			fields{
+				Table:      "dummy_table",
+				Column:     "dummy_column",
+				saveTpl:    template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				devoSender: newDS(),
+			},
+			args{
+				"Name",
+				time.Millisecond * 1,
+				0,
+			},
+			true,
+		},
+		{
+			"Error when Check: 1 retry",
+			fields{
+				Table:            "dummy_table",
+				Column:           "dummy_column",
+				saveTpl:          template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				queryGetValueTpl: template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl)),
+				devoSender:       newDS(),
+				queryEngine:      newQE(),
+			},
+			args{
+				"Name",
+				time.Millisecond * 1,
+				1,
+			},
+			true,
+		},
+		{
+			"Error when Check: 2 retries",
+			fields{
+				Table:            "dummy_table",
+				Column:           "dummy_column",
+				saveTpl:          template.Must(template.New("save").Parse(oneStringColumnSaveTpl)),
+				queryGetValueTpl: template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl)),
+				devoSender:       newDS(),
+				queryEngine:      newQE(),
+			},
+			args{
+				"Name",
+				time.Millisecond * 1,
+				2,
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			if err := ltoc.DeleteValueAndCheck(tt.args.name, tt.args.checkInterval, tt.args.maxRetries); (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.DeleteValueAndCheck() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
