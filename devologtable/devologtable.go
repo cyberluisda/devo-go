@@ -396,7 +396,7 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 	return result, nil
 }
 
-// DeleteBatchValues delete a slice of vaules in asynchronous mode, then wait for async calls end and report errors.
+// DeleteBatchValues deletes a slice of vaules in asynchronous mode, then wait for async calls end and report errors.
 func (ltoc *LogTableOneStringColumn) DeleteBatchValues(names []string) error {
 
 	rawMessages := make([]string, len(names))
