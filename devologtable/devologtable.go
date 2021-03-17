@@ -355,7 +355,7 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 	}
 
 	if len(devoRegexp) < 3 {
-		return result, fmt.Errorf("len of devoRegexp param  must be greater than 3")
+		return result, fmt.Errorf("len of devoRegexp param must be greater than 3")
 	}
 
 	if devoRegexp[0] != '^' {
@@ -376,12 +376,12 @@ func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, erro
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("Error when create raw data from template '%s', to get names using '%s' regexp: %w", oneStringColumnQueryGetAllNamesTpl, devoRegexp, err)
+		return result, fmt.Errorf("Error when create raw data from template '%s', to get names using '%s' regexp: %w", oneStringColumnQueryGetAllNamesTpl, devoRegexp, err)
 	}
 
 	data, err := ltoc.queryEngine.RunNewQuery(ltoc.BeginTable, time.Now(), query)
 	if err != nil {
-		return nil, fmt.Errorf("Error when run query for get names, regexp: '%s': %w", devoRegexp, err)
+		return result, fmt.Errorf("Error when run query for get names, regexp: '%s': %w", devoRegexp, err)
 	}
 
 	if len(data.Values) == 0 {
