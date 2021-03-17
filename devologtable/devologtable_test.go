@@ -600,3 +600,61 @@ func TestLogTableOneStringColumn_DeleteValueAndCheck(t *testing.T) {
 		})
 	}
 }
+
+func TestLogTableOneStringColumn_GetAll(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    map[string]string
+		wantErr bool
+	}{
+		{
+			"Error when run query",
+			fields{
+				queryEngine: newQE(),
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			got, err := ltoc.GetAll()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.GetAll() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("LogTableOneStringColumn.GetAll() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
