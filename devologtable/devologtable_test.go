@@ -658,3 +658,104 @@ func TestLogTableOneStringColumn_GetAll(t *testing.T) {
 		})
 	}
 }
+
+func TestLogTableOneStringColumn_GetNames(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	type args struct {
+		devoRegexp string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			"Error empty regexp",
+			fields{},
+			args{},
+			[]string{},
+			true,
+		},
+		{
+			"Error regexp length is not enough",
+			fields{},
+			args{"as"},
+			[]string{},
+			true,
+		},
+		{
+			"Error regexp does not start with ^",
+			fields{},
+			args{"asd"},
+			[]string{},
+			true,
+		},
+		{
+			"Error regexp does not end with $",
+			fields{},
+			args{"^asd"},
+			[]string{},
+			true,
+		},
+		{
+			"Error in templates",
+			fields{
+				queryGetNamesTpl: template.Must(template.New("queryGetNames").Parse(oneStringColumnQueryGetAllNamesTpl + "|{{.Value2}}")),
+			},
+			args{"^asd$"},
+			[]string{},
+			true,
+		},
+		{
+			"Error when make query to Devo",
+			fields{
+				queryGetNamesTpl: template.Must(template.New("queryGetNames").Parse(oneStringColumnQueryGetAllNamesTpl)),
+				queryEngine:      newQE(),
+			},
+			args{"^asd$"},
+			[]string{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			got, err := ltoc.GetNames(tt.args.devoRegexp)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.GetNames() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("LogTableOneStringColumn.GetNames() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
