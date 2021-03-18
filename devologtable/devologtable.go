@@ -14,13 +14,14 @@ import (
 // LogTableEngine define the required behaviour to work with LogTable
 type LogTableEngine interface {
 	SetValue(name string, value string) error
-	SetValueAndCheck(name string, value string, checkInterval time.Duration, maxRetries int)
+	SetValueAndCheck(name string, value string, checkInterval time.Duration, maxRetries int) error
+	SetBatchValues(values map[string]string) error
 	DeleteValue(name string) error
-	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int)
+	DeleteValueAndCheck(name string, checkInterval time.Duration, maxRetries int) error
+	DeleteBatchValues(names []string) error
 	GetValue(name string) (*string, error)
 	GetAll() (map[string]string, error)
-	GetValueAsNumber(name string) (*float64, error)
-	GetValueAsBool(name string) (*bool, error)
+	GetNames(devoRegexp string) ([]string, error)
 	AddControlPoint() error
 	RefreshDataHead() error
 }
@@ -41,6 +42,7 @@ type LogTableOneStringColumn struct {
 	queryGetValueTpl      *template.Template
 	queryLastControlPoint string
 	queryFirstDataLive    string
+	queryGetNamesTpl      *template.Template
 }
 
 type oneColumnSaveData struct {
@@ -71,6 +73,7 @@ const (
   	last(command) as command,
     last(value) as value,
     last(meta) as meta
+	where command != 'D'
   `
 
 	oneStringColumnQueryGetValueTpl = `from {{.Table}}
@@ -103,6 +106,16 @@ const (
 	select first(eventdate) as initdata
 	`
 
+	oneStringColumnQueryGetAllNamesTpl = `from {{.Table}}
+	select
+		split({{.Column}}, "^##|", 0) as command,
+		split({{.Column}}, "^##|", 1) as name
+	where name ~ re("{{.Name}}")
+	group every 0 by name
+	select last(command) as command
+	where command != "D"
+	`
+
 	oneStringColumnSaveTpl = `{{.Command}}^##|{{.Name}}^##|{{.Value}}^##|{{.Meta}}`
 )
 
@@ -123,6 +136,7 @@ func NewLogTableOneStringColumn(qe devoquery.QueryEngine, ds devosender.DevoSend
 
 	tplSave := template.Must(template.New("save").Parse(oneStringColumnSaveTpl))
 	tplQueryGetValue := template.Must(template.New("queryByName").Parse(oneStringColumnQueryGetValueTpl))
+	tplQueryGetNames := template.Must(template.New("queryGetNames").Parse(oneStringColumnQueryGetAllNamesTpl))
 
 	result := &LogTableOneStringColumn{
 		Table:            table,
@@ -133,6 +147,7 @@ func NewLogTableOneStringColumn(qe devoquery.QueryEngine, ds devosender.DevoSend
 		maxBeginTable:    maxBeginTable,
 		saveTpl:          tplSave,
 		queryGetValueTpl: tplQueryGetValue,
+		queryGetNamesTpl: tplQueryGetNames,
 	}
 
 	tpl := template.Must(template.New("query").Parse(oneStringColumnQueryAllTpl))
@@ -199,14 +214,14 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 		return err
 	}
 
-	for i := maxRetries; maxRetries > 0; i-- {
+	for i := maxRetries; i > 0; i-- {
 		// Sleep
 		time.Sleep(checkInterval)
 
 		// check value
 		remoteValue, err := ltoc.GetValue(name)
 		if err != nil {
-			fmt.Errorf("Error when check if value was set, name: '%s', value '%s': %w", name, value, err)
+			return fmt.Errorf("Error when check if value was set, name: '%s', value '%s': %w", name, value, err)
 		}
 
 		if remoteValue != nil && *remoteValue == value {
@@ -215,6 +230,46 @@ func (ltoc *LogTableOneStringColumn) SetValueAndCheck(name string, value string,
 	}
 
 	return fmt.Errorf("I can not be sure if element with name '%s' was set to '%s' after %d retries with pauses of %v between checks", name, value, maxRetries, checkInterval)
+}
+
+// SetBatchValues set all names values in async mode, then wait to all elements was sent and report errors.
+func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) error {
+	rawMessages := make([]string, len(values))
+	i := 0
+	for k, v := range values {
+		rawMessage, err := solveTpl(
+			ltoc.saveTpl,
+			oneColumnSaveData{
+				Command: "S",
+				Name:    k,
+				Value:   v,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("Error when create raw data from template '%s', to save name '%s', value '%s': %w", oneStringColumnSaveTpl, k, v, err)
+		}
+		rawMessages[i] = rawMessage
+		i++
+	}
+
+	ltoc.devoSender.PurgeAsyncErrors()
+	for _, v := range rawMessages {
+		ltoc.devoSender.SendWTagAsync(ltoc.Table, v)
+	}
+
+	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	if err != nil {
+		return fmt.Errorf("Error when wait for pending async messages: %w", err)
+	}
+
+	if len(ltoc.devoSender.AsyncErrors()) > 0 {
+		err := fmt.Errorf("Errors returned when send data in async mode: ")
+		for k, v := range ltoc.devoSender.AsyncErrors() {
+			err = fmt.Errorf("%w, %s: %v", err, k, v)
+		}
+		return err
+	}
+	return nil
 }
 
 // DeleteValue mark a value as deleted. This method only run save data withot any check about state
@@ -257,7 +312,7 @@ func (ltoc *LogTableOneStringColumn) DeleteValueAndCheck(name string, checkInter
 		// check value
 		value, err := ltoc.GetValue(name)
 		if err != nil {
-			fmt.Errorf("Error when check if value was '%s' deleted': %w", name, err)
+			return fmt.Errorf("Error when check if value '%s' was deleted': %w", name, err)
 		}
 
 		if value == nil {
@@ -279,7 +334,7 @@ func (ltoc *LogTableOneStringColumn) GetAll() (map[string]string, error) {
 	for _, row := range data.Values {
 		command := fmt.Sprintf("%s", row[data.Columns["command"].Index])
 
-		if command == "S" {
+		if command == "S" { // Double check
 			name := fmt.Sprintf("%s", row[data.Columns["name"].Index])
 			value := fmt.Sprintf("%s", row[data.Columns["value"].Index])
 			result[name] = value
@@ -287,6 +342,97 @@ func (ltoc *LogTableOneStringColumn) GetAll() (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+// GetNames return the list of nambes based on regeular expression. devoRegexp must be in Devo regular expression
+// format (https://docs.devo.com/confluence/ndt/searching-data/building-a-query/operations-reference/string-group/matches-matches)
+// The only requirement is that regeular expression must start with '^' and end with '$'
+func (ltoc *LogTableOneStringColumn) GetNames(devoRegexp string) ([]string, error) {
+	result := []string{}
+
+	if devoRegexp == "" || devoRegexp == "^$" {
+		return result, fmt.Errorf("devoRegexp can not be empty ('^$' is considered empty too)")
+	}
+
+	if len(devoRegexp) < 3 {
+		return result, fmt.Errorf("len of devoRegexp param must be greater than 3")
+	}
+
+	if devoRegexp[0] != '^' {
+		return result, fmt.Errorf("devoRegexp must start with '^' char")
+	}
+
+	if devoRegexp[len(devoRegexp)-1] != '$' {
+		return result, fmt.Errorf("devoRegexp must end with '$' char")
+	}
+
+	// We reuse oneColumnQueryByName struct in template
+	query, err := solveTpl(
+		ltoc.queryGetNamesTpl,
+		oneColumnQueryByName{
+			Table:  ltoc.Table,
+			Column: ltoc.Column,
+			Name:   devoRegexp,
+		},
+	)
+	if err != nil {
+		return result, fmt.Errorf("Error when create raw data from template '%s', to get names using '%s' regexp: %w", oneStringColumnQueryGetAllNamesTpl, devoRegexp, err)
+	}
+
+	data, err := ltoc.queryEngine.RunNewQuery(ltoc.BeginTable, time.Now(), query)
+	if err != nil {
+		return result, fmt.Errorf("Error when run query for get names, regexp: '%s': %w", devoRegexp, err)
+	}
+
+	if len(data.Values) == 0 {
+		return result, nil
+	}
+
+	for _, r := range data.Values {
+		v := fmt.Sprintf("%s", r[data.Columns["name"].Index])
+		result = append(result, v)
+	}
+
+	return result, nil
+}
+
+// DeleteBatchValues deletes a slice of vaules in asynchronous mode, then wait for async calls end and report errors.
+func (ltoc *LogTableOneStringColumn) DeleteBatchValues(names []string) error {
+
+	rawMessages := make([]string, len(names))
+	for i, name := range names {
+		rawMessage, err := solveTpl(
+			ltoc.saveTpl,
+			oneColumnSaveData{
+				Command: "D",
+				Name:    name,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("Error when create raw data from template '%s', to delete name '%s': %w", oneStringColumnSaveTpl, name, err)
+		}
+
+		rawMessages[i] = rawMessage
+	}
+
+	ltoc.devoSender.PurgeAsyncErrors()
+	for _, msg := range rawMessages {
+		ltoc.devoSender.SendWTagAsync(ltoc.Table, msg)
+	}
+
+	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	if err != nil {
+		return fmt.Errorf("Error when wait for pending async messages: %w", err)
+	}
+
+	if len(ltoc.devoSender.AsyncErrors()) > 0 {
+		err := fmt.Errorf("Errors returned when send data in async mode: ")
+		for k, v := range ltoc.devoSender.AsyncErrors() {
+			err = fmt.Errorf("%w, %s: %v", err, k, v)
+		}
+		return err
+	}
+	return nil
 }
 
 // GetValue return the value saved for located by name, or return nil if value does not exists or was removed
@@ -333,53 +479,8 @@ func (ltoc *LogTableOneStringColumn) GetValue(name string) (*string, error) {
 
 }
 
-// GetValueAsNumber is similar to GetValue but parse value to float64
-func (ltoc *LogTableOneStringColumn) GetValueAsNumber(name string) (*float64, error) {
-	// Load as string
-	val, err := ltoc.GetValue(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	// Parse number
-	f, err := strconv.ParseFloat(*val, 64)
-	if err != nil {
-		return nil, fmt.Errorf("Error when parse %s as float64: %w", *val, err)
-	}
-
-	return &f, nil
-}
-
-// GetValueAsBool is similar to GetValue but parse value to boolean
-func (ltoc *LogTableOneStringColumn) GetValueAsBool(name string) (*bool, error) {
-	// Load as string
-	val, err := ltoc.GetValue(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	var b bool
-	if *val == "true" {
-		b = true
-		return &b, nil
-	} else if *val == "false" {
-		b = false
-		return &b, nil
-	}
-
-	return nil, fmt.Errorf("Error when parse '%s' as bool", *val)
-}
-
-// RefreshDataHead query to Devo in order to move internal "from" pointer more close to Now if possible.
-// This will improve performance becuase minimal time range intervals is better when make queries.
+// RefreshDataHead runs query to Devo in order to move internal "from" pointer more close to Now if possible.
+// This will improve performance because minimal time range intervals are better when make queries.
 // RefreshDataHead works better if you make control points with AddControlPoint
 func (ltoc *LogTableOneStringColumn) RefreshDataHead() error {
 
@@ -464,6 +565,51 @@ func (ltoc *LogTableOneStringColumn) AddControlPoint() error {
 	}
 
 	return nil
+}
+
+// GetValueAsNumber is similar to lte.GetValue but parse value to float64
+func GetValueAsNumber(lte LogTableEngine, name string) (*float64, error) {
+	// Load as string
+	val, err := lte.GetValue(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil {
+		return nil, nil
+	}
+
+	// Parse number
+	f, err := strconv.ParseFloat(*val, 64)
+	if err != nil {
+		return nil, fmt.Errorf("Error when parse %s as float64: %w", *val, err)
+	}
+
+	return &f, nil
+}
+
+// GetValueAsBool is similar to lte.GetValue but parse returned value to boolean
+func GetValueAsBool(lte LogTableEngine, name string) (*bool, error) {
+	// Load as string
+	val, err := lte.GetValue(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil {
+		return nil, nil
+	}
+
+	var b bool
+	if *val == "true" {
+		b = true
+		return &b, nil
+	} else if *val == "false" {
+		b = false
+		return &b, nil
+	}
+
+	return nil, fmt.Errorf("Error when parse '%s' as bool", *val)
 }
 
 func solveTpl(tpl *template.Template, params interface{}) (string, error) {
