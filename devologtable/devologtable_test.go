@@ -623,9 +623,18 @@ func TestLogTableOneStringColumn_GetAll(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Error empty table",
+			fields{
+				queryEngine: newQE(),
+			},
+			nil,
+			true,
+		},
+		{
 			"Error when run query",
 			fields{
 				queryEngine: newQE(),
+				queryAll:    "from dummy_table",
 			},
 			nil,
 			true,
