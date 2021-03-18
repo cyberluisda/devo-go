@@ -970,3 +970,46 @@ func TestGetValueAsNumber(t *testing.T) {
 		})
 	}
 }
+
+func TestGetValueAsBool(t *testing.T) {
+	type args struct {
+		lte  LogTableEngine
+		name string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *bool
+		wantErr bool
+	}{
+		{
+			"Error when call GetValue",
+			args{
+				func() LogTableEngine {
+					r, _ := NewLogTableOneStringColumn(
+						newQE(),
+						newDS(),
+						"dummy_table",
+						"dummy_column",
+					)
+					return r
+				}(),
+				"Name",
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetValueAsBool(tt.args.lte, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetValueAsBool() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("GetValueAsBool() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
