@@ -991,6 +991,65 @@ func TestLogTableOneStringColumn_RefreshDataHead(t *testing.T) {
 	}
 }
 
+func TestLogTableOneStringColumn_AddControlPoint(t *testing.T) {
+	type fields struct {
+		Table                 string
+		Column                string
+		BeginTable            time.Time
+		devoSender            devosender.DevoSender
+		queryEngine           devoquery.QueryEngine
+		maxBeginTable         time.Time
+		saveTpl               *template.Template
+		queryAll              string
+		queryGetValueTpl      *template.Template
+		queryLastControlPoint string
+		queryFirstDataLive    string
+		queryGetNamesTpl      *template.Template
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"Error empty query",
+			fields{
+				queryEngine: newQE(),
+			},
+			true,
+		},
+		{
+			"Error when run query to Devo",
+			fields{
+				queryEngine: newQE(),
+				queryAll:    "from dummy_table",
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ltoc := &LogTableOneStringColumn{
+				Table:                 tt.fields.Table,
+				Column:                tt.fields.Column,
+				BeginTable:            tt.fields.BeginTable,
+				devoSender:            tt.fields.devoSender,
+				queryEngine:           tt.fields.queryEngine,
+				maxBeginTable:         tt.fields.maxBeginTable,
+				saveTpl:               tt.fields.saveTpl,
+				queryAll:              tt.fields.queryAll,
+				queryGetValueTpl:      tt.fields.queryGetValueTpl,
+				queryLastControlPoint: tt.fields.queryLastControlPoint,
+				queryFirstDataLive:    tt.fields.queryFirstDataLive,
+				queryGetNamesTpl:      tt.fields.queryGetNamesTpl,
+			}
+			if err := ltoc.AddControlPoint(); (err != nil) != tt.wantErr {
+				t.Errorf("LogTableOneStringColumn.AddControlPoint() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestGetValueAsNumber(t *testing.T) {
 	type args struct {
 		lte  LogTableEngine
