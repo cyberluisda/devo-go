@@ -479,51 +479,6 @@ func (ltoc *LogTableOneStringColumn) GetValue(name string) (*string, error) {
 
 }
 
-// GetValueAsNumber is similar to lte.GetValue but parse value to float64
-func GetValueAsNumber(lte LogTableEngine, name string) (*float64, error) {
-	// Load as string
-	val, err := lte.GetValue(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	// Parse number
-	f, err := strconv.ParseFloat(*val, 64)
-	if err != nil {
-		return nil, fmt.Errorf("Error when parse %s as float64: %w", *val, err)
-	}
-
-	return &f, nil
-}
-
-// GetValueAsBool is similar to lte.GetValue but parse returned value to boolean
-func GetValueAsBool(lte LogTableEngine, name string) (*bool, error) {
-	// Load as string
-	val, err := lte.GetValue(name)
-	if err != nil {
-		return nil, err
-	}
-
-	if val == nil {
-		return nil, nil
-	}
-
-	var b bool
-	if *val == "true" {
-		b = true
-		return &b, nil
-	} else if *val == "false" {
-		b = false
-		return &b, nil
-	}
-
-	return nil, fmt.Errorf("Error when parse '%s' as bool", *val)
-}
-
 // RefreshDataHead runs query to Devo in order to move internal "from" pointer more close to Now if possible.
 // This will improve performance because minimal time range intervals are better when make queries.
 // RefreshDataHead works better if you make control points with AddControlPoint
@@ -610,6 +565,51 @@ func (ltoc *LogTableOneStringColumn) AddControlPoint() error {
 	}
 
 	return nil
+}
+
+// GetValueAsNumber is similar to lte.GetValue but parse value to float64
+func GetValueAsNumber(lte LogTableEngine, name string) (*float64, error) {
+	// Load as string
+	val, err := lte.GetValue(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil {
+		return nil, nil
+	}
+
+	// Parse number
+	f, err := strconv.ParseFloat(*val, 64)
+	if err != nil {
+		return nil, fmt.Errorf("Error when parse %s as float64: %w", *val, err)
+	}
+
+	return &f, nil
+}
+
+// GetValueAsBool is similar to lte.GetValue but parse returned value to boolean
+func GetValueAsBool(lte LogTableEngine, name string) (*bool, error) {
+	// Load as string
+	val, err := lte.GetValue(name)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil {
+		return nil, nil
+	}
+
+	var b bool
+	if *val == "true" {
+		b = true
+		return &b, nil
+	} else if *val == "false" {
+		b = false
+		return &b, nil
+	}
+
+	return nil, fmt.Errorf("Error when parse '%s' as bool", *val)
 }
 
 func solveTpl(tpl *template.Template, params interface{}) (string, error) {
