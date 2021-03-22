@@ -196,10 +196,12 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 	return &result, nil
 }
 
-// NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
+// NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
-	// Set default tls options
-	return NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		TLSCerts(key, cert, chain).
+		Build()
 }
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
