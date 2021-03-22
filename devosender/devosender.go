@@ -487,3 +487,12 @@ func loadTLSFiles(keyFileName, certFileName string, chainFileName *string) ([]by
 	}
 	return dataKey, dataCert, dataChain, nil
 }
+
+func isExpired(t time.Time, d time.Duration) bool {
+	if d <= 0 {
+		return false
+	}
+	n := time.Now()
+	expiresAt := t.Add(d)
+	return expiresAt.Before(n)
+}
