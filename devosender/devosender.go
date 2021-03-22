@@ -147,6 +147,12 @@ func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
 	return dsb
 }
 
+// ConnectionExpiration set expiration time used to recreate connection from last time was used
+func (dsb *ClientBuilder) ConnectionExpiration(t time.Duration) *ClientBuilder {
+	dsb.connExpiration = t
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
