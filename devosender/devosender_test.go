@@ -66,6 +66,7 @@ func TestClient_makeConnection(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		tcp               tcpConfig
 	}
 	tests := []struct {
 		name    string
@@ -95,6 +96,9 @@ func TestClient_makeConnection(t *testing.T) {
 			"Error when create tls connection",
 			fields{
 				entryPoint: "tcp://doesnot.exist.12345678987654321.org:13003",
+				tcp: tcpConfig{
+					tcpDialer: &net.Dialer{},
+				},
 				tls: func() *tlsSetup {
 					t := tlsSetup{}
 
@@ -116,6 +120,7 @@ func TestClient_makeConnection(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				tcp:               tt.fields.tcp,
 			}
 			if err := dsc.makeConnection(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.makeConnection() error = %v, wantErr %v", err, tt.wantErr)
