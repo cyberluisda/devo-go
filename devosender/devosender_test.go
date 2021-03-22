@@ -1188,6 +1188,62 @@ func TestClientBuilder_DevoCentralEntryPoint(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_TCPTimeout(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
+		connExpiration        time.Duration
+	}
+	type args struct {
+		t time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set TCP timeout",
+			fields{},
+			args{time.Minute},
+			&ClientBuilder{
+				tcpTimeout: time.Minute,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
+				connExpiration:        tt.fields.connExpiration,
+			}
+			if got := dsb.TCPTimeout(tt.args.t); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TCPTimeout() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
