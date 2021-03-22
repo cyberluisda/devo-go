@@ -131,6 +131,16 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
+func (dsb *ClientBuilder) TCPTimeout(t time.Duration) *ClientBuilder {
+	dsb.tcpTimeout = t
+	return dsb
+}
+
+func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
+	dsb.tcpKeepAlive = t
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
