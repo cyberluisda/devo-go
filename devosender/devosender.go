@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -31,6 +32,9 @@ type DevoSender interface {
 type tlsSetup struct {
 	tlsConfig *tls.Config
 }
+type tcpConfig struct {
+	tcpDialer *net.Dialer
+}
 
 // Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
 type Client struct {
@@ -43,6 +47,7 @@ type Client struct {
 	waitGroup         sync.WaitGroup
 	asyncErrors       map[string]error
 	asyncErrorsMutext sync.Mutex
+	tcp               tcpConfig
 }
 
 const (
@@ -67,6 +72,8 @@ type ClientBuilder struct {
 	chainFileName             *string
 	tlsInsecureSkipVerify     bool
 	tlsRenegotiation          tls.RenegotiationSupport
+	tcpTimeout                time.Duration
+	tcpKeepAlive              time.Duration
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
@@ -124,6 +131,18 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
+//TCPTimeout allow to set Timeout value configured in net.Dialer
+func (dsb *ClientBuilder) TCPTimeout(t time.Duration) *ClientBuilder {
+	dsb.tcpTimeout = t
+	return dsb
+}
+
+//TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
+func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
+	dsb.tcpKeepAlive = t
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
@@ -138,86 +157,59 @@ func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
 
 // Build implements build method of builder returning Client instance.
 func (dsb *ClientBuilder) Build() (*Client, error) {
-	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
-		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dsb.key, dsb.cert, dsb.chain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
-	}
-
+	//TLS
+	var TLSSetup *tlsSetup
 	if dsb.keyFileName != "" && dsb.certFileName != "" {
-		dataKey, dataCert, dataChain, err := loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
+		// certs from files
+		var err error
+		dsb.key, dsb.cert, dsb.chain, err = loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
 		if err != nil {
 			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
 		}
-		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dataKey, dataCert, dataChain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
+		// TLS enabled
+		TLSSetup = &tlsSetup{
+			tlsConfig: &tls.Config{
+				InsecureSkipVerify: dsb.tlsInsecureSkipVerify,
+				Renegotiation:      dsb.tlsRenegotiation,
+			},
+		}
+
+		// Create pool with chain cert
+		pool := x509.NewCertPool()
+		if len(dsb.chain) > 0 {
+			ok := pool.AppendCertsFromPEM(dsb.chain)
+			if !ok {
+				return nil, fmt.Errorf("Could not parse chain certificate, content %s", string(dsb.chain))
+			}
+			TLSSetup.tlsConfig.RootCAs = pool
+		}
+
+		// Load key and certificate
+		crts, err := tls.X509KeyPair(dsb.cert, dsb.key)
+		if err != nil {
+			return nil, fmt.Errorf("Error when load key and cert: %w", err)
+		}
+		TLSSetup.tlsConfig.Certificates = []tls.Certificate{crts}
+		TLSSetup.tlsConfig.BuildNameToCertificate()
 	}
 
-	return NewDevoSender(dsb.entrypoint)
-}
-
-// NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
-func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
-	// Set default tls options
-	return NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
-}
-
-// NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
-func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
-	dataKey, dataCert, dataChain, err := loadTLSFiles(keyFileName, certFileName, chainFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewDevoSenderTLS(entrypoint, dataKey, dataCert, dataChain)
-}
-
-// NewDevoSenderTLSWithConfig Create new DevoSender with TLS comunication and some TLS configuration parameters
-// entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
-// key, cert and chain are the content of X.5809 Key, Certificate and Chain CA respectively. See https://docs.devo.com/confluence/ndt/domain-administration/security-credentials/x-509-certificates for more info
-// insecureSkipVerify is value asigned to tls.Config.InsecureSkipVerify tls property
-// renegotiation is value asigned to tls.Config.Renegotiation tls property
-func NewDevoSenderTLSWithConfig(entrypoint string, key []byte, cert []byte, chain []byte, insecureSkipVerify bool, renegotiation tls.RenegotiationSupport) (*Client, error) {
-
-	if len(key) == 0 {
-		return nil, fmt.Errorf("key param can not be empty")
-	}
-	if len(cert) == 0 {
-		return nil, fmt.Errorf("cert param can not be empty")
-	}
-
-	// tlsSetup
-	tlsSetup := &tlsSetup{
-		tlsConfig: &tls.Config{
-			InsecureSkipVerify: insecureSkipVerify,
-			Renegotiation:      renegotiation,
+	// Create client
+	result := Client{
+		ReplaceSequences: make(map[string]string),
+		tls:              TLSSetup,
+		entryPoint:       dsb.entrypoint,
+		asyncErrors:      make(map[string]error),
+		tcp: tcpConfig{
+			tcpDialer: &net.Dialer{
+				Timeout:   dsb.tcpTimeout,
+				KeepAlive: dsb.tcpKeepAlive,
+			},
 		},
 	}
 
-	// Create pool with chain cert
-	pool := x509.NewCertPool()
-	if len(chain) > 0 {
-		ok := pool.AppendCertsFromPEM(chain)
-		if !ok {
-			return nil, fmt.Errorf("Could not parse chain certificate, content %s", string(chain))
-		}
-		tlsSetup.tlsConfig.RootCAs = pool
-	}
-
-	// Load key and certificate
-	crts, err := tls.X509KeyPair(cert, key)
-	if err != nil {
-		return nil, fmt.Errorf("Error when load key and cert: %w", err)
-	}
-	tlsSetup.tlsConfig.Certificates = []tls.Certificate{crts}
-	tlsSetup.tlsConfig.BuildNameToCertificate()
-
-	result := Client{
-		ReplaceSequences: make(map[string]string),
-		tls:              tlsSetup,
-		entryPoint:       entrypoint,
-		asyncErrors:      make(map[string]error),
-	}
-
-	// Create connection
-	err = result.makeConnection()
+	err := result.makeConnection()
 	if err != nil {
 		return nil, fmt.Errorf("Error when create new DevoSender (TLS): %w", err)
 	}
@@ -226,28 +218,30 @@ func NewDevoSenderTLSWithConfig(entrypoint string, key []byte, cert []byte, chai
 	result.init()
 
 	return &result, nil
-
 }
 
-// NewDevoSender Create new DevoSender with clean comunication
+// NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
+func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		TLSCerts(key, cert, chain).
+		Build()
+}
+
+// NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
+func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		TLSFiles(keyFileName, certFileName, chainFileName).
+		Build()
+}
+
+// NewDevoSender Create new DevoSender with clean comunication using ClientBuilder
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
 func NewDevoSender(entrypoint string) (*Client, error) {
-
-	result := Client{
-		ReplaceSequences: make(map[string]string),
-		entryPoint:       entrypoint,
-		asyncErrors:      make(map[string]error),
-	}
-
-	err := result.makeConnection()
-	if err != nil {
-		return nil, fmt.Errorf("Error when create new DevoSender: %w", err)
-	}
-
-	// Intialize default values
-	result.init()
-
-	return &result, nil
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		Build()
 }
 
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
@@ -422,26 +416,33 @@ func (dsc *Client) makeConnection() error {
 	if dsc.entryPoint == "" {
 		return fmt.Errorf("Entrypoint can not be empty")
 	}
-	protocolAndURI := strings.SplitN(dsc.entryPoint, "://", 2)
-	if len(protocolAndURI) != 2 {
+	u, err := url.Parse(dsc.entryPoint)
+	if err != nil {
+		return fmt.Errorf("Error when parse entrypoint %s: %w", dsc.entryPoint, err)
+	}
+
+	if u.Scheme == "" || u.Host == "" {
 		return fmt.Errorf("Unexpected format (protocol://fqdn[:port]) for entrypoint: %v", dsc.entryPoint)
 	}
 
-	var conn net.Conn
-	var err error
-	if dsc.tls != nil {
-		conn, err = tls.Dial(protocolAndURI[0], protocolAndURI[1], dsc.tls.tlsConfig)
-		if err != nil {
-			return fmt.Errorf("Error when create TLS connection for Devo sender: %w", err)
-		}
-	} else {
-		conn, err = net.Dial(protocolAndURI[0], protocolAndURI[1])
-		if err != nil {
-			return fmt.Errorf("Error when create clean connection for Devo sender: %w", err)
-		}
+	// Make connection BODY
+	tcpConn, err := dsc.tcp.tcpDialer.Dial(u.Scheme, u.Host)
+	if err != nil {
+		return fmt.Errorf("Error when try to open TCP connection to scheme: %s, host: %s, error: %w", u.Scheme, u.Host, err)
 	}
 
-	dsc.conn = conn
+	// TLS
+	if dsc.tls != nil {
+		// Fix ServerName
+		if dsc.tls.tlsConfig != nil {
+			if dsc.tls.tlsConfig.ServerName == "" {
+				dsc.tls.tlsConfig.ServerName = u.Hostname()
+			}
+		}
+		dsc.conn = tls.Client(tcpConn, dsc.tls.tlsConfig)
+	} else {
+		dsc.conn = tcpConn
+	}
 
 	return nil
 }
