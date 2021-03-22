@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -422,20 +423,23 @@ func (dsc *Client) makeConnection() error {
 	if dsc.entryPoint == "" {
 		return fmt.Errorf("Entrypoint can not be empty")
 	}
-	protocolAndURI := strings.SplitN(dsc.entryPoint, "://", 2)
-	if len(protocolAndURI) != 2 {
+	u, err := url.Parse(dsc.entryPoint)
+	if err != nil {
+		return fmt.Errorf("Error when parse entrypoint %s: %w", dsc.entryPoint, err)
+	}
+
+	if u.Scheme == "" || u.Host == "" {
 		return fmt.Errorf("Unexpected format (protocol://fqdn[:port]) for entrypoint: %v", dsc.entryPoint)
 	}
 
 	var conn net.Conn
-	var err error
 	if dsc.tls != nil {
-		conn, err = tls.Dial(protocolAndURI[0], protocolAndURI[1], dsc.tls.tlsConfig)
+		conn, err = tls.Dial(u.Scheme, u.Host, dsc.tls.tlsConfig)
 		if err != nil {
 			return fmt.Errorf("Error when create TLS connection for Devo sender: %w", err)
 		}
 	} else {
-		conn, err = net.Dial(protocolAndURI[0], protocolAndURI[1])
+		conn, err = net.Dial(u.Scheme, u.Host)
 		if err != nil {
 			return fmt.Errorf("Error when create clean connection for Devo sender: %w", err)
 		}
