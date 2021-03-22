@@ -327,6 +327,14 @@ func (dsc *Client) SendAsync(m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 
+	// Checks if connection should be restarted
+	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
+		if dsc.conn != nil {
+			dsc.conn.Close()
+		}
+		dsc.makeConnection()
+	}
+
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
 		err := dsc.Send(m)
