@@ -1251,6 +1251,7 @@ func TestClientBuilder_Build(t *testing.T) {
 					got.conn.Close()
 				}
 				got.conn = tt.want.conn
+				got.connectionUsedTimestamp = tt.want.connectionUsedTimestamp
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ClientBuilder.Build() = %+v, want %+v", got, tt.want)
