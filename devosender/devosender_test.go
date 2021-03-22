@@ -1458,6 +1458,16 @@ func TestClientBuilder_Build(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"Error invaled tls key/cert",
+			fields{
+				entrypoint: "udp://example.org:80",
+				key:        []byte{00, 01},
+				cert:       []byte{00, 01},
+			},
+			nil,
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
