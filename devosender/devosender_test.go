@@ -1422,6 +1422,7 @@ func TestClientBuilder_Build(t *testing.T) {
 		chainFileName         *string
 		tlsInsecureSkipVerify bool
 		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
 	}
 	tests := []struct {
 		name    string
@@ -1459,6 +1460,15 @@ func TestClientBuilder_Build(t *testing.T) {
 			true,
 		},
 		{
+			"Error timeout connection",
+			fields{
+				entrypoint: "tcp://example.org:80",
+				tcpTimeout: time.Millisecond,
+			},
+			nil,
+			true,
+		},
+		{
 			"Error invaled tls key/cert",
 			fields{
 				entrypoint: "udp://example.org:80",
@@ -1481,6 +1491,7 @@ func TestClientBuilder_Build(t *testing.T) {
 				chainFileName:         tt.fields.chainFileName,
 				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
 				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
 			}
 			got, err := dsb.Build()
 			if (err != nil) != tt.wantErr {
