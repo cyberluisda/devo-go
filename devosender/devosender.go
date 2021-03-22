@@ -131,11 +131,13 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
+//TCPTimeout allow to set Timeout value configured in net.Dialer
 func (dsb *ClientBuilder) TCPTimeout(t time.Duration) *ClientBuilder {
 	dsb.tcpTimeout = t
 	return dsb
 }
 
+//TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
 func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
 	dsb.tcpKeepAlive = t
 	return dsb
