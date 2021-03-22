@@ -77,6 +77,7 @@ type ClientBuilder struct {
 	tlsRenegotiation          tls.RenegotiationSupport
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
+	connExpiration            time.Duration
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
