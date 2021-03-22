@@ -1423,6 +1423,7 @@ func TestClientBuilder_Build(t *testing.T) {
 		tlsInsecureSkipVerify bool
 		tlsRenegotiation      tls.RenegotiationSupport
 		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
 	}
 	tests := []struct {
 		name    string
@@ -1478,6 +1479,19 @@ func TestClientBuilder_Build(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"TCP KeepAlive set",
+			fields{
+				entrypoint:   "udp://example.org:80",
+				tcpKeepAlive: time.Minute,
+			},
+			func() *Client {
+				r, _ := NewDevoSender("udp://example.org:80")
+				r.tcp.tcpDialer.KeepAlive = time.Minute
+				return r
+			}(),
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1492,6 +1506,7 @@ func TestClientBuilder_Build(t *testing.T) {
 				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
 				tlsRenegotiation:      tt.fields.tlsRenegotiation,
 				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
 			}
 			got, err := dsb.Build()
 			if (err != nil) != tt.wantErr {
