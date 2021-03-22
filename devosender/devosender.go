@@ -211,6 +211,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 				KeepAlive: dsb.tcpKeepAlive,
 			},
 		},
+		maxTimeConnActive: dsb.connExpiration,
 	}
 
 	err := result.makeConnection()
