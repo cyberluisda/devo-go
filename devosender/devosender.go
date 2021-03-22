@@ -215,22 +215,9 @@ func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName s
 // NewDevoSender Create new DevoSender with clean comunication using ClientBuilder
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
 func NewDevoSender(entrypoint string) (*Client, error) {
-
-	result := Client{
-		ReplaceSequences: make(map[string]string),
-		entryPoint:       entrypoint,
-		asyncErrors:      make(map[string]error),
-	}
-
-	err := result.makeConnection()
-	if err != nil {
-		return nil, fmt.Errorf("Error when create new DevoSender: %w", err)
-	}
-
-	// Intialize default values
-	result.init()
-
-	return &result, nil
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		Build()
 }
 
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
