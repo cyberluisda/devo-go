@@ -72,6 +72,8 @@ type ClientBuilder struct {
 	chainFileName             *string
 	tlsInsecureSkipVerify     bool
 	tlsRenegotiation          tls.RenegotiationSupport
+	tcpTimeout                time.Duration
+	tcpKeepAlive              time.Duration
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
@@ -187,6 +189,12 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		tls:              TLSSetup,
 		entryPoint:       dsb.entrypoint,
 		asyncErrors:      make(map[string]error),
+		tcp: tcpConfig{
+			tcpDialer: &net.Dialer{
+				Timeout:   dsb.tcpTimeout,
+				KeepAlive: dsb.tcpKeepAlive,
+			},
+		},
 	}
 
 	err := result.makeConnection()
