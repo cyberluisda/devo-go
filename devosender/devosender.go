@@ -283,10 +283,20 @@ func (dsc *Client) Send(m string) error {
 
 // SendWTag is similar to Send but using a specific tag
 func (dsc *Client) SendWTag(t, m string) error {
-	timestamp := time.Now().Format(time.RFC3339)
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
+
+	// Checks if connection should be restarted
+	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
+		if dsc.conn != nil {
+			dsc.conn.Close()
+		}
+		dsc.makeConnection()
+	}
+
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	devomsg := fmt.Sprintf(
 		"%s%s %s %s: %s\n",
