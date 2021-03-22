@@ -206,17 +206,13 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
 func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
-	dataKey, dataCert, dataChain, err := loadTLSFiles(keyFileName, certFileName, chainFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewDevoSenderTLS(entrypoint, dataKey, dataCert, dataChain)
+	return NewClientBuilder().
+		EntryPoint(entrypoint).
+		TLSFiles(keyFileName, certFileName, chainFileName).
+		Build()
 }
 
-// NewDevoSenderTLSWithConfig Create new DevoSender with TLS comunication and some TLS configuration parameters
-// entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
-// NewDevoSender Create new DevoSender with clean comunication
+// NewDevoSender Create new DevoSender with clean comunication using ClientBuilder
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
 func NewDevoSender(entrypoint string) (*Client, error) {
 
