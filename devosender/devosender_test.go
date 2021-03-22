@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"time"
 )
 
 func Test_replaceSequences(t *testing.T) {
@@ -1118,6 +1119,70 @@ func TestClientBuilder_TLSRenegotiation(t *testing.T) {
 			}
 			if got := dsb.TLSRenegotiation(tt.args.renegotiation); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ClientBuilder.TLSRenegotiation() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientBuilder_DevoCentralEntryPoint(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
+		connExpiration        time.Duration
+	}
+	type args struct {
+		relay ClienBuilderDevoCentralRelay
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set EU Devo entrypoint",
+			fields{},
+			args{ClientBuilderRelayEU},
+			&ClientBuilder{
+				entrypoint: DevoCentralRelayEU,
+			},
+		},
+		{
+			"Set US Devo entrypoint",
+			fields{},
+			args{ClientBuilderRelayUS},
+			&ClientBuilder{
+				entrypoint: DevoCentralRelayUS,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
+				connExpiration:        tt.fields.connExpiration,
+			}
+			if got := dsb.DevoCentralEntryPoint(tt.args.relay); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.DevoCentralEntryPoint() = %v, want %v", got, tt.want)
 			}
 		})
 	}
