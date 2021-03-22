@@ -304,6 +304,11 @@ func (dsc *Client) SendWTag(t, m string) error {
 		return fmt.Errorf("Error when send data to devo: %w", err)
 	}
 
+	// Save timestamp of event send
+	dsc.connectionUsedTSMutext.Lock()
+	dsc.connectionUsedTimestamp = now
+	dsc.connectionUsedTSMutext.Unlock()
+
 	return nil
 }
 
