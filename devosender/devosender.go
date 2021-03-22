@@ -214,64 +214,6 @@ func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName s
 
 // NewDevoSenderTLSWithConfig Create new DevoSender with TLS comunication and some TLS configuration parameters
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
-// key, cert and chain are the content of X.5809 Key, Certificate and Chain CA respectively. See https://docs.devo.com/confluence/ndt/domain-administration/security-credentials/x-509-certificates for more info
-// insecureSkipVerify is value asigned to tls.Config.InsecureSkipVerify tls property
-// renegotiation is value asigned to tls.Config.Renegotiation tls property
-func NewDevoSenderTLSWithConfig(entrypoint string, key []byte, cert []byte, chain []byte, insecureSkipVerify bool, renegotiation tls.RenegotiationSupport) (*Client, error) {
-
-	if len(key) == 0 {
-		return nil, fmt.Errorf("key param can not be empty")
-	}
-	if len(cert) == 0 {
-		return nil, fmt.Errorf("cert param can not be empty")
-	}
-
-	// tlsSetup
-	tlsSetup := &tlsSetup{
-		tlsConfig: &tls.Config{
-			InsecureSkipVerify: insecureSkipVerify,
-			Renegotiation:      renegotiation,
-		},
-	}
-
-	// Create pool with chain cert
-	pool := x509.NewCertPool()
-	if len(chain) > 0 {
-		ok := pool.AppendCertsFromPEM(chain)
-		if !ok {
-			return nil, fmt.Errorf("Could not parse chain certificate, content %s", string(chain))
-		}
-		tlsSetup.tlsConfig.RootCAs = pool
-	}
-
-	// Load key and certificate
-	crts, err := tls.X509KeyPair(cert, key)
-	if err != nil {
-		return nil, fmt.Errorf("Error when load key and cert: %w", err)
-	}
-	tlsSetup.tlsConfig.Certificates = []tls.Certificate{crts}
-	tlsSetup.tlsConfig.BuildNameToCertificate()
-
-	result := Client{
-		ReplaceSequences: make(map[string]string),
-		tls:              tlsSetup,
-		entryPoint:       entrypoint,
-		asyncErrors:      make(map[string]error),
-	}
-
-	// Create connection
-	err = result.makeConnection()
-	if err != nil {
-		return nil, fmt.Errorf("Error when create new DevoSender (TLS): %w", err)
-	}
-
-	// Intialize default values
-	result.init()
-
-	return &result, nil
-
-}
-
 // NewDevoSender Create new DevoSender with clean comunication
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
 func NewDevoSender(entrypoint string) (*Client, error) {
