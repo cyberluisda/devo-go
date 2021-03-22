@@ -432,20 +432,29 @@ func (dsc *Client) makeConnection() error {
 		return fmt.Errorf("Unexpected format (protocol://fqdn[:port]) for entrypoint: %v", dsc.entryPoint)
 	}
 
-	var conn net.Conn
-	if dsc.tls != nil {
-		conn, err = tls.Dial(u.Scheme, u.Host, dsc.tls.tlsConfig)
-		if err != nil {
-			return fmt.Errorf("Error when create TLS connection for Devo sender: %w", err)
-		}
-	} else {
-		conn, err = net.Dial(u.Scheme, u.Host)
-		if err != nil {
-			return fmt.Errorf("Error when create clean connection for Devo sender: %w", err)
-		}
+	// Make connection BODY
+	dialer := dsc.tcp.tcpDialer
+	if dialer == nil {
+		dialer = &net.Dialer{}
 	}
 
-	dsc.conn = conn
+	tcpConn, err := dialer.Dial(u.Scheme, u.Host)
+	if err != nil {
+		return fmt.Errorf("Error when try to open TCP connection to scheme: %s, host: %s, error: %w", u.Scheme, u.Host, err)
+	}
+
+	// TLS
+	if dsc.tls != nil {
+		// Fix ServerName
+		if dsc.tls.tlsConfig != nil {
+			if dsc.tls.tlsConfig.ServerName == "" {
+				dsc.tls.tlsConfig.ServerName = u.Hostname()
+			}
+		}
+		dsc.conn = tls.Client(tcpConn, dsc.tls.tlsConfig)
+	} else {
+		dsc.conn = tcpConn
+	}
 
 	return nil
 }
