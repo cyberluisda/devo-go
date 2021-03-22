@@ -139,19 +139,61 @@ func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
 
 // Build implements build method of builder returning Client instance.
 func (dsb *ClientBuilder) Build() (*Client, error) {
-	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
-		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dsb.key, dsb.cert, dsb.chain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
-	}
-
+	//TLS
+	var TLSSetup *tlsSetup
 	if dsb.keyFileName != "" && dsb.certFileName != "" {
-		dataKey, dataCert, dataChain, err := loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
+		// certs from files
+		var err error
+		dsb.key, dsb.cert, dsb.chain, err = loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
 		if err != nil {
 			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
 		}
-		return NewDevoSenderTLSWithConfig(dsb.entrypoint, dataKey, dataCert, dataChain, dsb.tlsInsecureSkipVerify, dsb.tlsRenegotiation)
+	}
+	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
+		// TLS enabled
+		TLSSetup = &tlsSetup{
+			tlsConfig: &tls.Config{
+				InsecureSkipVerify: dsb.tlsInsecureSkipVerify,
+				Renegotiation:      dsb.tlsRenegotiation,
+			},
+		}
+
+		// Create pool with chain cert
+		pool := x509.NewCertPool()
+		if len(dsb.chain) > 0 {
+			ok := pool.AppendCertsFromPEM(dsb.chain)
+			if !ok {
+				return nil, fmt.Errorf("Could not parse chain certificate, content %s", string(dsb.chain))
+			}
+			TLSSetup.tlsConfig.RootCAs = pool
+		}
+
+		// Load key and certificate
+		crts, err := tls.X509KeyPair(dsb.cert, dsb.key)
+		if err != nil {
+			return nil, fmt.Errorf("Error when load key and cert: %w", err)
+		}
+		TLSSetup.tlsConfig.Certificates = []tls.Certificate{crts}
+		TLSSetup.tlsConfig.BuildNameToCertificate()
 	}
 
-	return NewDevoSender(dsb.entrypoint)
+	// Create client
+	result := Client{
+		ReplaceSequences: make(map[string]string),
+		tls:              TLSSetup,
+		entryPoint:       dsb.entrypoint,
+		asyncErrors:      make(map[string]error),
+	}
+
+	err := result.makeConnection()
+	if err != nil {
+		return nil, fmt.Errorf("Error when create new DevoSender (TLS): %w", err)
+	}
+
+	// Intialize default values
+	result.init()
+
+	return &result, nil
 }
 
 // NewDevoSenderTLS  is an alias of NewDevoSenderTLSWithConfig(entrypoint, key, cert, chain, false, tls.RenegotiateNever)
