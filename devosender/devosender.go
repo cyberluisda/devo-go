@@ -32,6 +32,9 @@ type DevoSender interface {
 type tlsSetup struct {
 	tlsConfig *tls.Config
 }
+type tcpConfig struct {
+	tcpDialer *net.Dialer
+}
 
 // Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
 type Client struct {
@@ -44,6 +47,7 @@ type Client struct {
 	waitGroup         sync.WaitGroup
 	asyncErrors       map[string]error
 	asyncErrorsMutext sync.Mutex
+	tcp               tcpConfig
 }
 
 const (
