@@ -452,6 +452,8 @@ func (dsc *Client) makeConnection() error {
 		dsc.conn = tcpConn
 	}
 
+	dsc.connectionUsedTimestamp = time.Now()
+
 	return nil
 }
 
