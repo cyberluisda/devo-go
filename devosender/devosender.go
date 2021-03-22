@@ -406,12 +406,7 @@ func (dsc *Client) makeConnection() error {
 	}
 
 	// Make connection BODY
-	dialer := dsc.tcp.tcpDialer
-	if dialer == nil {
-		dialer = &net.Dialer{}
-	}
-
-	tcpConn, err := dialer.Dial(u.Scheme, u.Host)
+	tcpConn, err := dsc.tcp.tcpDialer.Dial(u.Scheme, u.Host)
 	if err != nil {
 		return fmt.Errorf("Error when try to open TCP connection to scheme: %s, host: %s, error: %w", u.Scheme, u.Host, err)
 	}
