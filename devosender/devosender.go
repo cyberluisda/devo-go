@@ -38,16 +38,19 @@ type tcpConfig struct {
 
 // Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
 type Client struct {
-	entryPoint        string
-	syslogHostname    string
-	defaultTag        string
-	conn              net.Conn
-	ReplaceSequences  map[string]string
-	tls               *tlsSetup
-	waitGroup         sync.WaitGroup
-	asyncErrors       map[string]error
-	asyncErrorsMutext sync.Mutex
-	tcp               tcpConfig
+	entryPoint              string
+	syslogHostname          string
+	defaultTag              string
+	conn                    net.Conn
+	ReplaceSequences        map[string]string
+	tls                     *tlsSetup
+	waitGroup               sync.WaitGroup
+	asyncErrors             map[string]error
+	asyncErrorsMutext       sync.Mutex
+	tcp                     tcpConfig
+	connectionUsedTimestamp time.Time
+	connectionUsedTSMutext  sync.Mutex
+	maxTimeConnActive       time.Duration
 }
 
 const (
@@ -74,6 +77,7 @@ type ClientBuilder struct {
 	tlsRenegotiation          tls.RenegotiationSupport
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
+	connExpiration            time.Duration
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
@@ -143,6 +147,12 @@ func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
 	return dsb
 }
 
+// ConnectionExpiration set expiration time used to recreate connection from last time was used
+func (dsb *ClientBuilder) ConnectionExpiration(t time.Duration) *ClientBuilder {
+	dsb.connExpiration = t
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
@@ -207,6 +217,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 				KeepAlive: dsb.tcpKeepAlive,
 			},
 		},
+		maxTimeConnActive: dsb.connExpiration,
 	}
 
 	err := result.makeConnection()
@@ -280,10 +291,20 @@ func (dsc *Client) Send(m string) error {
 
 // SendWTag is similar to Send but using a specific tag
 func (dsc *Client) SendWTag(t, m string) error {
-	timestamp := time.Now().Format(time.RFC3339)
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
+
+	// Checks if connection should be restarted
+	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
+		if dsc.conn != nil {
+			dsc.conn.Close()
+		}
+		dsc.makeConnection()
+	}
+
+	now := time.Now()
+	timestamp := now.Format(time.RFC3339)
 
 	devomsg := fmt.Sprintf(
 		"%s%s %s %s: %s\n",
@@ -301,6 +322,11 @@ func (dsc *Client) SendWTag(t, m string) error {
 		return fmt.Errorf("Error when send data to devo: %w", err)
 	}
 
+	// Save timestamp of event send
+	dsc.connectionUsedTSMutext.Lock()
+	dsc.connectionUsedTimestamp = now
+	dsc.connectionUsedTSMutext.Unlock()
+
 	return nil
 }
 
@@ -308,6 +334,14 @@ func (dsc *Client) SendWTag(t, m string) error {
 func (dsc *Client) SendAsync(m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+
+	// Checks if connection should be restarted
+	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
+		if dsc.conn != nil {
+			dsc.conn.Close()
+		}
+		dsc.makeConnection()
+	}
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
@@ -328,6 +362,14 @@ func (dsc *Client) SendAsync(m string) string {
 func (dsc *Client) SendWTagAsync(t, m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+
+	// Checks if connection should be restarted
+	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
+		if dsc.conn != nil {
+			dsc.conn.Close()
+		}
+		dsc.makeConnection()
+	}
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
@@ -444,6 +486,8 @@ func (dsc *Client) makeConnection() error {
 		dsc.conn = tcpConn
 	}
 
+	dsc.connectionUsedTimestamp = time.Now()
+
 	return nil
 }
 
@@ -483,4 +527,13 @@ func loadTLSFiles(keyFileName, certFileName string, chainFileName *string) ([]by
 		}
 	}
 	return dataKey, dataCert, dataChain, nil
+}
+
+func isExpired(t time.Time, d time.Duration) bool {
+	if d <= 0 {
+		return false
+	}
+	n := time.Now()
+	expiresAt := t.Add(d)
+	return expiresAt.Before(n)
 }
