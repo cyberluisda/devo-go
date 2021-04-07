@@ -21,6 +21,7 @@ See next code examples:
 * [senderfileasevent.go](./examples/senderfileasevent.go) Example to send content of a file as only one event to Devo relay-in house. Using `io.Copy` func
 * [sendercentralrelaywithbuilder.go](./examples/sendercentralrelaywithbuilder.go) Example to send data to Devo central relay but instantiating client using `ClientBuilder`
 * [sendercentralrelaytimeout.go](./examples/sendercentralrelaytimeout.go) Example to send data to Devo central relay that you can set TCP connection timeout based on `ClientBuilder` option
+* [sendercentralrelaykeepalive.go](./examples/sendercentralrelaykeepalive.go) Example to send data to Devo central relay but setting TCP keep-alive time based on `ClientBuilder` option
 
 ## devologtable
 
