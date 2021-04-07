@@ -22,6 +22,7 @@ See next code examples:
 * [sendercentralrelaywithbuilder.go](./examples/sendercentralrelaywithbuilder.go) Example to send data to Devo central relay but instantiating client using `ClientBuilder`
 * [sendercentralrelaytimeout.go](./examples/sendercentralrelaytimeout.go) Example to send data to Devo central relay that you can set TCP connection timeout based on `ClientBuilder` option
 * [sendercentralrelaykeepalive.go](./examples/sendercentralrelaykeepalive.go) Example to send data to Devo central relay but setting TCP keep-alive time based on `ClientBuilder` option
+* [sendercentralrelayrecreatecon.go](./examples/sendercentralrelayrecreatecon.go) Example to send data to Devo central relay but set to recreate connection if time from last event sent is greater than threshold. This value is set using `ClientBuilder` option.
 
 ## devologtable
 
