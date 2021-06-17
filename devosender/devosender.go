@@ -29,6 +29,7 @@ type DevoSender interface {
 	GetEntryPoint() string
 	AreAsyncOps() bool
 	AsyncIds() []string
+	IsAsyncActive() bool
 }
 
 type tlsSetup struct {
