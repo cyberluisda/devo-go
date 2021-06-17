@@ -55,6 +55,8 @@ func main() {
 		idsCustomTag[i-1] = sender.SendWTagAsync(tag, fmt.Sprintf("%s%d", message, i))
 	}
 
+	fmt.Printf("Remaining ids (before wait): %v\n", sender.AsyncIds())
+
 	fmt.Printf("Id of messages sent with custom tag (%s):\n", defaultTag)
 	for _, id := range idsDefaultTag {
 		fmt.Println(id)
@@ -72,6 +74,8 @@ func main() {
 
 	// Wait for messages sent and report errors if found
 	sender.WaitForPendingAsyncMessages()
+
+	fmt.Printf("Remaining ids (after wait): %v\n", sender.AsyncIds())
 
 	if len(sender.AsyncErrors()) > 0 {
 		fmt.Println("Errors inventory:")
