@@ -451,6 +451,17 @@ func (dsc *Client) AsyncIds() []string {
 	return r
 }
 
+// AreAsyncOps return true is there is any Async operation running
+func (dsc *Client) AreAsyncOps() bool {
+	dsc.asyncItemsMutext.Lock()
+
+	r := len(dsc.asyncItems) > 0
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
