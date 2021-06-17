@@ -386,6 +386,11 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
+		// Save asyncItems ref ids
+		dsc.asyncItemsMutext.Lock()
+		dsc.asyncItems[id] = nil
+		dsc.asyncItemsMutext.Unlock()
+
 		err := dsc.SendWTag(t, m)
 		if err != nil {
 			dsc.asyncErrorsMutext.Lock()
@@ -394,6 +399,11 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 		}
 
 		dsc.waitGroup.Done()
+
+		// Remove id from asyncItems
+		dsc.asyncItemsMutext.Lock()
+		delete(dsc.asyncItems, id)
+		dsc.asyncItemsMutext.Unlock()
 	}(id)
 
 	return id
