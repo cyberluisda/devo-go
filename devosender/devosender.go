@@ -453,7 +453,7 @@ func (dsc *Client) AsyncIds() []string {
 	return r
 }
 
-// AreAsyncOps return true is there is any Async operation running
+// AreAsyncOps returns true is there is any Async operation running
 func (dsc *Client) AreAsyncOps() bool {
 	dsc.asyncItemsMutext.Lock()
 
@@ -462,6 +462,18 @@ func (dsc *Client) AreAsyncOps() bool {
 	dsc.asyncItemsMutext.Unlock()
 
 	return r
+}
+
+// IsAsyncActive returns true if id is present in AsyncIds(). This function is
+// more optimal that look into result of AsyncIds
+func (dsc *Client) IsAsyncActive(id string) bool {
+	dsc.asyncItemsMutext.Lock()
+
+	_, ok := dsc.asyncItems[id]
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return ok
 }
 
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
