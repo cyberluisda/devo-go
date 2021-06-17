@@ -51,6 +51,8 @@ type Client struct {
 	connectionUsedTimestamp time.Time
 	connectionUsedTSMutext  sync.Mutex
 	maxTimeConnActive       time.Duration
+	asyncItems              map[string]interface{}
+	asyncItemsMutext        sync.Mutex
 }
 
 const (
