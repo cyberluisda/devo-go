@@ -23,10 +23,13 @@ type DevoSender interface {
 	SendWTag(t, m string) error
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
-	WaitForPendingAsyngMessages() error
+	WaitForPendingAsyncMessages() error
 	AsyncErrors() map[string]error
 	PurgeAsyncErrors()
 	GetEntryPoint() string
+	AreAsyncOps() bool
+	AsyncIds() []string
+	IsAsyncActive() bool
 }
 
 type tlsSetup struct {
@@ -51,6 +54,8 @@ type Client struct {
 	connectionUsedTimestamp time.Time
 	connectionUsedTSMutext  sync.Mutex
 	maxTimeConnActive       time.Duration
+	asyncItems              map[string]interface{}
+	asyncItemsMutext        sync.Mutex
 }
 
 const (
@@ -218,6 +223,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 			},
 		},
 		maxTimeConnActive: dsb.connExpiration,
+		asyncItems:        make(map[string]interface{}),
 	}
 
 	err := result.makeConnection()
@@ -345,6 +351,11 @@ func (dsc *Client) SendAsync(m string) string {
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
+		// Save asyncItems ref ids
+		dsc.asyncItemsMutext.Lock()
+		dsc.asyncItems[id] = nil
+		dsc.asyncItemsMutext.Unlock()
+
 		err := dsc.Send(m)
 		if err != nil {
 			dsc.asyncErrorsMutext.Lock()
@@ -353,6 +364,11 @@ func (dsc *Client) SendAsync(m string) string {
 		}
 
 		dsc.waitGroup.Done()
+
+		// Remove id from asyncItems
+		dsc.asyncItemsMutext.Lock()
+		delete(dsc.asyncItems, id)
+		dsc.asyncItemsMutext.Unlock()
 	}(id)
 
 	return id
@@ -373,6 +389,11 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
+		// Save asyncItems ref ids
+		dsc.asyncItemsMutext.Lock()
+		dsc.asyncItems[id] = nil
+		dsc.asyncItemsMutext.Unlock()
+
 		err := dsc.SendWTag(t, m)
 		if err != nil {
 			dsc.asyncErrorsMutext.Lock()
@@ -381,13 +402,18 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 		}
 
 		dsc.waitGroup.Done()
+
+		// Remove id from asyncItems
+		dsc.asyncItemsMutext.Lock()
+		delete(dsc.asyncItems, id)
+		dsc.asyncItemsMutext.Unlock()
 	}(id)
 
 	return id
 }
 
-// WaitForPendingAsyngMessages wait for all Async messages that are pending to send
-func (dsc *Client) WaitForPendingAsyngMessages() error {
+// WaitForPendingAsyncMessages wait for all Async messages that are pending to send
+func (dsc *Client) WaitForPendingAsyncMessages() error {
 	dsc.waitGroup.Wait()
 	return nil
 }
@@ -409,6 +435,46 @@ func (dsc *Client) PurgeAsyncErrors() {
 // GetEntryPoint return entrypoint used by client
 func (dsc *Client) GetEntryPoint() string {
 	return dsc.entryPoint
+}
+
+// AsyncIds return asyncIds that are currently runnig
+func (dsc *Client) AsyncIds() []string {
+	dsc.asyncItemsMutext.Lock()
+
+	r := make([]string, len(dsc.asyncItems))
+
+	i := 0
+	for k := range dsc.asyncItems {
+		r[i] = k
+		i++
+	}
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
+// AreAsyncOps returns true is there is any Async operation running
+func (dsc *Client) AreAsyncOps() bool {
+	dsc.asyncItemsMutext.Lock()
+
+	r := len(dsc.asyncItems) > 0
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
+// IsAsyncActive returns true if id is present in AsyncIds(). This function is
+// more optimal that look into result of AsyncIds
+func (dsc *Client) IsAsyncActive(id string) bool {
+	dsc.asyncItemsMutext.Lock()
+
+	_, ok := dsc.asyncItems[id]
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return ok
 }
 
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences

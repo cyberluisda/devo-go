@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -68,6 +69,8 @@ func TestClient_makeConnection(t *testing.T) {
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
 		tcp               tcpConfig
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	tests := []struct {
 		name    string
@@ -122,6 +125,8 @@ func TestClient_makeConnection(t *testing.T) {
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
 				tcp:               tt.fields.tcp,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			if err := dsc.makeConnection(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.makeConnection() error = %v, wantErr %v", err, tt.wantErr)
@@ -141,6 +146,8 @@ func TestClient_AddReplaceSequences(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	type args struct {
 		old string
@@ -188,6 +195,8 @@ func TestClient_AddReplaceSequences(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			if err := dsc.AddReplaceSequences(tt.args.old, tt.args.new); (err != nil) != tt.wantErr {
 				t.Errorf("Client.AddReplaceSequences() error = %v, wantErr %v", err, tt.wantErr)
@@ -207,6 +216,8 @@ func TestClient_AsyncErrors(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	tests := []struct {
 		name   string
@@ -233,6 +244,8 @@ func TestClient_AsyncErrors(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			if got := dsc.AsyncErrors(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.AsyncErrors() = %v, want %v", got, tt.want)
@@ -241,7 +254,7 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
-func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
+func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	type fields struct {
 		entryPoint        string
 		syslogHostname    string
@@ -252,6 +265,8 @@ func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	tests := []struct {
 		name    string
@@ -276,9 +291,11 @@ func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
-			if err := dsc.WaitForPendingAsyngMessages(); (err != nil) != tt.wantErr {
-				t.Errorf("Client.WaitForPendingAsyngMessages() error = %v, wantErr %v", err, tt.wantErr)
+			if err := dsc.WaitForPendingAsyncMessages(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.WaitForPendingAsyncMessages() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -428,6 +445,8 @@ func TestClient_SetDefaultTag(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	type args struct {
 		t string
@@ -468,6 +487,8 @@ func TestClient_SetDefaultTag(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			if err := dsc.SetDefaultTag(tt.args.t); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SetDefaultTag() error = %v, wantErr %v", err, tt.wantErr)
@@ -490,6 +511,8 @@ func TestClient_SetSyslogHostName(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	type args struct {
 		host string
@@ -528,6 +551,8 @@ func TestClient_SetSyslogHostName(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			dsc.SetSyslogHostName(tt.args.host)
 			if tt.wantSyslogHostname != dsc.syslogHostname {
@@ -622,6 +647,8 @@ func TestClient_PurgeAsyncErrors(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	tests := []struct {
 		name   string
@@ -652,6 +679,8 @@ func TestClient_PurgeAsyncErrors(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			dsc.PurgeAsyncErrors()
 			if dsc.asyncErrors != nil && len(dsc.asyncErrors) > 0 {
@@ -672,6 +701,8 @@ func TestClient_GetEntryPoint(t *testing.T) {
 		waitGroup         sync.WaitGroup
 		asyncErrors       map[string]error
 		asyncErrorsMutext sync.Mutex
+		asyncItems        map[string]interface{}
+		asyncItemsMutext  sync.Mutex
 	}
 	tests := []struct {
 		name   string
@@ -698,6 +729,8 @@ func TestClient_GetEntryPoint(t *testing.T) {
 				waitGroup:         tt.fields.waitGroup,
 				asyncErrors:       tt.fields.asyncErrors,
 				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+				asyncItems:        tt.fields.asyncItems,
+				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
 			if got := dsc.GetEntryPoint(); got != tt.want {
 				t.Errorf("Client.GetEntryPoint() = %v, want %v", got, tt.want)
@@ -1539,6 +1572,257 @@ func TestClientBuilder_Build(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ClientBuilder.Build() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_AsyncIds(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			"Empty input",
+			fields{},
+			[]string{},
+		},
+		{
+			"Empty ids",
+			fields{
+				asyncItems: make(map[string]interface{}),
+			},
+			[]string{},
+		},
+		{
+			"With ids",
+			fields{
+				asyncItems: map[string]interface{}{
+					"one":  nil,
+					"two":  "three",
+					"four": 5,
+				},
+			},
+			[]string{"one", "two", "four"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+			}
+			got := dsc.AsyncIds()
+
+			// sort to ignore order
+			sort.Strings(got)
+			sort.Strings(tt.want)
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.AsyncIds() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_AreAsyncOps(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			"Empty input",
+			fields{},
+			false,
+		},
+		{
+			"Empty ids",
+			fields{
+				asyncItems: make(map[string]interface{}),
+			},
+			false,
+		},
+		{
+			"With ids",
+			fields{
+				asyncItems: map[string]interface{}{
+					"one":  nil,
+					"two":  "three",
+					"four": 5,
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.AreAsyncOps(); got != tt.want {
+				t.Errorf("Client.AreAsyncOps() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_IsAsyncActive(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			"Empty input and param",
+			fields{},
+			args{},
+			false,
+		},
+		{
+			"Empty input and param",
+			fields{},
+			args{"value"},
+			false,
+		},
+		{
+			"Empty input b",
+			fields{
+				asyncItems: make(map[string]interface{}),
+			},
+			args{"value"},
+			false,
+		},
+		{
+			"With ids but not found",
+			fields{
+				asyncItems: map[string]interface{}{
+					"one":  nil,
+					"two":  "three",
+					"four": 5,
+				},
+			},
+			args{"not found"},
+			false,
+		},
+		{
+			"With ids found",
+			fields{
+				asyncItems: map[string]interface{}{
+					"one":  nil,
+					"two":  "three",
+					"four": 5,
+				},
+			},
+			args{"two"},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.IsAsyncActive(tt.args.id); got != tt.want {
+				t.Errorf("Client.IsAsyncActive() = %v, want %v", got, tt.want)
 			}
 		})
 	}
