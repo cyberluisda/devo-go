@@ -27,6 +27,8 @@ type DevoSender interface {
 	AsyncErrors() map[string]error
 	PurgeAsyncErrors()
 	GetEntryPoint() string
+	AreAsyncOps() bool
+	AsyncIds() []string
 }
 
 type tlsSetup struct {
