@@ -220,6 +220,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 			},
 		},
 		maxTimeConnActive: dsb.connExpiration,
+		asyncItems:        make(map[string]interface{}),
 	}
 
 	err := result.makeConnection()
