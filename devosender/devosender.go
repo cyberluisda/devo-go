@@ -434,6 +434,23 @@ func (dsc *Client) GetEntryPoint() string {
 	return dsc.entryPoint
 }
 
+// AsyncIds return asyncIds that are currently runnig
+func (dsc *Client) AsyncIds() []string {
+	dsc.asyncItemsMutext.Lock()
+
+	r := make([]string, len(dsc.asyncItems))
+
+	i := 0
+	for k := range dsc.asyncItems {
+		r[i] = k
+		i++
+	}
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
