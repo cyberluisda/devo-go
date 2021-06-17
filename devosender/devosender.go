@@ -23,7 +23,7 @@ type DevoSender interface {
 	SendWTag(t, m string) error
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
-	WaitForPendingAsyngMessages() error
+	WaitForPendingAsyncMessages() error
 	AsyncErrors() map[string]error
 	PurgeAsyncErrors()
 	GetEntryPoint() string
@@ -411,8 +411,8 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 	return id
 }
 
-// WaitForPendingAsyngMessages wait for all Async messages that are pending to send
-func (dsc *Client) WaitForPendingAsyngMessages() error {
+// WaitForPendingAsyncMessages wait for all Async messages that are pending to send
+func (dsc *Client) WaitForPendingAsyncMessages() error {
 	dsc.waitGroup.Wait()
 	return nil
 }

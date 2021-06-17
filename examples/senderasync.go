@@ -71,7 +71,7 @@ func main() {
 	)
 
 	// Wait for messages sent and report errors if found
-	sender.WaitForPendingAsyngMessages()
+	sender.WaitForPendingAsyncMessages()
 
 	if len(sender.AsyncErrors()) > 0 {
 		fmt.Println("Errors inventory:")

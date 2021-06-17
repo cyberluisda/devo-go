@@ -254,7 +254,7 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
-func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
+func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	type fields struct {
 		entryPoint        string
 		syslogHostname    string
@@ -294,8 +294,8 @@ func TestClient_WaitForPendingAsyngMessages(t *testing.T) {
 				asyncItems:        tt.fields.asyncItems,
 				asyncItemsMutext:  tt.fields.asyncItemsMutext,
 			}
-			if err := dsc.WaitForPendingAsyngMessages(); (err != nil) != tt.wantErr {
-				t.Errorf("Client.WaitForPendingAsyngMessages() error = %v, wantErr %v", err, tt.wantErr)
+			if err := dsc.WaitForPendingAsyncMessages(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.WaitForPendingAsyncMessages() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
