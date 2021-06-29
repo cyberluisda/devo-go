@@ -428,9 +428,13 @@ func (dsc *Client) AsyncErrors() map[string]error {
 // PurgeAsyncErrors cleans internal AsyncErrors captured until now
 func (dsc *Client) PurgeAsyncErrors() {
 	if dsc.asyncErrors != nil {
+		dsc.asyncErrorsMutext.Lock()
+
 		for k := range dsc.asyncErrors {
 			delete(dsc.asyncErrors, k)
 		}
+
+		dsc.asyncErrorsMutext.Unlock()
 	}
 }
 
