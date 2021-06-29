@@ -549,6 +549,34 @@ func (dsc *Client) Close() error {
 	return dsc.conn.Close()
 }
 
+func (dsc *Client) String() string {
+	connAddr := "<nil>"
+	if dsc.conn != nil {
+		connAddr = fmt.Sprintf("%s -> %s", dsc.conn.LocalAddr(), dsc.conn.RemoteAddr())
+	}
+
+	dsc.connectionUsedTSMutext.Lock()
+	connUsedTimestamp := fmt.Sprintf("%v", dsc.connectionUsedTimestamp)
+	dsc.connectionUsedTSMutext.Unlock()
+
+	return fmt.Sprintf(
+		"entryPoint: '%s', syslogHostname: '%s', defaultTag: '%s', connAddr: '%s', "+
+			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v, connectionUsedTimestamp: '%s'"+
+			"maxTimeConnActive: '%v', #asyncItems: %d",
+		dsc.entryPoint,
+		dsc.syslogHostname,
+		dsc.defaultTag,
+		connAddr,
+		dsc.ReplaceSequences,
+		dsc.tls,
+		dsc.AsyncErrorsNumber(),
+		dsc.tcp,
+		connUsedTimestamp,
+		dsc.maxTimeConnActive,
+		dsc.AsyncsNumber(),
+	)
+}
+
 func (dsc *Client) makeConnection() error {
 	if dsc.entryPoint == "" {
 		return fmt.Errorf("Entrypoint can not be empty")
