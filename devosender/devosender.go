@@ -25,6 +25,7 @@ type DevoSender interface {
 	SendWTagAsync(t, m string) string
 	WaitForPendingAsyncMessages() error
 	AsyncErrors() map[string]error
+	AsyncErrorsNumber() int
 	PurgeAsyncErrors()
 	GetEntryPoint() string
 	AreAsyncOps() bool
