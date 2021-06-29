@@ -3,6 +3,7 @@ package devosender
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"reflect"
@@ -1877,6 +1878,97 @@ func TestClient_AsyncsNumber(t *testing.T) {
 			}
 			if got := dsc.AsyncsNumber(); got != tt.want {
 				t.Errorf("Client.AsyncsNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_String(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+
+	var testConn net.Conn
+	testTlsSetup := &tlsSetup{
+		tlsConfig: &tls.Config{},
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"Empty",
+			fields{},
+			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0`,
+		},
+		{
+			"With values",
+			fields{
+				entryPoint:     "The entryPoint",
+				syslogHostname: "The syslogHostname",
+				defaultTag:     "The defaultTag",
+				conn: func() net.Conn {
+					tcpConn, err := net.DialTimeout("udp", "example.com:80", time.Second*2)
+					if err != nil {
+						log.Fatalf("Error when create test connection: %v", err)
+					}
+					testConn = tcpConn
+					return tcpConn
+				}(),
+				ReplaceSequences: map[string]string{
+					"a": "b",
+				},
+				tls: testTlsSetup,
+				asyncErrors: map[string]error{
+					"error-1": nil,
+				},
+				tcp:                     tcpConfig{},
+				connectionUsedTimestamp: time.Unix(1978, 0),
+				maxTimeConnActive:       time.Second,
+				asyncItems: map[string]interface{}{
+					"async-1": nil,
+				},
+			},
+			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.String(); got != tt.want {
+				t.Errorf("Client.String() = \"%v\", want \"%v\"", got, tt.want)
 			}
 		})
 	}
