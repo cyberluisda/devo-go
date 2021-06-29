@@ -25,11 +25,14 @@ type DevoSender interface {
 	SendWTagAsync(t, m string) string
 	WaitForPendingAsyncMessages() error
 	AsyncErrors() map[string]error
+	AsyncErrorsNumber() int
 	PurgeAsyncErrors()
 	GetEntryPoint() string
 	AreAsyncOps() bool
 	AsyncIds() []string
 	IsAsyncActive() bool
+	AsyncsNumber() int
+	String() string
 }
 
 type tlsSetup struct {
@@ -228,7 +231,11 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 
 	err := result.makeConnection()
 	if err != nil {
-		return nil, fmt.Errorf("Error when create new DevoSender (TLS): %w", err)
+		mode := "(Clear)"
+		if TLSSetup != nil {
+			mode = "(TLS)"
+		}
+		return nil, fmt.Errorf("Error when create new DevoSender %s: %w", mode, err)
 	}
 
 	// Intialize default values
@@ -418,17 +425,33 @@ func (dsc *Client) WaitForPendingAsyncMessages() error {
 	return nil
 }
 
-// AsyncErrors return errors from async calls collected until now
+// AsyncErrors return errors from async calls collected until now.
+// WARNING that map returned IS NOT thread safe.
 func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
+}
+
+// AsyncErrorsNumber return then number of errors from async calls collected until now
+func (dsc *Client) AsyncErrorsNumber() int {
+	dsc.asyncErrorsMutext.Lock()
+
+	r := len(dsc.asyncErrors)
+
+	dsc.asyncErrorsMutext.Unlock()
+
+	return r
 }
 
 // PurgeAsyncErrors cleans internal AsyncErrors captured until now
 func (dsc *Client) PurgeAsyncErrors() {
 	if dsc.asyncErrors != nil {
+		dsc.asyncErrorsMutext.Lock()
+
 		for k := range dsc.asyncErrors {
 			delete(dsc.asyncErrors, k)
 		}
+
+		dsc.asyncErrorsMutext.Unlock()
 	}
 }
 
@@ -477,6 +500,17 @@ func (dsc *Client) IsAsyncActive(id string) bool {
 	return ok
 }
 
+// AsyncsNumber return the number of async operations pending. This is more optimal that call len(dsc.AsyncIds())
+func (dsc *Client) AsyncsNumber() int {
+	dsc.asyncItemsMutext.Lock()
+
+	r := len(dsc.asyncItems)
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
@@ -518,6 +552,34 @@ func (dsc *Client) Close() error {
 		return fmt.Errorf("Connection is nil")
 	}
 	return dsc.conn.Close()
+}
+
+func (dsc *Client) String() string {
+	connAddr := "<nil>"
+	if dsc.conn != nil {
+		connAddr = fmt.Sprintf("%s -> %s", dsc.conn.LocalAddr(), dsc.conn.RemoteAddr())
+	}
+
+	dsc.connectionUsedTSMutext.Lock()
+	connUsedTimestamp := fmt.Sprintf("%v", dsc.connectionUsedTimestamp)
+	dsc.connectionUsedTSMutext.Unlock()
+
+	return fmt.Sprintf(
+		"entryPoint: '%s', syslogHostname: '%s', defaultTag: '%s', connAddr: '%s', "+
+			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v, connectionUsedTimestamp: '%s', "+
+			"maxTimeConnActive: '%v', #asyncItems: %d",
+		dsc.entryPoint,
+		dsc.syslogHostname,
+		dsc.defaultTag,
+		connAddr,
+		dsc.ReplaceSequences,
+		dsc.tls,
+		dsc.AsyncErrorsNumber(),
+		dsc.tcp,
+		connUsedTimestamp,
+		dsc.maxTimeConnActive,
+		dsc.AsyncsNumber(),
+	)
 }
 
 func (dsc *Client) makeConnection() error {

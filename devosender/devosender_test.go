@@ -3,6 +3,7 @@ package devosender
 import (
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"reflect"
@@ -249,6 +250,45 @@ func TestClient_AsyncErrors(t *testing.T) {
 			}
 			if got := dsc.AsyncErrors(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.AsyncErrors() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_AsyncErrorsNumber(t *testing.T) {
+	type fields struct {
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{
+			"Empty",
+			fields{},
+			0,
+		},
+		{
+			"With errors",
+			fields{
+				asyncErrors: map[string]error{
+					"12324":    nil,
+					"asdfsadf": nil,
+				},
+			},
+			2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if got := dsc.AsyncErrorsNumber(); got != tt.want {
+				t.Errorf("Client.AsyncErrorsNumber() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1732,21 +1772,8 @@ func TestClient_AreAsyncOps(t *testing.T) {
 
 func TestClient_IsAsyncActive(t *testing.T) {
 	type fields struct {
-		entryPoint              string
-		syslogHostname          string
-		defaultTag              string
-		conn                    net.Conn
-		ReplaceSequences        map[string]string
-		tls                     *tlsSetup
-		waitGroup               sync.WaitGroup
-		asyncErrors             map[string]error
-		asyncErrorsMutext       sync.Mutex
-		tcp                     tcpConfig
-		connectionUsedTimestamp time.Time
-		connectionUsedTSMutext  sync.Mutex
-		maxTimeConnActive       time.Duration
-		asyncItems              map[string]interface{}
-		asyncItemsMutext        sync.Mutex
+		asyncItems       map[string]interface{}
+		asyncItemsMutext sync.Mutex
 	}
 	type args struct {
 		id string
@@ -1805,6 +1832,125 @@ func TestClient_IsAsyncActive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsc := &Client{
+				asyncItems:       tt.fields.asyncItems,
+				asyncItemsMutext: tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.IsAsyncActive(tt.args.id); got != tt.want {
+				t.Errorf("Client.IsAsyncActive() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_AsyncsNumber(t *testing.T) {
+	type fields struct {
+		asyncItems       map[string]interface{}
+		asyncItemsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{
+			"Empty",
+			fields{},
+			0,
+		},
+		{
+			"With async ops",
+			fields{
+				asyncItems: map[string]interface{}{
+					"12345":  nil,
+					"55432":  nil,
+					"765454": nil,
+					"aba":    nil,
+				},
+			},
+			4,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				asyncItems:       tt.fields.asyncItems,
+				asyncItemsMutext: tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.AsyncsNumber(); got != tt.want {
+				t.Errorf("Client.AsyncsNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_String(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+
+	var testConn net.Conn
+	testTlsSetup := &tlsSetup{
+		tlsConfig: &tls.Config{},
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"Empty",
+			fields{},
+			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0`,
+		},
+		{
+			"With values",
+			fields{
+				entryPoint:     "The entryPoint",
+				syslogHostname: "The syslogHostname",
+				defaultTag:     "The defaultTag",
+				conn: func() net.Conn {
+					tcpConn, err := net.DialTimeout("udp", "example.com:80", time.Second*2)
+					if err != nil {
+						log.Fatalf("Error when create test connection: %v", err)
+					}
+					testConn = tcpConn
+					return tcpConn
+				}(),
+				ReplaceSequences: map[string]string{
+					"a": "b",
+				},
+				tls: testTlsSetup,
+				asyncErrors: map[string]error{
+					"error-1": nil,
+				},
+				tcp:                     tcpConfig{},
+				connectionUsedTimestamp: time.Unix(1978, 0),
+				maxTimeConnActive:       time.Second,
+				asyncItems: map[string]interface{}{
+					"async-1": nil,
+				},
+			},
+			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
 				entryPoint:              tt.fields.entryPoint,
 				syslogHostname:          tt.fields.syslogHostname,
 				defaultTag:              tt.fields.defaultTag,
@@ -1821,8 +1967,8 @@ func TestClient_IsAsyncActive(t *testing.T) {
 				asyncItems:              tt.fields.asyncItems,
 				asyncItemsMutext:        tt.fields.asyncItemsMutext,
 			}
-			if got := dsc.IsAsyncActive(tt.args.id); got != tt.want {
-				t.Errorf("Client.IsAsyncActive() = %v, want %v", got, tt.want)
+			if got := dsc.String(); got != tt.want {
+				t.Errorf("Client.String() = \"%v\", want \"%v\"", got, tt.want)
 			}
 		})
 	}
