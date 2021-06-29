@@ -231,7 +231,11 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 
 	err := result.makeConnection()
 	if err != nil {
-		return nil, fmt.Errorf("Error when create new DevoSender (TLS): %w", err)
+		mode := "(Clear)"
+		if TLSSetup != nil {
+			mode = "(TLS)"
+		}
+		return nil, fmt.Errorf("Error when create new DevoSender %s: %w", mode, err)
 	}
 
 	// Intialize default values
