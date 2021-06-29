@@ -254,6 +254,45 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrorsNumber(t *testing.T) {
+	type fields struct {
+		asyncErrors       map[string]error
+		asyncErrorsMutext sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{
+			"Empty",
+			fields{},
+			0,
+		},
+		{
+			"With errors",
+			fields{
+				asyncErrors: map[string]error{
+					"12324":    nil,
+					"asdfsadf": nil,
+				},
+			},
+			2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				asyncErrors:       tt.fields.asyncErrors,
+				asyncErrorsMutext: tt.fields.asyncErrorsMutext,
+			}
+			if got := dsc.AsyncErrorsNumber(); got != tt.want {
+				t.Errorf("Client.AsyncErrorsNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	type fields struct {
 		entryPoint        string
