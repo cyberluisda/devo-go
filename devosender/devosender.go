@@ -425,6 +425,17 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// AsyncErrorsNumber return then number of errors from async calls collected until now
+func (dsc *Client) AsyncErrorsNumber() int {
+	dsc.asyncErrorsMutext.Lock()
+
+	r := len(dsc.asyncErrors)
+
+	dsc.asyncErrorsMutext.Unlock()
+
+	return r
+}
+
 // PurgeAsyncErrors cleans internal AsyncErrors captured until now
 func (dsc *Client) PurgeAsyncErrors() {
 	if dsc.asyncErrors != nil {
