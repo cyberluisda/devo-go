@@ -477,6 +477,17 @@ func (dsc *Client) IsAsyncActive(id string) bool {
 	return ok
 }
 
+// AsyncsNumber return the number of async operations pending. This is more optimal that call len(dsc.AsyncIds())
+func (dsc *Client) AsyncsNumber() int {
+	dsc.asyncItemsMutext.Lock()
+
+	r := len(dsc.asyncItems)
+
+	dsc.asyncItemsMutext.Unlock()
+
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
