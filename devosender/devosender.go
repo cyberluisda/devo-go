@@ -30,6 +30,7 @@ type DevoSender interface {
 	AreAsyncOps() bool
 	AsyncIds() []string
 	IsAsyncActive() bool
+	AsyncsNumber() int
 }
 
 type tlsSetup struct {
