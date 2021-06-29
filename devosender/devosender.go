@@ -419,7 +419,8 @@ func (dsc *Client) WaitForPendingAsyncMessages() error {
 	return nil
 }
 
-// AsyncErrors return errors from async calls collected until now
+// AsyncErrors return errors from async calls collected until now.
+// WARNING that map returned IS NOT thread safe.
 func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
