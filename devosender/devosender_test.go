@@ -1827,3 +1827,70 @@ func TestClient_IsAsyncActive(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_AsyncsNumber(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   int
+	}{
+		{
+			"Empty",
+			fields{},
+			0,
+		},
+		{
+			"With async ops",
+			fields{
+				asyncItems: map[string]interface{}{
+					"12345":  nil,
+					"55432":  nil,
+					"765454": nil,
+					"aba":    nil,
+				},
+			},
+			4,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+			}
+			if got := dsc.AsyncsNumber(); got != tt.want {
+				t.Errorf("Client.AsyncsNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
