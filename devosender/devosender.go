@@ -429,6 +429,23 @@ func (dsc *Client) WaitForPendingAsyncMessages() error {
 // ErrWaitAsyncTimeout is the error returned when timeout is reached in "WaitFor" functions
 var ErrWaitAsyncTimeout = errors.New("Timeout when wait for pending items")
 
+// WaitForPendingAsyncMsgsOrTimeout is similar to WaitForPendingAsyncMessages but
+// return ErrWaitAsyncTimeout error if timeout is reached
+func (dsc *Client) WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error {
+	c := make(chan error)
+	go func() {
+		defer close(c)
+		dsc.waitGroup.Wait()
+	}()
+
+	select {
+	case <-c:
+		return nil // completed normally
+	case <-time.After(timeout):
+		return ErrWaitAsyncTimeout // timed out
+	}
+}
+
 // AsyncErrors return errors from async calls collected until now.
 // WARNING that map returned IS NOT thread safe.
 func (dsc *Client) AsyncErrors() map[string]error {
