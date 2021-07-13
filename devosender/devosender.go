@@ -3,6 +3,7 @@ package devosender
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -424,6 +425,9 @@ func (dsc *Client) WaitForPendingAsyncMessages() error {
 	dsc.waitGroup.Wait()
 	return nil
 }
+
+// ErrWaitAsyncTimeout is the error returned when timeout is reached in "WaitFor" functions
+var ErrWaitAsyncTimeout = errors.New("Timeout when wait for pending items")
 
 // AsyncErrors return errors from async calls collected until now.
 // WARNING that map returned IS NOT thread safe.
