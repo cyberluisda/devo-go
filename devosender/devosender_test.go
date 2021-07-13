@@ -341,6 +341,52 @@ func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	}
 }
 
+func TestClient_WaitForPendingAsyncMsgsOrTimeout(t *testing.T) {
+	type fields struct {
+		waitGroup sync.WaitGroup
+	}
+	type args struct {
+		timeout time.Duration
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"None element to wait",
+			fields{},
+			args{time.Second * 1},
+			false,
+		},
+		{
+			"Timeout reached",
+			fields{
+				waitGroup: func() sync.WaitGroup {
+					r := sync.WaitGroup{}
+					r.Add(1)
+					return r
+				}(),
+			},
+			args{
+				time.Millisecond * 50,
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				waitGroup: tt.fields.waitGroup,
+			}
+			if err := dsc.WaitForPendingAsyncMsgsOrTimeout(tt.args.timeout); (err != nil) != tt.wantErr {
+				t.Errorf("Client.WaitForPendingAsyncMsgsOrTimeout() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestClient_SendWTagAsync(t *testing.T) {
 	type args struct {
 		t string
