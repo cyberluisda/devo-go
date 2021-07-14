@@ -348,6 +348,10 @@ func (dsc *Client) SendWTag(t, m string) error {
 func (dsc *Client) SendAsync(m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+	// Save asyncItems ref ids
+	dsc.asyncItemsMutext.Lock()
+	dsc.asyncItems[id] = nil
+	dsc.asyncItemsMutext.Unlock()
 
 	// Checks if connection should be restarted
 	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
@@ -359,11 +363,6 @@ func (dsc *Client) SendAsync(m string) string {
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
-		// Save asyncItems ref ids
-		dsc.asyncItemsMutext.Lock()
-		dsc.asyncItems[id] = nil
-		dsc.asyncItemsMutext.Unlock()
-
 		err := dsc.Send(m)
 		if err != nil {
 			dsc.asyncErrorsMutext.Lock()
@@ -386,6 +385,8 @@ func (dsc *Client) SendAsync(m string) string {
 func (dsc *Client) SendWTagAsync(t, m string) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
+	// Save asyncItems ref ids
+	dsc.asyncItemsMutext.Lock()
 
 	// Checks if connection should be restarted
 	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
