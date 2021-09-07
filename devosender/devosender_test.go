@@ -2088,3 +2088,41 @@ func TestClient_LastSendCallTimestamp(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_sendCalled(t *testing.T) {
+	type fields struct {
+		lastSendCallTimestamp time.Time
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		origValue time.Time
+		offset    time.Duration
+	}{
+		{
+			"Timestamp is updated",
+			fields{
+				lastSendCallTimestamp: time.Unix(1978, 0),
+			},
+			time.Unix(1978, 0),
+			time.Second * -2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				lastSendCallTimestamp: tt.fields.lastSendCallTimestamp,
+			}
+			dsc.sendCalled()
+			if tt.origValue == dsc.lastSendCallTimestamp {
+				t.Errorf("Client.sendCalled(), Want orig timestamp %v was updated but want the same", tt.origValue)
+			}
+			target := time.Now().Add(tt.offset)
+			if !dsc.lastSendCallTimestamp.After(target) {
+				t.Errorf(
+					"Client.sendCalled(), Want last.SendCallTimestamp was before that now + offset(%s) = %s, got = %v",
+					tt.offset, target, dsc.lastSendCallTimestamp)
+			}
+		})
+	}
+}
