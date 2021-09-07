@@ -532,6 +532,14 @@ func (dsc *Client) AsyncsNumber() int {
 	return r
 }
 
+// LastSendCallTimestamp returns the timestamp of last time that any of SendXXXX func was called with valid parameters
+func (dsc *Client) LastSendCallTimestamp() time.Time {
+	dsc.statsMutex.Lock()
+	r := dsc.lastSendCallTimestamp
+	dsc.statsMutex.Unlock()
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
