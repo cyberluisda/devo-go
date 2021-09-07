@@ -33,6 +33,7 @@ type DevoSender interface {
 	AsyncIds() []string
 	IsAsyncActive() bool
 	AsyncsNumber() int
+	LastSendCallTimestamp() time.Time
 	String() string
 }
 
