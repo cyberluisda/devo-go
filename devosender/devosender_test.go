@@ -2022,3 +2022,69 @@ func TestClient_String(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_LastSendCallTimestamp(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+		lastSendCallTimestamp   time.Time
+		statsMutex              sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   time.Time
+	}{
+		{
+			"Empty",
+			fields{},
+			time.Time{},
+		},
+		{
+			"With value",
+			fields{
+				lastSendCallTimestamp: time.Unix(1978, 2),
+			},
+			time.Unix(1978, 2),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+				lastSendCallTimestamp:   tt.fields.lastSendCallTimestamp,
+				statsMutex:              tt.fields.statsMutex,
+			}
+			if got := dsc.LastSendCallTimestamp(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.LastSendCallTimestamp() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
