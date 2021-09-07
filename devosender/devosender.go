@@ -60,6 +60,8 @@ type Client struct {
 	maxTimeConnActive       time.Duration
 	asyncItems              map[string]interface{}
 	asyncItemsMutext        sync.Mutex
+	lastSendCallTimestamp   time.Time
+	statsMutex              sync.Mutex
 }
 
 const (
