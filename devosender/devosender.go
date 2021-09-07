@@ -311,6 +311,8 @@ func (dsc *Client) SendWTag(t, m string) error {
 		return fmt.Errorf("Tag can not be empty")
 	}
 
+	dsc.sendCalled()
+
 	// Checks if connection should be restarted
 	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
 		if dsc.conn != nil {
