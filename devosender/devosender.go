@@ -654,6 +654,13 @@ func (dsc *Client) init() {
 	dsc.SetSyslogHostName("")
 }
 
+// sendCalled is desigend to save stats in thread safe move. Only lastSendCallTimestamp stat is saved at the moment
+func (dsc *Client) sendCalled() {
+	dsc.statsMutex.Lock()
+	dsc.lastSendCallTimestamp = time.Now()
+	dsc.statsMutex.Unlock()
+}
+
 func replaceSequences(s string, sequences map[string]string) string {
 	for orig, new := range sequences {
 		s = strings.ReplaceAll(s, orig, new)
