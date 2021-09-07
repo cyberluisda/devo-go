@@ -1946,6 +1946,7 @@ func TestClient_String(t *testing.T) {
 		maxTimeConnActive       time.Duration
 		asyncItems              map[string]interface{}
 		asyncItemsMutext        sync.Mutex
+		lastSendCallTimestamp   time.Time
 	}
 
 	var testConn net.Conn
@@ -1961,7 +1962,7 @@ func TestClient_String(t *testing.T) {
 		{
 			"Empty",
 			fields{},
-			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0`,
+			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'`,
 		},
 		{
 			"With values",
@@ -1990,8 +1991,9 @@ func TestClient_String(t *testing.T) {
 				asyncItems: map[string]interface{}{
 					"async-1": nil,
 				},
+				lastSendCallTimestamp: time.Unix(1978, 1),
 			},
-			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1`,
+			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1, lastSendCallTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 1)) + `'`,
 		},
 	}
 	for _, tt := range tests {
@@ -2012,9 +2014,114 @@ func TestClient_String(t *testing.T) {
 				maxTimeConnActive:       tt.fields.maxTimeConnActive,
 				asyncItems:              tt.fields.asyncItems,
 				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+				lastSendCallTimestamp:   tt.fields.lastSendCallTimestamp,
 			}
 			if got := dsc.String(); got != tt.want {
 				t.Errorf("Client.String() = \"%v\", want \"%v\"", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_LastSendCallTimestamp(t *testing.T) {
+	type fields struct {
+		entryPoint              string
+		syslogHostname          string
+		defaultTag              string
+		conn                    net.Conn
+		ReplaceSequences        map[string]string
+		tls                     *tlsSetup
+		waitGroup               sync.WaitGroup
+		asyncErrors             map[string]error
+		asyncErrorsMutext       sync.Mutex
+		tcp                     tcpConfig
+		connectionUsedTimestamp time.Time
+		connectionUsedTSMutext  sync.Mutex
+		maxTimeConnActive       time.Duration
+		asyncItems              map[string]interface{}
+		asyncItemsMutext        sync.Mutex
+		lastSendCallTimestamp   time.Time
+		statsMutex              sync.Mutex
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   time.Time
+	}{
+		{
+			"Empty",
+			fields{},
+			time.Time{},
+		},
+		{
+			"With value",
+			fields{
+				lastSendCallTimestamp: time.Unix(1978, 2),
+			},
+			time.Unix(1978, 2),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				entryPoint:              tt.fields.entryPoint,
+				syslogHostname:          tt.fields.syslogHostname,
+				defaultTag:              tt.fields.defaultTag,
+				conn:                    tt.fields.conn,
+				ReplaceSequences:        tt.fields.ReplaceSequences,
+				tls:                     tt.fields.tls,
+				waitGroup:               tt.fields.waitGroup,
+				asyncErrors:             tt.fields.asyncErrors,
+				asyncErrorsMutext:       tt.fields.asyncErrorsMutext,
+				tcp:                     tt.fields.tcp,
+				connectionUsedTimestamp: tt.fields.connectionUsedTimestamp,
+				connectionUsedTSMutext:  tt.fields.connectionUsedTSMutext,
+				maxTimeConnActive:       tt.fields.maxTimeConnActive,
+				asyncItems:              tt.fields.asyncItems,
+				asyncItemsMutext:        tt.fields.asyncItemsMutext,
+				lastSendCallTimestamp:   tt.fields.lastSendCallTimestamp,
+				statsMutex:              tt.fields.statsMutex,
+			}
+			if got := dsc.LastSendCallTimestamp(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.LastSendCallTimestamp() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_sendCalled(t *testing.T) {
+	type fields struct {
+		lastSendCallTimestamp time.Time
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		origValue time.Time
+		offset    time.Duration
+	}{
+		{
+			"Timestamp is updated",
+			fields{
+				lastSendCallTimestamp: time.Unix(1978, 0),
+			},
+			time.Unix(1978, 0),
+			time.Second * -2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := &Client{
+				lastSendCallTimestamp: tt.fields.lastSendCallTimestamp,
+			}
+			dsc.sendCalled()
+			if tt.origValue == dsc.lastSendCallTimestamp {
+				t.Errorf("Client.sendCalled(), Want orig timestamp %v was updated but want the same", tt.origValue)
+			}
+			target := time.Now().Add(tt.offset)
+			if !dsc.lastSendCallTimestamp.After(target) {
+				t.Errorf(
+					"Client.sendCalled(), Want last.SendCallTimestamp was before that now + offset(%s) = %s, got = %v",
+					tt.offset, target, dsc.lastSendCallTimestamp)
 			}
 		})
 	}

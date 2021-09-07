@@ -33,6 +33,7 @@ type DevoSender interface {
 	AsyncIds() []string
 	IsAsyncActive() bool
 	AsyncsNumber() int
+	LastSendCallTimestamp() time.Time
 	String() string
 }
 
@@ -60,6 +61,8 @@ type Client struct {
 	maxTimeConnActive       time.Duration
 	asyncItems              map[string]interface{}
 	asyncItemsMutext        sync.Mutex
+	lastSendCallTimestamp   time.Time
+	statsMutex              sync.Mutex
 }
 
 const (
@@ -309,6 +312,8 @@ func (dsc *Client) SendWTag(t, m string) error {
 		return fmt.Errorf("Tag can not be empty")
 	}
 
+	dsc.sendCalled()
+
 	// Checks if connection should be restarted
 	if isExpired(dsc.connectionUsedTimestamp, dsc.maxTimeConnActive) {
 		if dsc.conn != nil {
@@ -530,6 +535,14 @@ func (dsc *Client) AsyncsNumber() int {
 	return r
 }
 
+// LastSendCallTimestamp returns the timestamp of last time that any of SendXXXX func was called with valid parameters
+func (dsc *Client) LastSendCallTimestamp() time.Time {
+	dsc.statsMutex.Lock()
+	r := dsc.lastSendCallTimestamp
+	dsc.statsMutex.Unlock()
+	return r
+}
+
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
@@ -586,7 +599,7 @@ func (dsc *Client) String() string {
 	return fmt.Sprintf(
 		"entryPoint: '%s', syslogHostname: '%s', defaultTag: '%s', connAddr: '%s', "+
 			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v, connectionUsedTimestamp: '%s', "+
-			"maxTimeConnActive: '%v', #asyncItems: %d",
+			"maxTimeConnActive: '%v', #asyncItems: %d, lastSendCallTimestamp: '%s'",
 		dsc.entryPoint,
 		dsc.syslogHostname,
 		dsc.defaultTag,
@@ -598,6 +611,7 @@ func (dsc *Client) String() string {
 		connUsedTimestamp,
 		dsc.maxTimeConnActive,
 		dsc.AsyncsNumber(),
+		dsc.LastSendCallTimestamp(),
 	)
 }
 
@@ -642,6 +656,13 @@ func (dsc *Client) init() {
 
 	// hostname
 	dsc.SetSyslogHostName("")
+}
+
+// sendCalled is desigend to save stats in thread safe move. Only lastSendCallTimestamp stat is saved at the moment
+func (dsc *Client) sendCalled() {
+	dsc.statsMutex.Lock()
+	dsc.lastSendCallTimestamp = time.Now()
+	dsc.statsMutex.Unlock()
 }
 
 func replaceSequences(s string, sequences map[string]string) string {
