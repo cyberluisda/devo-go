@@ -21,6 +21,7 @@ import (
 type DevoSender interface {
 	io.WriteCloser
 	Send(m string) error
+	SetDefaultTag(t string) error
 	SendWTag(t, m string) error
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
@@ -31,38 +32,10 @@ type DevoSender interface {
 	GetEntryPoint() string
 	AreAsyncOps() bool
 	AsyncIds() []string
-	IsAsyncActive() bool
+	IsAsyncActive(id string) bool
 	AsyncsNumber() int
 	LastSendCallTimestamp() time.Time
 	String() string
-}
-
-type tlsSetup struct {
-	tlsConfig *tls.Config
-}
-type tcpConfig struct {
-	tcpDialer *net.Dialer
-}
-
-// Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
-type Client struct {
-	entryPoint              string
-	syslogHostname          string
-	defaultTag              string
-	conn                    net.Conn
-	ReplaceSequences        map[string]string
-	tls                     *tlsSetup
-	waitGroup               sync.WaitGroup
-	asyncErrors             map[string]error
-	asyncErrorsMutext       sync.Mutex
-	tcp                     tcpConfig
-	connectionUsedTimestamp time.Time
-	connectionUsedTSMutext  sync.Mutex
-	maxTimeConnActive       time.Duration
-	asyncItems              map[string]interface{}
-	asyncItemsMutext        sync.Mutex
-	lastSendCallTimestamp   time.Time
-	statsMutex              sync.Mutex
 }
 
 const (
@@ -249,7 +222,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 }
 
 // NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
-func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
+func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		TLSCerts(key, cert, chain).
@@ -257,7 +230,7 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 }
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
-func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
+func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		TLSFiles(keyFileName, certFileName, chainFileName).
@@ -266,10 +239,38 @@ func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName s
 
 // NewDevoSender Create new DevoSender with clean comunication using ClientBuilder
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
-func NewDevoSender(entrypoint string) (*Client, error) {
+func NewDevoSender(entrypoint string) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		Build()
+}
+
+// Client is the engine that can send data to Devo throug central (tls) or in-house (clean) realy
+type Client struct {
+	entryPoint              string
+	syslogHostname          string
+	defaultTag              string
+	conn                    net.Conn
+	ReplaceSequences        map[string]string
+	tls                     *tlsSetup
+	waitGroup               sync.WaitGroup
+	asyncErrors             map[string]error
+	asyncErrorsMutext       sync.Mutex
+	tcp                     tcpConfig
+	connectionUsedTimestamp time.Time
+	connectionUsedTSMutext  sync.Mutex
+	maxTimeConnActive       time.Duration
+	asyncItems              map[string]interface{}
+	asyncItemsMutext        sync.Mutex
+	lastSendCallTimestamp   time.Time
+	statsMutex              sync.Mutex
+}
+
+type tlsSetup struct {
+	tlsConfig *tls.Config
+}
+type tcpConfig struct {
+	tcpDialer *net.Dialer
 }
 
 // SetSyslogHostName overwrite hostname send in raw Syslog payload

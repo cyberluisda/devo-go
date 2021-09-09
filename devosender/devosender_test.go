@@ -401,8 +401,8 @@ func TestClient_SendWTagAsync(t *testing.T) {
 		{
 			"Expected id pattern",
 			func() *Client {
-				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
-				return sender
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
 			}(),
 			args{
 				t: "tag",
@@ -434,8 +434,8 @@ func TestClient_SendAsync(t *testing.T) {
 		{
 			"Expected id pattern",
 			func() *Client {
-				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
-				return sender
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
 			}(),
 			args{
 				m: "message",
@@ -467,8 +467,8 @@ func TestClient_SendWTag(t *testing.T) {
 		{
 			"Send using udp",
 			func() *Client {
-				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
-				return sender
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
 			}(),
 			args{
 				t: "tag",
@@ -500,9 +500,9 @@ func TestClient_Send(t *testing.T) {
 		{
 			"Send using udp",
 			func() *Client {
-				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
-				sender.SetDefaultTag("tag")
-				return sender
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				r.SetDefaultTag("tag")
+				return r
 			}(),
 			args{
 				m: "message",
@@ -662,12 +662,12 @@ func TestClient_Close(t *testing.T) {
 		{
 			"Close connection",
 			func() *Client {
-				s, err := NewDevoSender("udp://example.org:80")
+				r, err := NewClientBuilder().EntryPoint("udp://example.org:80").Build()
 				if err != nil {
 					fmt.Println("UNEXPECTED error found", err)
 				}
 
-				return s
+				return r
 			}(),
 			false,
 		},
@@ -696,9 +696,9 @@ func TestClient_Write(t *testing.T) {
 		{
 			"Send using udp",
 			func() *Client {
-				sender, _ := NewDevoSender("udp://example.org:80") // real public service which we can stablish udp connection
-				sender.SetDefaultTag("tag")
-				return sender
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				r.SetDefaultTag("tag")
+				return r
 			}(),
 			args{
 				p: []byte("message"),
@@ -1558,7 +1558,7 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				return r
+				return r.(*Client)
 			}(),
 			false,
 		},
@@ -1607,8 +1607,9 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				r.tcp.tcpDialer.KeepAlive = time.Minute
-				return r
+				c := r.(*Client)
+				c.tcp.tcpDialer.KeepAlive = time.Minute
+				return c
 			}(),
 			false,
 		},
@@ -1620,8 +1621,9 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				r.maxTimeConnActive = time.Minute * 2
-				return r
+				c := r.(*Client)
+				c.maxTimeConnActive = time.Minute * 2
+				return c
 			}(),
 			false,
 		},
