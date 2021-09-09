@@ -21,6 +21,7 @@ import (
 type DevoSender interface {
 	io.WriteCloser
 	Send(m string) error
+	SetDefaultTag(t string) error
 	SendWTag(t, m string) error
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
