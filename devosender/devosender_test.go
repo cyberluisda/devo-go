@@ -1558,7 +1558,7 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				return r
+				return r.(*Client)
 			}(),
 			false,
 		},
@@ -1607,8 +1607,9 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				r.tcp.tcpDialer.KeepAlive = time.Minute
-				return r
+				c := r.(*Client)
+				c.tcp.tcpDialer.KeepAlive = time.Minute
+				return c
 			}(),
 			false,
 		},
@@ -1620,8 +1621,9 @@ func TestClientBuilder_Build(t *testing.T) {
 			},
 			func() *Client {
 				r, _ := NewDevoSender("udp://example.org:80")
-				r.maxTimeConnActive = time.Minute * 2
-				return r
+				c := r.(*Client)
+				c.maxTimeConnActive = time.Minute * 2
+				return c
 			}(),
 			false,
 		},
