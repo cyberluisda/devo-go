@@ -147,6 +147,13 @@ func (dsb *ClientBuilder) ConnectionExpiration(t time.Duration) *ClientBuilder {
 	return dsb
 }
 
+// DefaultCompressor set and enable ompression when send messages
+func (dsb *ClientBuilder) DefaultCompressor(c CompressorAlgorithm) *ClientBuilder {
+	dsb.compressorAlgorithm = c
+	return dsb
+}
+
+	dsb.compressorAlgorithm = c
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
