@@ -1572,6 +1572,66 @@ func TestClientBuilder_ConnectionExpiration(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_DefaultCompressor(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
+		connExpiration        time.Duration
+		compressorAlgorithm   CompressorAlgorithm
+		compressorMinSize     int
+	}
+	type args struct {
+		c CompressorAlgorithm
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set CompressorAlgorithm",
+			fields{},
+			args{CompressorGzip},
+			&ClientBuilder{
+				compressorAlgorithm: CompressorGzip,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
+				connExpiration:        tt.fields.connExpiration,
+				compressorAlgorithm:   tt.fields.compressorAlgorithm,
+				compressorMinSize:     tt.fields.compressorMinSize,
+			}
+			if got := dsb.DefaultCompressor(tt.args.c); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.DefaultCompressor() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
