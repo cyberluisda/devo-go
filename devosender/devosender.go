@@ -724,6 +724,10 @@ func (mc *Compressor) Compress(bs []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// StringAlgoritm return the string value of algorithm selected in Compressor object
+func (mc *Compressor) StringAlgoritm() string {
+	return StringCompressorAlgorithm(mc.Algorithm)
+}
 
 // StringCompressorAlgorithm return the string value of algorithm selected
 func StringCompressorAlgorithm(a CompressorAlgorithm) string {
