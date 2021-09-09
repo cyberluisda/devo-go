@@ -236,6 +236,11 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		return nil, fmt.Errorf("Error when create new DevoSender %s: %w", mode, err)
 	}
 
+	// compressor, only if NoCompression algorithm is selected
+	if dsb.compressorAlgorithm > 0 {
+		result.compressor = &Compressor{dsb.compressorAlgorithm, dsb.compressorMinSize}
+	}
+
 	// Intialize default values
 	result.init()
 
