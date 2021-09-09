@@ -66,6 +66,8 @@ type ClientBuilder struct {
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
 	connExpiration            time.Duration
+	compressorAlgorithm       CompressorAlgorithm
+	compressorMinSize         int
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
