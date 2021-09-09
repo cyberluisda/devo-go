@@ -1,6 +1,9 @@
 package devosender
 
 import (
+	"bytes"
+	"compress/gzip"
+	"compress/zlib"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -682,6 +685,43 @@ const (
 type Compressor struct {
 	Algorithm   CompressorAlgorithm
 	MinimumSize int
+}
+
+// Compress compress bs input based on Algorithm and return the data compressed
+func (mc *Compressor) Compress(bs []byte) ([]byte, error) {
+	if mc == nil {
+		return bs, nil
+	}
+
+	if mc.MinimumSize > 0 && len(bs) <= mc.MinimumSize {
+		return bs, nil
+	}
+
+	var buf bytes.Buffer
+	var zw io.WriteCloser
+	switch mc.Algorithm {
+	case CompressorNoComprs:
+		r := make([]byte, len(bs))
+		copy(r, bs)
+		return r, nil
+	case CompressorGzip:
+		zw = gzip.NewWriter(&buf)
+	case CompressorZlib:
+		zw = zlib.NewWriter(&buf)
+	default:
+		return nil, fmt.Errorf("Algorithm %v is not supported", mc.Algorithm)
+	}
+
+	_, err := zw.Write(bs)
+	if err != nil {
+		return nil, fmt.Errorf("Compression: %w", err)
+	}
+
+	if err := zw.Close(); err != nil {
+		return nil, fmt.Errorf("Close compression engine: %w", err)
+	}
+
+	return buf.Bytes(), nil
 }
 
 func replaceSequences(s string, sequences map[string]string) string {
