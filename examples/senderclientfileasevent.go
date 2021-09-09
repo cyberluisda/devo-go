@@ -35,7 +35,9 @@ func main() {
 	}
 	defer f.Close()
 
-	sender, err := devosender.NewDevoSender(entrypoint)
+	sender, err := devosender.NewClientBuilder().
+		EntryPoint(entrypoint).
+		Build()
 	if err != nil {
 		log.Fatalf("Error when initialize Devo Sender: %v\n", err)
 	}
