@@ -835,6 +835,7 @@ func TestNewClientBuilder(t *testing.T) {
 			&ClientBuilder{
 				tlsRenegotiation:      tls.RenegotiateNever,
 				tlsInsecureSkipVerify: false,
+				compressorMinSize:     ClientBuilderDefaultCompressorMinSize,
 			},
 		},
 	}
