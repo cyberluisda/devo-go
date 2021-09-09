@@ -153,7 +153,12 @@ func (dsb *ClientBuilder) DefaultCompressor(c CompressorAlgorithm) *ClientBuilde
 	return dsb
 }
 
-	dsb.compressorAlgorithm = c
+// CompressorMinSize set the minium size to be applied when compress data.
+func (dsb *ClientBuilder) CompressorMinSize(s int) *ClientBuilder {
+	dsb.compressorMinSize = s
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
