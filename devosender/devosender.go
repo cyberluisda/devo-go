@@ -222,7 +222,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 }
 
 // NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
-func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (*Client, error) {
+func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		TLSCerts(key, cert, chain).
@@ -230,7 +230,7 @@ func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) 
 }
 
 // NewDevoSenderTLSFiles is similar to NewDevoSenderTLS but loading different certificates from files
-func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (*Client, error) {
+func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName string, chainFileName *string) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		TLSFiles(keyFileName, certFileName, chainFileName).
@@ -239,7 +239,7 @@ func NewDevoSenderTLSFiles(entrypoint string, keyFileName string, certFileName s
 
 // NewDevoSender Create new DevoSender with clean comunication using ClientBuilder
 // entrypoint is the Devo entrypoint where send events with protocol://fqdn:port format. You can use DevoCentralRelayXX constants to easy assign these value
-func NewDevoSender(entrypoint string) (*Client, error) {
+func NewDevoSender(entrypoint string) (DevoSender, error) {
 	return NewClientBuilder().
 		EntryPoint(entrypoint).
 		Build()
