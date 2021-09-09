@@ -285,6 +285,7 @@ type Client struct {
 	asyncItemsMutext        sync.Mutex
 	lastSendCallTimestamp   time.Time
 	statsMutex              sync.Mutex
+	compressor              *Compressor
 }
 
 type tlsSetup struct {
