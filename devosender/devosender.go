@@ -666,6 +666,24 @@ func (dsc *Client) sendCalled() {
 	dsc.statsMutex.Unlock()
 }
 
+// CompressorAlgorithm define the compression algorithm used bye Compressor
+type CompressorAlgorithm int
+
+const (
+	// CompressorNoComprs means compression disabled
+	CompressorNoComprs CompressorAlgorithm = iota
+	// CompressorGzip set GZIP compression
+	CompressorGzip
+	// CompressorZlib is Deprecated: This is not properly working if more than one message is send by same connection
+	CompressorZlib
+)
+
+// Compressor is a simple compressor to work with relative small size of bytes (all is in memory)
+type Compressor struct {
+	Algorithm   CompressorAlgorithm
+	MinimumSize int
+}
+
 func replaceSequences(s string, sequences map[string]string) string {
 	for orig, new := range sequences {
 		s = strings.ReplaceAll(s, orig, new)
