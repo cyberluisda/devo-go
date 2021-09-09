@@ -432,6 +432,13 @@ func (dsc *Client) SendAsync(m string) string {
 
 // SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
 func (dsc *Client) SendWTagAsync(t, m string) string {
+	return dsc.SendWTagAndCompressorAsync(t, m, dsc.compressor)
+}
+
+// SendWTagAndCompressorAsync is similar to SendWTagAsync but send events with specific compressor.
+// This can be usefull, for example, to force disable compression for one message using
+// Client.SendWTagAndCompressorAsync(t, m, nil)
+func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 	// Save asyncItems ref ids
@@ -449,7 +456,7 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 
 	// Run Send with go routine (concurrent call)
 	go func(id string) {
-		err := dsc.SendWTag(t, m)
+		err := dsc.SendWTagAndCompressor(t, m, c)
 		if err != nil {
 			dsc.asyncErrorsMutext.Lock()
 			dsc.asyncErrors[id] = err
