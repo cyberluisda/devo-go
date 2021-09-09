@@ -257,7 +257,7 @@ func (ltoc *LogTableOneStringColumn) SetBatchValues(values map[string]string) er
 		ltoc.devoSender.SendWTagAsync(ltoc.Table, v)
 	}
 
-	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	err := ltoc.devoSender.WaitForPendingAsyncMessages()
 	if err != nil {
 		return fmt.Errorf("Error when wait for pending async messages: %w", err)
 	}
@@ -420,7 +420,7 @@ func (ltoc *LogTableOneStringColumn) DeleteBatchValues(names []string) error {
 		ltoc.devoSender.SendWTagAsync(ltoc.Table, msg)
 	}
 
-	err := ltoc.devoSender.WaitForPendingAsyngMessages()
+	err := ltoc.devoSender.WaitForPendingAsyncMessages()
 	if err != nil {
 		return fmt.Errorf("Error when wait for pending async messages: %w", err)
 	}
