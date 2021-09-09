@@ -78,8 +78,12 @@ func NewClientBuilder() *ClientBuilder {
 	return &ClientBuilder{
 		tlsInsecureSkipVerify: false,
 		tlsRenegotiation:      tls.RenegotiateNever,
+		compressorMinSize:     ClientBuilderDefaultCompressorMinSize,
 	}
 }
+
+// ClientBuilderDefaultCompressorMinSize is the agresive min size recommended by google (https://webmasters.stackexchange.com/questions/31750/what-is-recommended-minimum-object-size-for-gzip-performance-benefits)
+const ClientBuilderDefaultCompressorMinSize = 150
 
 // EntryPoint sets entrypoint in builder used to create Client
 // This value overwrite (and is overwritten) by DevoCentralEntryPoint
