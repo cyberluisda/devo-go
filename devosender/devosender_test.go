@@ -421,6 +421,54 @@ func TestClient_SendWTagAsync(t *testing.T) {
 	}
 }
 
+func TestClient_SendWTagAndCompressorAsync(t *testing.T) {
+	type args struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name   string
+		client *Client
+		args   args
+		want   *regexp.Regexp
+	}{
+		{
+			"Nil compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile(`^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$`),
+		},
+		{
+			"With Compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+				c: &Compressor{CompressorZlib, 0},
+			},
+			regexp.MustCompile(`^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if got := dsc.SendWTagAndCompressorAsync(tt.args.t, tt.args.m, tt.args.c); !tt.want.Match([]byte(got)) {
+				t.Errorf("Client.SendWTagAsync() = %v, want matching with %v", got, tt.want.String())
+			}
+		})
+	}
+}
+
 func TestClient_SendAsync(t *testing.T) {
 	type args struct {
 		m string
