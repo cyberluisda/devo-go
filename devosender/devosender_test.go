@@ -535,6 +535,54 @@ func TestClient_SendWTag(t *testing.T) {
 	}
 }
 
+func TestClient_SendWTagAndCompressor(t *testing.T) {
+	type args struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name    string
+		client  *Client
+		args    args
+		wantErr bool
+	}{
+		{
+			"Nil compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+			},
+			false,
+		},
+		{
+			"Wtih compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+				c: &Compressor{CompressorGzip, 0},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if err := dsc.SendWTagAndCompressor(tt.args.t, tt.args.m, tt.args.c); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestClient_Send(t *testing.T) {
 	type args struct {
 		m string
