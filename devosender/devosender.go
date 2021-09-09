@@ -31,7 +31,7 @@ type DevoSender interface {
 	GetEntryPoint() string
 	AreAsyncOps() bool
 	AsyncIds() []string
-	IsAsyncActive() bool
+	IsAsyncActive(id string) bool
 	AsyncsNumber() int
 	LastSendCallTimestamp() time.Time
 	String() string
