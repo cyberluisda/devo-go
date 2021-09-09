@@ -724,6 +724,34 @@ func (mc *Compressor) Compress(bs []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+
+// StringCompressorAlgorithm return the string value of algorithm selected
+func StringCompressorAlgorithm(a CompressorAlgorithm) string {
+	switch a {
+	case CompressorNoComprs:
+		return "No compression"
+	case CompressorGzip:
+		return "GZIP"
+	case CompressorZlib:
+		return "ZLIB"
+	default:
+		return "Unknown"
+	}
+}
+
+// ParseAlgorithm is the inverse func of StringCompressorAlgorithm. Error is returned
+// if s value is not matching with none valid algorithm
+func ParseAlgorithm(s string) (CompressorAlgorithm, error) {
+	for a := CompressorNoComprs; a <= CompressorZlib; a++ {
+		v := StringCompressorAlgorithm(a)
+		if v == s {
+			return a, nil
+		}
+	}
+
+	return CompressorNoComprs, fmt.Errorf("%s is not a valid algorithm", s)
+}
+
 func replaceSequences(s string, sequences map[string]string) string {
 	for orig, new := range sequences {
 		s = strings.ReplaceAll(s, orig, new)
