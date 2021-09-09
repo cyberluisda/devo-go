@@ -336,6 +336,13 @@ func (dsc *Client) Send(m string) error {
 
 // SendWTag is similar to Send but using a specific tag
 func (dsc *Client) SendWTag(t, m string) error {
+	return dsc.SendWTagAndCompressor(t, m, dsc.compressor)
+}
+
+// SendWTagAndCompressor is similar to SendWTag but using a specific Compressor.
+// This can be usefull, for example, to force disable compression for one message using
+// Client.SendWTagAndCompressor(t, m, nil)
+func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
@@ -362,6 +369,15 @@ func (dsc *Client) SendWTag(t, m string) error {
 		replaceSequences(m, dsc.ReplaceSequences),
 	)
 	bytesdevomsg := []byte(devomsg)
+
+	if c != nil {
+		compressedBytes, err := c.Compress(bytesdevomsg)
+		if err == nil {
+			//Ignoring compression errors
+			bytesdevomsg = nil // Easy garbage collector
+			bytesdevomsg = compressedBytes
+		}
+	}
 
 	_, err := dsc.conn.Write(bytesdevomsg)
 
