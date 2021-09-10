@@ -421,6 +421,54 @@ func TestClient_SendWTagAsync(t *testing.T) {
 	}
 }
 
+func TestClient_SendWTagAndCompressorAsync(t *testing.T) {
+	type args struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name   string
+		client *Client
+		args   args
+		want   *regexp.Regexp
+	}{
+		{
+			"Nil compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile(`^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$`),
+		},
+		{
+			"With Compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+				c: &Compressor{CompressorZlib, 0},
+			},
+			regexp.MustCompile(`^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if got := dsc.SendWTagAndCompressorAsync(tt.args.t, tt.args.m, tt.args.c); !tt.want.Match([]byte(got)) {
+				t.Errorf("Client.SendWTagAsync() = %v, want matching with %v", got, tt.want.String())
+			}
+		})
+	}
+}
+
 func TestClient_SendAsync(t *testing.T) {
 	type args struct {
 		m string
@@ -481,6 +529,54 @@ func TestClient_SendWTag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dsc := tt.client
 			if err := dsc.SendWTag(tt.args.t, tt.args.m); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_SendWTagAndCompressor(t *testing.T) {
+	type args struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name    string
+		client  *Client
+		args    args
+		wantErr bool
+	}{
+		{
+			"Nil compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+			},
+			false,
+		},
+		{
+			"Wtih compressor",
+			func() *Client {
+				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
+				return r
+			}(),
+			args{
+				t: "tag",
+				m: "message",
+				c: &Compressor{CompressorGzip, 0},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsc := tt.client
+			if err := dsc.SendWTagAndCompressor(tt.args.t, tt.args.m, tt.args.c); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -835,6 +931,7 @@ func TestNewClientBuilder(t *testing.T) {
 			&ClientBuilder{
 				tlsRenegotiation:      tls.RenegotiateNever,
 				tlsInsecureSkipVerify: false,
+				compressorMinSize:     ClientBuilderDefaultCompressorMinSize,
 			},
 		},
 	}
@@ -1475,6 +1572,126 @@ func TestClientBuilder_ConnectionExpiration(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_DefaultCompressor(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
+		connExpiration        time.Duration
+		compressorAlgorithm   CompressorAlgorithm
+		compressorMinSize     int
+	}
+	type args struct {
+		c CompressorAlgorithm
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set CompressorAlgorithm",
+			fields{},
+			args{CompressorGzip},
+			&ClientBuilder{
+				compressorAlgorithm: CompressorGzip,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
+				connExpiration:        tt.fields.connExpiration,
+				compressorAlgorithm:   tt.fields.compressorAlgorithm,
+				compressorMinSize:     tt.fields.compressorMinSize,
+			}
+			if got := dsb.DefaultCompressor(tt.args.c); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.DefaultCompressor() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientBuilder_CompressorMinSize(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		tcpTimeout            time.Duration
+		tcpKeepAlive          time.Duration
+		connExpiration        time.Duration
+		compressorAlgorithm   CompressorAlgorithm
+		compressorMinSize     int
+	}
+	type args struct {
+		s int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set Compressor min size",
+			fields{},
+			args{123},
+			&ClientBuilder{
+				compressorMinSize: 123,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				tcpTimeout:            tt.fields.tcpTimeout,
+				tcpKeepAlive:          tt.fields.tcpKeepAlive,
+				connExpiration:        tt.fields.connExpiration,
+				compressorAlgorithm:   tt.fields.compressorAlgorithm,
+				compressorMinSize:     tt.fields.compressorMinSize,
+			}
+			if got := dsb.CompressorMinSize(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.CompressorMinSize() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
@@ -1544,6 +1761,8 @@ func TestClientBuilder_Build(t *testing.T) {
 		tcpTimeout            time.Duration
 		tcpKeepAlive          time.Duration
 		connExpiration        time.Duration
+		compressorAlgorithm   CompressorAlgorithm
+		compressorMinSize     int
 	}
 	tests := []struct {
 		name    string
@@ -1627,6 +1846,21 @@ func TestClientBuilder_Build(t *testing.T) {
 			}(),
 			false,
 		},
+		{
+			"With compressor",
+			fields{
+				entrypoint:          "udp://example.org:80",
+				compressorAlgorithm: CompressorGzip,
+				compressorMinSize:   23,
+			},
+			func() *Client {
+				r, _ := NewDevoSender("udp://example.org:80")
+				c := r.(*Client)
+				c.compressor = &Compressor{CompressorGzip, 23}
+				return r.(*Client)
+			}(),
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1643,6 +1877,8 @@ func TestClientBuilder_Build(t *testing.T) {
 				tcpTimeout:            tt.fields.tcpTimeout,
 				tcpKeepAlive:          tt.fields.tcpKeepAlive,
 				connExpiration:        tt.fields.connExpiration,
+				compressorAlgorithm:   tt.fields.compressorAlgorithm,
+				compressorMinSize:     tt.fields.compressorMinSize,
 			}
 			got, err := dsb.Build()
 			if (err != nil) != tt.wantErr {
@@ -2124,6 +2360,226 @@ func TestClient_sendCalled(t *testing.T) {
 				t.Errorf(
 					"Client.sendCalled(), Want last.SendCallTimestamp was before that now + offset(%s) = %s, got = %v",
 					tt.offset, target, dsc.lastSendCallTimestamp)
+			}
+		})
+	}
+}
+
+func TestStringCompressorAlgorithm(t *testing.T) {
+	type args struct {
+		a CompressorAlgorithm
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"No compression",
+			args{CompressorNoComprs},
+			"No compression",
+		},
+		{
+			"GZIP",
+			args{CompressorGzip},
+			"GZIP",
+		},
+		{
+			"ZLIB",
+			args{CompressorZlib},
+			"ZLIB",
+		},
+		{
+			"Other",
+			args{234},
+			"Unknown",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := StringCompressorAlgorithm(tt.args.a); got != tt.want {
+				t.Errorf("StringCompressorAlgorithm() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseAlgorithm(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    CompressorAlgorithm
+		wantErr bool
+	}{
+		{
+			"No compression",
+			args{"No compression"},
+			CompressorNoComprs,
+			false,
+		},
+		{
+			"GZIP",
+			args{"GZIP"},
+			CompressorGzip,
+			false,
+		},
+		{
+			"ZLIB",
+			args{"ZLIB"},
+			CompressorZlib,
+			false,
+		},
+		{
+			"Invalid",
+			args{"This is not valid"},
+			CompressorNoComprs,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ParseAlgorithm(tt.args.s)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ParseAlgorithm() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ParseAlgorithm() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompressor_StringAlgoritm(t *testing.T) {
+	type fields struct {
+		Algorithm CompressorAlgorithm
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"No compression",
+			fields{CompressorNoComprs},
+			StringCompressorAlgorithm(CompressorNoComprs),
+		},
+		{
+			"Gzip",
+			fields{CompressorGzip},
+			StringCompressorAlgorithm(CompressorGzip),
+		},
+		{
+			"Zlib",
+			fields{CompressorZlib},
+			StringCompressorAlgorithm(CompressorZlib),
+		},
+		{
+			"Unknown",
+			fields{123},
+			StringCompressorAlgorithm(123),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := &Compressor{
+				Algorithm: tt.fields.Algorithm,
+			}
+			if got := mc.StringAlgoritm(); got != tt.want {
+				t.Errorf("Compressor.StringAlgoritm() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompressor_Compress(t *testing.T) {
+	type fields struct {
+		Algorithm   CompressorAlgorithm
+		MinimumSize int
+	}
+	type args struct {
+		bs []byte
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			"Unsupported algorithm",
+			fields{Algorithm: 1234},
+			args{nil},
+			nil,
+			true,
+		},
+		{
+			"No compression empty imput",
+			fields{Algorithm: CompressorNoComprs},
+			args{nil},
+			[]byte{},
+			false,
+		},
+		{
+			"No compression",
+			fields{Algorithm: CompressorNoComprs},
+			args{[]byte("hi")},
+			[]byte("hi"),
+			false,
+		},
+		{
+			"Gzip empty imput",
+			fields{Algorithm: CompressorGzip},
+			args{nil},
+			[]byte{31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 1, 0, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0},
+			false,
+		},
+		{
+			"Gzip",
+			fields{Algorithm: CompressorGzip},
+			args{[]byte("hi")},
+			[]byte{31, 139, 8, 0, 0, 0, 0, 0, 0, 255, 202, 200, 4, 4, 0, 0, 255, 255, 172, 42, 147, 216, 2, 0, 0, 0},
+			false,
+		},
+		{
+			"Zlib empty imput",
+			fields{Algorithm: CompressorZlib},
+			args{nil},
+			[]byte{120, 156, 1, 0, 0, 255, 255, 0, 0, 0, 1},
+			false,
+		},
+		{
+			"Zlib",
+			fields{Algorithm: CompressorZlib},
+			args{[]byte("hi")},
+			[]byte{120, 156, 202, 200, 4, 4, 0, 0, 255, 255, 1, 59, 0, 210},
+			false,
+		},
+		{
+			"MinimumSize",
+			fields{CompressorGzip, 5},
+			args{[]byte("hi")},
+			[]byte("hi"),
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mc := &Compressor{
+				Algorithm:   tt.fields.Algorithm,
+				MinimumSize: tt.fields.MinimumSize,
+			}
+			got, err := mc.Compress(tt.args.bs)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Compressor.Compress() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Compressor.Compress() = %v, want %v", got, tt.want)
 			}
 		})
 	}
