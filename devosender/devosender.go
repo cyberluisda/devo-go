@@ -53,6 +53,12 @@ const (
 	ClientBuilderRelayUS ClienBuilderDevoCentralRelay = iota
 	// ClientBuilderRelayEU select DevoCentralRelayEU in builder
 	ClientBuilderRelayEU
+
+	// ClientBuilderDefaultCompressorMinSize is the default min size of payload to apply compression
+	// Following discussion in https://webmasters.stackexchange.com/questions/31750/what-is-recommended-minimum-object-size-for-gzip-performance-benefits
+	// this value is set by CDN providers as Akamai, other services like goolge are more
+	// aggrsive and set 150 bytes as fringe value.
+	ClientBuilderDefaultCompressorMinSize = 860
 )
 
 // ClientBuilder defines builder for easy DevoSender instantiation
@@ -81,9 +87,6 @@ func NewClientBuilder() *ClientBuilder {
 		compressorMinSize:     ClientBuilderDefaultCompressorMinSize,
 	}
 }
-
-// ClientBuilderDefaultCompressorMinSize is the agresive min size recommended by google (https://webmasters.stackexchange.com/questions/31750/what-is-recommended-minimum-object-size-for-gzip-performance-benefits)
-const ClientBuilderDefaultCompressorMinSize = 150
 
 // EntryPoint sets entrypoint in builder used to create Client
 // This value overwrite (and is overwritten) by DevoCentralEntryPoint
