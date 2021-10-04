@@ -2617,3 +2617,42 @@ func Test_connectionError_Error(t *testing.T) {
 		})
 	}
 }
+
+func Test_isConnectionError(t *testing.T) {
+	type args struct {
+		e error
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"nil error",
+			args{nil},
+			false,
+		},
+		{
+			"Other error",
+			args{errors.New("test error")},
+			false,
+		},
+		{
+			"isConnection error",
+			args{
+				&connectionError{
+					Mode: "test mode",
+					Err:  errors.New("test error"),
+				},
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isConnectionError(tt.args.e); got != tt.want {
+				t.Errorf("isConnectionError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
