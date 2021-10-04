@@ -250,6 +250,15 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 	return &result, nil
 }
 
+type connectionError struct {
+	Mode string
+	Err  error
+}
+
+func (ce *connectionError) Error() string {
+	return fmt.Sprintf("Error when create new DevoSender (%s): %v", ce.Mode, ce.Err)
+}
+
 // NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (DevoSender, error) {
 	return NewClientBuilder().
