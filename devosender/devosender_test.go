@@ -2,6 +2,7 @@ package devosender
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -2580,6 +2581,38 @@ func TestCompressor_Compress(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Compressor.Compress() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_connectionError_Error(t *testing.T) {
+	type fields struct {
+		Mode string
+		Err  error
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"Error",
+			fields{
+				Mode: "test mode",
+				Err:  errors.New("test error"),
+			},
+			"Error when create new DevoSender (test mode): test error",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ce := &connectionError{
+				Mode: tt.fields.Mode,
+				Err:  tt.fields.Err,
+			}
+			if got := ce.Error(); got != tt.want {
+				t.Errorf("connectionError.Error() = %v, want %v", got, tt.want)
 			}
 		})
 	}
