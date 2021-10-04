@@ -259,6 +259,11 @@ func (ce *connectionError) Error() string {
 	return fmt.Sprintf("Error when create new DevoSender (%s): %v", ce.Mode, ce.Err)
 }
 
+func isConnectionError(e error) bool {
+	var ce *connectionError
+	return errors.As(e, &ce)
+}
+
 // NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
 func NewDevoSenderTLS(entrypoint string, key []byte, cert []byte, chain []byte) (DevoSender, error) {
 	return NewClientBuilder().
