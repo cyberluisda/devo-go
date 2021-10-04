@@ -232,11 +232,11 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 
 	err := result.makeConnection()
 	if err != nil {
-		mode := "(Clear)"
+		newErr := &connectionError{"Clear", err}
 		if TLSSetup != nil {
-			mode = "(TLS)"
+			newErr.Mode = "TLS"
 		}
-		return nil, fmt.Errorf("Error when create new DevoSender %s: %w", mode, err)
+		return nil, newErr
 	}
 
 	// compressor, only if NoCompression algorithm is selected
