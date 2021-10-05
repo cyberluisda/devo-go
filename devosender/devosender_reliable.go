@@ -193,6 +193,30 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+// SendAsync sends Async message in same way like Client.SendAsync but saving the message
+// in status until can ensure, at certain level of confiance, that it was sent
+func (dsrc *ReliableClient) SendAsync(m string) string {
+	var id string
+	if dsrc.IsStandBy() || dsrc.Client == nil {
+		id = nonConnIDPrefix + uuid.NewV4().String()
+	} else {
+		id = dsrc.Client.SendAsync(m)
+	}
+
+	record := &reliableClientRecord{
+		AsyncIDs:  []string{id},
+		Timestamp: time.Now(),
+		Msg:       m,
+	}
+	err := dsrc.newRecord(record)
+	if err != nil {
+		err = fmt.Errorf("Uncontrolled error when create status record in SendAsync: %w", err)
+		panic(err)
+	}
+
+	return id
+}
+
 // SendWTagAsync sends Async message in same way like Client.SendWTagAsync but saving the message
 // and tag in status until can ensure, at certain level of confiance, that it was sent
 func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
