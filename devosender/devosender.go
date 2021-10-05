@@ -354,6 +354,10 @@ func (dsc *Client) SetDefaultTag(t string) error {
 //Send func send message using default tag (SetDefaultTag).
 // Meessage will be transformed before send, using ReplaceAll with values from Client.ReplaceSequences
 func (dsc *Client) Send(m string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	err := dsc.SendWTag(dsc.defaultTag, m)
 	if err != nil {
 		return fmt.Errorf("Error when call SendWTag using default tag '%s': %w", dsc.defaultTag, err)
