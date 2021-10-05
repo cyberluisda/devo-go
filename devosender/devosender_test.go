@@ -625,6 +625,14 @@ func TestClient_Send(t *testing.T) {
 	}
 }
 
+func TestClient_SetDefaultTag_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SetDefaultTag("tag"); err != wantErr {
+		t.Errorf("Client.SetDefaultTag() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_SetDefaultTag(t *testing.T) {
 	type fields struct {
 		entryPoint        string
