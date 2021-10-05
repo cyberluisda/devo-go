@@ -193,6 +193,87 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+// Flush checks all pending messages (sent with Async funcs), waits for pending async messages
+// and update status of all of them. This func can call on demand but it is called by
+// internal retry send events daemon too
+func (dsrc *ReliableClient) Flush() error {
+
+	isClientUp := !dsrc.IsStandBy()
+	if isClientUp {
+		dsrc.clientMtx.Lock()
+		isClientUp = !(dsrc.Client == nil)
+		dsrc.clientMtx.Unlock()
+	}
+
+	// Recollect pending events
+	allIds := dsrc.findAllRecordsID()
+
+	if isClientUp {
+		err := dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.flushTimeout)
+		if err != nil {
+			return fmt.Errorf("Timeout %s reached when wait for pending async msgs: %w", dsrc.flushTimeout, err)
+		}
+
+		idsToBeResend := map[string]error{}
+		assumingWasSent := make([]string, 0)
+		for _, id := range allIds {
+			// If Id is no connecion
+			if strings.HasPrefix(id, nonConnIDPrefix) {
+				idsToBeResend[id] = nil
+			} else {
+				// Check if Id is not pending
+				if !dsrc.IsAsyncActive(id) {
+					// Load errors and check on it
+					errors := dsrc.AsyncErrors()
+					if err, ok := errors[id]; ok {
+						// We have found error, retrying
+						idsToBeResend[id] = err
+					} else {
+						assumingWasSent = append(assumingWasSent, id)
+					}
+				}
+			}
+		}
+
+		// Now resend pending or mark as Evicted
+		evicted := make([]string, 0)
+		for k, v := range idsToBeResend {
+			record := dsrc.getRecord(k)
+			if record == nil {
+				// Evicted
+				evicted = append(evicted, k)
+			} else {
+				record.LastError = v
+				dsrc.resendRecord(record)
+			}
+		}
+
+		// Ensure evicted are removed:
+		err = dsrc.deleteRecords(evicted...)
+		if err != nil {
+			return fmt.Errorf("Error when delete one evicted status record: %w", err)
+		}
+
+		// Remove records was send
+		err = dsrc.deleteRecords(assumingWasSent...)
+		if err != nil {
+			return fmt.Errorf("Error when delete one status record that I assumed that was sent: %w", err)
+		}
+
+	} else {
+		// Passing all elemetns as no-conn
+		for _, id := range allIds {
+			// If Id is no connecion
+			if !strings.HasPrefix(id, nonConnIDPrefix) {
+				record := dsrc.getRecord(id)
+				dsrc.updateRecord(record, nonConnIDPrefix+id)
+			}
+		}
+	}
+
+	return nil
+}
+
 // Close closes current client. This implies operations like shutdown daemons, call Flush func, etc.
 func (dsrc *ReliableClient) Close() error {
 	errors := make([]error, 0)
