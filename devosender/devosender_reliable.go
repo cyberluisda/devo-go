@@ -49,6 +49,24 @@ const (
 	// then error will be send
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
 )
+
+// NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
+func NewReliableClientBuilder() *ReliableClientBuilder {
+
+	r := &ReliableClientBuilder{
+		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		daemonStopTimeout:        DefaultDaemonStopTimeout,
+		bufferEventsSize:         DefaultBufferEventsSize,
+		eventTimeToLive:          DefaultEventTimeToLive,
+		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
+		dbOpts:                   nutsdb.DefaultOptions,
+		flushTimeout:             DefaultFlushAsyncTimeout,
+	}
+
+	return r
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
