@@ -218,6 +218,24 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 	}
 }
 
+const (
+	dataBucket      = "data"
+	ctrlBucket      = "ctrl"
+	statsBucket     = "stats"
+	nonConnIDPrefix = "non-conn-"
+)
+
+var (
+	keysKey              = []byte("keys")
+	countKey             = []byte("count")
+	keysInOrderKey       = []byte("keys_in_order")
+	updatedKey           = []byte("updated")
+	evictedKey           = []byte("evicted")
+	finishedKey          = []byte("finished")
+	droppedKey           = []byte("dropped")
+	nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
+)
+
 
 // findAllRecordsID returns a slice with all string IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsID() []string {
