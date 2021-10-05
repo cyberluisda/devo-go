@@ -237,6 +237,63 @@ var (
 )
 
 
+// deleteRecords deletes one reliableClientRecord from status ID updating counters at
+// same time using a provided status db transaction
+func deleteRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) error {
+
+	// Load key in ctrl idx index
+	ok, err := tx.SAreMembers(ctrlBucket, keysKey, idAsBytes)
+	if nutsdbIsNotFoundError(err) {
+		return nil
+	} else if err != nil {
+
+		return fmt.Errorf("Error when look for member %s in %s.%s: %w",
+			string(idAsBytes), ctrlBucket, string(keysKey), err)
+	}
+
+	if ok {
+		// Check for existence  to increment evicted  counter
+		_, err := tx.Get(dataBucket, idAsBytes)
+		if err == nutsdb.ErrNotFoundKey || err == nutsdb.ErrKeyNotFound {
+			// Only update evicted stat because real data could be expired
+			err = inc(tx, statsBucket, evictedKey, 1, false)
+			if err != nil {
+				return fmt.Errorf("Error when increment %s: %w", string(evictedKey), err)
+			}
+		}
+
+		err = tx.Delete(dataBucket, idAsBytes)
+		if err != nil {
+			return fmt.Errorf("Error when delete key %s from data: %w", string(idAsBytes), err)
+		}
+
+		err = tx.SRem(ctrlBucket, keysKey, idAsBytes)
+		if err != nil {
+			return fmt.Errorf("Error when delete key %s from %s.%s: %w",
+				string(idAsBytes), ctrlBucket, string(keysKey), err)
+		}
+	}
+
+	_, err = tx.LRem(ctrlBucket, keysInOrderKey, 0, idAsBytes)
+	if err != nil {
+		return fmt.Errorf("Error when delete key %s from %s.%s: %w",
+			string(idAsBytes), ctrlBucket, string(keysInOrderKey), err)
+	}
+
+	err = dec(tx, statsBucket, countKey, 1, true)
+	if err != nil {
+		return fmt.Errorf("Error when decrement %s: %w", string(countKey), err)
+	}
+
+	err = inc(tx, statsBucket, finishedKey, 1, false)
+	if err != nil {
+		return fmt.Errorf("Error when increment %s: %w", string(finishedKey), err)
+	}
+
+	return nil
+}
+
+
 // findAllRecordsID returns a slice with all string IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsID() []string {
 	records := dsrc.findAllRecordsIDRaw()
