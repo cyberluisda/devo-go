@@ -358,6 +358,14 @@ func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	}
 }
 
+func TestClient_WaitForPendingAsyncMsgsOrTimeout_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.WaitForPendingAsyncMsgsOrTimeout(0); err != wantErr {
+		t.Errorf("Client.WaitForPendingAsyncMsgsOrTimeout() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_WaitForPendingAsyncMsgsOrTimeout(t *testing.T) {
 	type fields struct {
 		waitGroup sync.WaitGroup
