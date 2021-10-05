@@ -294,6 +294,48 @@ func deleteRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) error {
 }
 
 
+// dropRecords drops one or more older records and update the stat counters too using
+// a provided status db transaction
+func dropRecordsInTx(tx *nutsdb.Tx, n int) error {
+	// Check if we have enough elemetns based on stats.count
+	ce, err := tx.Get(statsBucket, countKey)
+	if nutsdbIsNotFoundError(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	c, _ := strconv.Atoi(string(ce.Value))
+	if n > c {
+		n = c
+	}
+
+	// Load n last elements from ctrl.keys_in_order
+	ids := make([][]byte, n)
+
+	for i := 0; i < n; i++ {
+		vs, err := tx.LPop(ctrlBucket, keysInOrderKey)
+		if err != nil {
+			return err
+		}
+		ids[i] = vs
+	}
+
+	// Now purge it
+	for _, id := range ids {
+		err = deleteRecordRawInTx(tx, id)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Update stats
+	err = inc(tx, statsBucket, droppedKey, n, false)
+
+	return err
+}
+
 // findAllRecordsID returns a slice with all string IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsID() []string {
 	records := dsrc.findAllRecordsIDRaw()
