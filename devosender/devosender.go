@@ -574,6 +574,10 @@ func (dsc *Client) AsyncErrors() map[string]error {
 
 // AsyncErrorsNumber return then number of errors from async calls collected until now
 func (dsc *Client) AsyncErrorsNumber() int {
+	if dsc == nil {
+		return 0
+	}
+
 	dsc.asyncErrorsMutext.Lock()
 
 	r := len(dsc.asyncErrors)
