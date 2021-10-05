@@ -193,6 +193,29 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+}
+
+// ResetSessionStats remove stats values from status. Stats values considerd at
+// session scope are: 'update', 'deleted', 'dropped' and 'evicted' counters
+func (dsrc *ReliableClient) ResetSessionStats() error {
+	// session stas are: updated, deleted, dropped and evicted:
+	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
+		for _, key := range [4][]byte{updatedKey, finishedKey, droppedKey, evictedKey} {
+			err := del(tx, statsBucket, key)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error when reset session stats: %w", err)
+	}
+
+	return nil
+}
 
 func (dsrc *ReliableClient) String() string {
 	db := "<nil>"
