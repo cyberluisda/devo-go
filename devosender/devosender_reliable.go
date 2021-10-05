@@ -1,10 +1,12 @@
 package devosender
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
