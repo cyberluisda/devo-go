@@ -214,3 +214,34 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 		panic(err)
 	}
 }
+
+var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
+
+// nutsdbIsNotFoundError check and retur if error parameter is one of the "Not found"
+// recognized errors returned by nutsdb operations.
+func nutsdbIsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err == nutsdb.ErrBucketNotFound {
+		return true
+	}
+	if err == nutsdb.ErrBucketEmpty {
+		return true
+	}
+	if err == nutsdb.ErrNotFoundKey {
+		return true
+	}
+	if err == nutsdb.ErrKeyNotFound {
+		return true
+	}
+	if err.Error() == "key not exits" {
+		return true
+	}
+	if err.Error() == "item not exits" {
+		return true
+	}
+
+	errStr := fmt.Sprint(err)
+	return reNotFoundError.MatchString(errStr)
+}
