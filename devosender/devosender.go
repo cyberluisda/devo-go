@@ -615,6 +615,10 @@ func (dsc *Client) GetEntryPoint() string {
 
 // AsyncIds return asyncIds that are currently runnig
 func (dsc *Client) AsyncIds() []string {
+	if dsc == nil {
+		return nil
+	}
+
 	dsc.asyncItemsMutext.Lock()
 
 	r := make([]string, len(dsc.asyncItems))
