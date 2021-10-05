@@ -2024,6 +2024,14 @@ func TestClientBuilder_Build(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncIds_nil(t *testing.T) {
+	var dsc *Client
+	var want []string
+	if got := dsc.AsyncIds(); !reflect.DeepEqual(got, want) {
+		t.Errorf("Client.GetEntryPoint() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncIds(t *testing.T) {
 	type fields struct {
 		entryPoint              string
