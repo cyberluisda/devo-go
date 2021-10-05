@@ -205,3 +205,12 @@ func (rcr *reliableClientRecord) Serialize() []byte {
 	}
 	return r
 }
+
+// mustUnserialize returns the assoicated reliableClientRecord to a previously serialized value.
+func mustUnserialize(bs []byte, dst *reliableClientRecord) {
+	err := msgpack.Unmarshal(bs, dst)
+	if err != nil {
+		fmt.Println("ERROR uncontrolled in Unserialize of reliableClientRecord type", err)
+		panic(err)
+	}
+}
