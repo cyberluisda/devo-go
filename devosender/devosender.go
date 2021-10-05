@@ -676,6 +676,10 @@ func (dsc *Client) AsyncsNumber() int {
 
 // LastSendCallTimestamp returns the timestamp of last time that any of SendXXXX func was called with valid parameters
 func (dsc *Client) LastSendCallTimestamp() time.Time {
+	if dsc == nil {
+		return time.Time{}
+	}
+
 	dsc.statsMutex.Lock()
 	r := dsc.lastSendCallTimestamp
 	dsc.statsMutex.Unlock()
