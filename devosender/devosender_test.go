@@ -215,6 +215,14 @@ func TestClient_AddReplaceSequences(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrors_nil(t *testing.T) {
+	var dsc *Client
+	want := map[string]error{"": ErrNilPointerReceiver}
+	if got := dsc.AsyncErrors(); !reflect.DeepEqual(got, want) {
+		t.Errorf("Client.AsyncErrors() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncErrors(t *testing.T) {
 	type fields struct {
 		entryPoint        string
