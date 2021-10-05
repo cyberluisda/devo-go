@@ -236,6 +236,77 @@ var (
 	nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
 )
 
+// updateRecordInTx updates the status of a reliableClientRecord with new ID updating counters
+// at same time, using a provided sttus db transaction
+func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl uint32) error {
+	now := time.Now()
+	oldID := r.AsyncIDs[len(r.AsyncIDs)-1]
+
+	// Check for expiration
+	expiration := r.Timestamp.Add(time.Duration(ttl) * time.Second)
+	if expiration.Before(now) {
+		// Event was expired. We directly remove it
+		oldIDAsBytes := []byte(oldID)
+		return deleteRecordRawInTx(tx, oldIDAsBytes) // Last ID is the used to delete
+	}
+
+	// Update Id create new key in data and ctrl in database and remove old ones
+	r.AsyncIDs = append(r.AsyncIDs, newID)
+	newIDAsBytes := []byte(newID)
+	oldIDAsBytes := []byte(oldID)
+
+	// Add new elements
+	err := tx.SAdd(ctrlBucket, keysKey, newIDAsBytes)
+	if err != nil {
+		return err
+	}
+	err = tx.PutWithTimestamp(dataBucket, newIDAsBytes, r.Serialize(), ttl, uint64(r.Timestamp.Unix()))
+	if err != nil {
+		return err
+	}
+
+	// Remove old elements
+	err = tx.Delete(dataBucket, oldIDAsBytes)
+	if err != nil {
+		return err
+	}
+	err = tx.SRem(ctrlBucket, keysKey, oldIDAsBytes)
+	if err != nil {
+		return err
+	}
+
+	// Update keysInOrder element
+	n, err := tx.LSize(ctrlBucket, keysInOrderKey)
+	if err != nil {
+		return err
+	}
+
+	// Load all keys in memory.
+	ls, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for idx, vs := range ls {
+		if bytes.Equal(vs, oldIDAsBytes) {
+			err := tx.LSet(ctrlBucket, keysInOrderKey, idx, newIDAsBytes)
+			if err != nil {
+				return err
+			}
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("Error old id %s did not find in %s.%s", oldID, ctrlBucket, string(keysInOrderKey))
+	}
+
+	// Counters and stats
+	err = inc(tx, statsBucket, updatedKey, 1, false)
+	return err
+}
 
 // deleteRecords deletes one or more reliableClientRecord from status ID updating counters at same time
 func (dsrc *ReliableClient) deleteRecords(IDs ...string) error {
