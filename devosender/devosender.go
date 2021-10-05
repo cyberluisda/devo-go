@@ -606,6 +606,10 @@ func (dsc *Client) PurgeAsyncErrors() {
 
 // GetEntryPoint return entrypoint used by client
 func (dsc *Client) GetEntryPoint() string {
+	if dsc == nil {
+		return ""
+	}
+
 	return dsc.entryPoint
 }
 
