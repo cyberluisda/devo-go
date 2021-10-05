@@ -589,6 +589,10 @@ func (dsc *Client) AsyncErrorsNumber() int {
 
 // PurgeAsyncErrors cleans internal AsyncErrors captured until now
 func (dsc *Client) PurgeAsyncErrors() {
+	if dsc == nil {
+		return
+	}
+
 	if dsc.asyncErrors != nil {
 		dsc.asyncErrorsMutext.Lock()
 
