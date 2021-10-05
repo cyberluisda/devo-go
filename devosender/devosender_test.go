@@ -498,7 +498,7 @@ func TestClient_SendAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
-			"Nil poiner",
+			"Nil Client",
 			nil,
 			args{
 				m: "message",
