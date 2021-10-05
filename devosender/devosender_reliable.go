@@ -67,6 +67,12 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 	return r
 }
 
+// DbPath sets the Database status path in the filesystem
+func (dsrcb *ReliableClientBuilder) DbPath(path string) *ReliableClientBuilder {
+	dsrcb.dbOpts.Dir = path
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
