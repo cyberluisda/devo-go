@@ -218,6 +218,32 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// dec decrements the integer value of a key. If key exists value should be transformed using
+// strvconv.Atoi(string(value)) before decrements the value. If key does not exist it will create
+// with -1 value unless errorIfNotFound parameter is true. On this case return error.
+// WARNING. Dec is not prepare to be called more than one time on same transaction. To solve this
+// problem use set value instead.
+func dec(tx *nutsdb.Tx, bucket string, key []byte, n int, errorIfNotFound bool) error {
+	if n == 0 {
+		return nil
+	}
+
+	ve, err := tx.Get(bucket, key)
+	if nutsdbIsNotFoundError(err) {
+		if errorIfNotFound {
+			return err
+		}
+		err = tx.Put(bucket, key, []byte("-1"), 0)
+	} else {
+		v, _ := strconv.Atoi(string(ve.Value))
+		v = v - n
+
+		err = tx.Put(bucket, key, []byte(strconv.Itoa(v)), 0)
+	}
+
+	return err
+}
+
 // inc increments the integer value of a key. If key exists value should be transformed using
 // strvconv.Atoi(string(value)) before increments the value. If key does not exist it will create
 // with 1 value unless errorIfNotFound parameter is true. On this case it returns an error.
