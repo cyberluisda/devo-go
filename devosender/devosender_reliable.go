@@ -191,6 +191,43 @@ type ReliableClient struct {
 }
 
 
+// clientReconnectionDaemon runs in background the reconnect  daemon. This daemon create new connection
+// if ReliableClient is not in stand by mode and inner Client is nill.
+// TODO Do other check if configured (for example Send Sync test message configured table) and recreate
+// inner Client if it is failing
+func (dsrc *ReliableClient) clientReconnectionDaemon() error {
+	if dsrc.reconnWait <= 0 {
+		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnWait)
+	}
+	go func() {
+		// Init delay
+		time.Sleep(dsrc.retryInitDelay)
+
+		for !dsrc.reconnStop {
+			dsrc.clientMtx.Lock()
+			if !dsrc.IsStandBy() {
+				// TODO implement other heltcheck mechanism here
+				if dsrc.Client == nil {
+					// Build inner Client
+					var err error
+					dsrc.Client, err = dsrc.clientBuilder.Build()
+					// we can continue in connection error scenario
+					if err != nil {
+						// FIXME log
+					}
+				}
+			}
+			dsrc.clientMtx.Unlock()
+			time.Sleep(dsrc.reconnWait)
+		}
+
+		// Closed signal
+		dsrc.daemonStopped <- true
+	}()
+
+	return nil
+}
+
 // resendRecord send the event based on record status.
 func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) {
 	var newID string
