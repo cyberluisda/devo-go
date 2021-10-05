@@ -482,7 +482,12 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 // SendWTagAndCompressorAsync is similar to SendWTagAsync but send events with specific compressor.
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressorAsync(t, m, nil)
+// Empty string is returned in Client is nil
 func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+	if dsc == nil {
+		return ""
+	}
+
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 	// Save asyncItems ref ids
