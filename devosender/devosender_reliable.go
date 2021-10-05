@@ -218,6 +218,26 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// getRecordRawInTx returns the reliableClientRecord in the status identified by serialized
+// representation of the id using a provided status db transaction
+func getRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) (*reliableClientRecord, error) {
+	ve, err := tx.Get(dataBucket, idAsBytes)
+	if nutsdbIsNotFoundError(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	r := &reliableClientRecord{}
+	err = msgpack.Unmarshal(ve.Value, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
 // dec decrements the integer value of a key. If key exists value should be transformed using
 // strvconv.Atoi(string(value)) before decrements the value. If key does not exist it will create
 // with -1 value unless errorIfNotFound parameter is true. On this case return error.
