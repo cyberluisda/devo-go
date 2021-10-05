@@ -217,6 +217,12 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 	}
 }
 
+
+// getRecord returns the reliableClientRecord in the status identified by id
+func (dsrc *ReliableClient) getRecord(id string) *reliableClientRecord {
+	return dsrc.getRecordRaw([]byte(id))
+}
+
 // getRecordRaw returns the reliableClientRecord in the status identified by serialized
 // representation of the id
 func (dsrc *ReliableClient) getRecordRaw(idAsBytes []byte) *reliableClientRecord {
