@@ -191,6 +191,35 @@ type ReliableClient struct {
 }
 
 
+// daemonsShutdown tries to stop daemons in gracefull mode, grace period to wait for
+// each daemon stopped is set in dsrc.daemonStopTimeout
+func (dsrc *ReliableClient) daemonsShutdown() error {
+	dsrc.retryStop = true
+	dsrc.reconnStop = true
+
+	errors := make([]error, 0)
+
+	// two daemons
+	for i := 0; i < 2; i++ {
+		select {
+		case <-time.After(dsrc.daemonStopTimeout):
+			errors = append(errors, fmt.Errorf("Timeout when wait for daemon number: %d", i))
+		case <-dsrc.daemonStopped:
+			// fmt.Println("Bye! daemon number", i)
+		}
+	}
+
+	if len(errors) == 0 {
+		return nil
+	}
+	err := fmt.Errorf("")
+	for _, e := range errors {
+		err = fmt.Errorf("%v, %v", e, err)
+	}
+
+	return fmt.Errorf("Errors when shutdown daemons: %w", err)
+}
+
 // dbInitCleanup checks and cleans database only one time per session. It is designed to be
 // call at the beginning of the process, just before daemons are started.
 func (dsrc *ReliableClient) dbInitCleanup() error {
