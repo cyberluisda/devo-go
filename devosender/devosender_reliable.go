@@ -88,3 +88,15 @@ type ReliableClient struct {
 	daemonStopped            chan bool
 	flushTimeout             time.Duration
 }
+
+
+// reliableClientRecord is the internal structure to save and manage the status of the event
+// and allow operations like resend.
+type reliableClientRecord struct {
+	AsyncIDs   []string
+	Timestamp  time.Time
+	Tag        string
+	Msg        string
+	Compressor *Compressor
+	LastError  error
+}
