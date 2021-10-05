@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
@@ -187,6 +188,33 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+
+// resendRecord send the event based on record status.
+func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) {
+	var newID string
+	if dsrc.IsStandBy() || dsrc.Client == nil {
+		currID := r.AsyncIDs[len(r.AsyncIDs)-1]
+		if strings.HasPrefix(currID, nonConnIDPrefix) {
+			// Same id, noting to do because client is not active
+			return
+		}
+		// Pass record to non-connection
+		newID = nonConnIDPrefix + uuid.NewV4().String()
+
+	} else {
+		// Resend based on properties
+		switch true {
+		case r.Compressor != nil && r.Tag != "":
+			newID = dsrc.Client.SendWTagAndCompressorAsync(r.Tag, r.Msg, r.Compressor)
+		case r.Tag != "":
+			newID = dsrc.Client.SendWTagAsync(r.Tag, r.Msg)
+		default:
+			newID = dsrc.Client.SendAsync(r.Msg)
+		}
+	}
+
+	dsrc.updateRecord(r, newID)
+}
 
 // reliableClientRecord is the internal structure to save and manage the status of the event
 // and allow operations like resend.
