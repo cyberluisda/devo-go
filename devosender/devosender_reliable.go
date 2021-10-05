@@ -244,6 +244,11 @@ func (dsrc *ReliableClient) WakeUp() error {
 	return nil
 }
 
+// IsStandBy retursn true when client is in StandBy() mode
+func (dsrc *ReliableClient) IsStandBy() bool {
+	return dsrc.standByMode
+}
+
 // ReliableClientStats represents the stats that can be queried
 type ReliableClientStats struct {
 	Count    int
