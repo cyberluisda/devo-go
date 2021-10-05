@@ -191,6 +191,35 @@ type ReliableClient struct {
 }
 
 
+// startRetryEventsDaemon runs in background the retry send events daemon. This daemon checks
+// every dsr.retryWait time  the pending events and update status or resend it if error
+// was saved by inner client. This actions are delegated to call Flush func
+func (dsrc *ReliableClient) startRetryEventsDaemon() error {
+	if dsrc.retryWait <= 0 {
+		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s", dsrc.retryWait)
+	}
+	go func() {
+		// Init delay
+		time.Sleep(dsrc.retryInitDelay)
+
+		// Daemon loop
+		for !dsrc.retryStop {
+			err := dsrc.Flush()
+			if err != nil {
+				// FIXME log
+			}
+
+			time.Sleep(dsrc.retryWait)
+		}
+
+		// Closed signal
+		dsrc.daemonStopped <- true
+
+	}()
+
+	return nil
+}
+
 // clientReconnectionDaemon runs in background the reconnect  daemon. This daemon create new connection
 // if ReliableClient is not in stand by mode and inner Client is nill.
 // TODO Do other check if configured (for example Send Sync test message configured table) and recreate
