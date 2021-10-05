@@ -236,6 +236,62 @@ var (
 	nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
 )
 
+// newRecord saves in status and persist new record updating counters at same time
+func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
+	id := r.AsyncIDs[len(r.AsyncIDs)-1]
+	idAsBytes := []byte(id)
+
+	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
+		totalEvents, err := cont(tx, statsBucket, countKey, false)
+		if err != nil {
+			return err
+		}
+
+		droppedEvents := false
+		if uint(totalEvents) >= dsrc.bufferSize {
+			// We need to remove elements
+			removeNum := totalEvents - int(dsrc.bufferSize) + 1 // plus one to break free space for current event
+
+			err := dropRecordsInTx(tx, removeNum)
+			if err != nil {
+				return err
+			}
+			droppedEvents = true
+		}
+
+		err = tx.PutWithTimestamp(dataBucket, idAsBytes, r.Serialize(), dsrc.eventTTLSeconds, uint64(r.Timestamp.Unix()))
+		if err != nil {
+			return err
+		}
+
+		err = tx.SAdd(ctrlBucket, keysKey, idAsBytes)
+		if err != nil {
+			return err
+		}
+
+		err = tx.RPush(ctrlBucket, keysInOrderKey, idAsBytes)
+		if err != nil {
+			return err
+		}
+
+		if droppedEvents {
+			// Ensure we have the counter just buffer size
+			err = set(tx, statsBucket, countKey, int(dsrc.bufferSize))
+		} else {
+			// We only update counter if we did not drop events by full buffer reason.
+			// Counter was properly updated by dropRecords
+			err = inc(tx, statsBucket, countKey, 1, false)
+		}
+		//}
+
+		return err
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error when create new record with %s id: %w", id, err)
+	}
+
+	return nil
 }
 
 // updateRecord updates the status of a reliableClientRecord with new ID updating counters at same time
