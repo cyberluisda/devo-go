@@ -663,10 +663,12 @@ func (dsc *Client) IsAsyncActive(id string) bool {
 
 // AsyncsNumber return the number of async operations pending. This is more optimal that call len(dsc.AsyncIds())
 func (dsc *Client) AsyncsNumber() int {
+	if dsc == nil {
+		return 0
+	}
+
 	dsc.asyncItemsMutext.Lock()
-
 	r := len(dsc.asyncItems)
-
 	dsc.asyncItemsMutext.Unlock()
 
 	return r
