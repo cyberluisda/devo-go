@@ -191,6 +191,93 @@ type ReliableClient struct {
 }
 
 
+// dbInitCleanup checks and cleans database only one time per session. It is designed to be
+// call at the beginning of the process, just before daemons are started.
+func (dsrc *ReliableClient) dbInitCleanup() error {
+	// Only run one time at startup
+	if dsrc.dbInitCleanedup {
+		return nil
+	}
+	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
+		// Check if we have elements using count
+		c, err := cont(tx, statsBucket, countKey, false)
+		if err != nil {
+			return err
+		}
+		if c == 0 {
+			return nil
+		}
+
+		// Look for all records and move to no-conn-
+		oldIds, err := findAllRecordsIDRawInTx(tx)
+		if err != nil {
+			return err
+		}
+
+		newIDs := make(map[string]interface{}, len(oldIds))
+		for _, id := range oldIds {
+			idAsStr := string(id)
+			record, err := getRecordRawInTx(tx, id)
+			if err != nil {
+				return err
+			}
+
+			if bytes.HasPrefix(id, nonConnIDPrefixBytes) {
+				newIDs[idAsStr] = nil
+			} else {
+				newID := nonConnIDPrefix + idAsStr
+				err = updateRecordInTx(tx, record, newID, dsrc.eventTTLSeconds)
+				if err != nil {
+					return err
+				}
+				newIDs[newID] = nil
+			}
+		}
+
+		// Purging orphan references
+
+		// ctrl keys_in_order
+		n, err := tx.LSize(ctrlBucket, keysInOrderKey)
+		if err != nil {
+			return err
+		}
+		keys, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+		if err != nil {
+			return err
+		}
+
+		toRemove := make([][]byte, 0)
+		for _, k := range keys {
+			keyStr := string(k)
+			if _, ok := newIDs[keyStr]; !ok {
+				toRemove = append(toRemove, k)
+				_, err = tx.LRem(ctrlBucket, keysInOrderKey, 0, k)
+			}
+		}
+
+		for _, v := range toRemove {
+			fmt.Println(string(v))
+		}
+
+		// ctrl keys removed here
+		err = tx.SRem(ctrlBucket, keysKey, toRemove...)
+		if err != nil {
+			return err
+		}
+
+		// update evicted
+		err = inc(tx, statsBucket, evictedKey, len(toRemove), false)
+
+		return err
+	})
+
+	if err != nil {
+		err = fmt.Errorf("Error when make initial cleanup on status db: %w", err)
+		dsrc.dbInitCleanedup = true
+	}
+	return err
+}
+
 // startRetryEventsDaemon runs in background the retry send events daemon. This daemon checks
 // every dsr.retryWait time  the pending events and update status or resend it if error
 // was saved by inner client. This actions are delegated to call Flush func
