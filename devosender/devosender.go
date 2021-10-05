@@ -317,6 +317,9 @@ type tcpConfig struct {
 	tcpDialer *net.Dialer
 }
 
+// ErrNilPointerReceiver is the error returned when received funcs are call over nil pointer
+var ErrNilPointerReceiver = errors.New("Receiver func call with nil pointer")
+
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
 func (dsc *Client) SetSyslogHostName(host string) {
 	if host == "" {
