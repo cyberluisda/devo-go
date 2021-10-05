@@ -530,6 +530,10 @@ func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string
 
 // WaitForPendingAsyncMessages wait for all Async messages that are pending to send
 func (dsc *Client) WaitForPendingAsyncMessages() error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	dsc.waitGroup.Wait()
 	return nil
 }
