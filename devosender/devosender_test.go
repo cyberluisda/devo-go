@@ -489,6 +489,14 @@ func TestClient_SendAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
+			"Nil poiner",
+			nil,
+			args{
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
+		{
 			"Expected id pattern",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
