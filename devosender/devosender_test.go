@@ -510,6 +510,14 @@ func TestClient_SendAsync(t *testing.T) {
 	}
 }
 
+func TestClient_SendWTag_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SendWTag("tag", "msg"); err != wantErr {
+		t.Errorf("Client.SendWTag() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_SendWTag(t *testing.T) {
 	type args struct {
 		t string
