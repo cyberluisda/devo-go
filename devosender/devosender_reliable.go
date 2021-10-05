@@ -109,6 +109,15 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonInitDelay(d time.Duration)
 	return dsrcb
 }
 
+// DaemonStopTimeout sets the timeout to wait for each daemon when ReliableClient is closed
+// value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) DaemonStopTimeout(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.daemonStopTimeout = d
+	}
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
