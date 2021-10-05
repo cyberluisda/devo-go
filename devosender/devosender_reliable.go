@@ -219,6 +219,17 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// findAllRecordsID returns a slice with []byte serialized representation of all IDs
+// saved in the status db using a provided status db transaction
+func findAllRecordsIDRawInTx(tx *nutsdb.Tx) ([][]byte, error) {
+	// Load key in ctrl idx index
+	r, err := tx.SMembers(ctrlBucket, keysKey)
+	if nutsdbIsNotFoundError(err) {
+		return nil, nil
+	}
+	return r, err
+}
+
 // getRecord returns the reliableClientRecord in the status identified by id
 func (dsrc *ReliableClient) getRecord(id string) *reliableClientRecord {
 	return dsrc.getRecordRaw([]byte(id))
