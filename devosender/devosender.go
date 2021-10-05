@@ -714,8 +714,11 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 
 // Write allow Client struct to follow io.Writer interface
 func (dsc *Client) Write(p []byte) (n int, err error) {
-	msg := string(p)
+	if dsc == nil {
+		return 0, ErrNilPointerReceiver
+	}
 
+	msg := string(p)
 	err = dsc.Send(msg)
 	if err != nil {
 		return 0, err
