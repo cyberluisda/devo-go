@@ -193,6 +193,35 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+// StandBy put current client in stand by mode closing active connection and saving
+// new incoming events from Async operations in status.
+// Note that after call StandBy, Send Sync operations will return errors.
+func (dsrc *ReliableClient) StandBy() error {
+	// If this is started we stop
+	if dsrc.Client != nil {
+		dsrc.clientMtx.Lock()
+		defer dsrc.clientMtx.Unlock()
+
+		if dsrc.enableStandByModeTimeout > 0 {
+			err := dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.enableStandByModeTimeout)
+			if err != nil {
+				return fmt.Errorf("Error when wait for pending async operations, timeout %s: %w",
+					dsrc.enableStandByModeTimeout, err)
+			}
+		}
+
+		err := dsrc.Client.Close()
+		if err != nil {
+			dsrc.standByMode = true
+			return fmt.Errorf("Error when close client passing to StandBy: %w", err)
+		}
+		// Destroy curret client to ensrue will be recreated when WakeUp
+		dsrc.Client = nil
+	}
+
+	dsrc.standByMode = true
+	return nil
+}
 }
 
 // ResetSessionStats remove stats values from status. Stats values considerd at
