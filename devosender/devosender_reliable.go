@@ -219,6 +219,16 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// findAllRecordsID returns a slice with all string IDs saved in the status db
+func (dsrc *ReliableClient) findAllRecordsID() []string {
+	records := dsrc.findAllRecordsIDRaw()
+	r := make([]string, len(records))
+	for i, rc := range records {
+		r[i] = string(rc)
+	}
+	return r
+}
+
 // findAllRecordsID returns a slice with []byte serialized representation of all
 // IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsIDRaw() [][]byte {
