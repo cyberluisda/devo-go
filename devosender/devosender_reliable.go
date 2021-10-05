@@ -7,6 +7,24 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+// ReliableClientBuilder defines the Builder for build ReliableClient
+type ReliableClientBuilder struct {
+	clientBuilder            *ClientBuilder
+	dbOpts                   nutsdb.Options
+	retryDaemonOpts          daemonOpts
+	clientReconnOpts         daemonOpts
+	daemonStopTimeout        time.Duration
+	bufferEventsSize         uint
+	eventTimeToLive          uint32
+	enableStandByModeTimeout time.Duration
+	flushTimeout             time.Duration
+}
+
+type daemonOpts struct {
+	waitBtwChecks time.Duration
+	initDelay     time.Duration
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
