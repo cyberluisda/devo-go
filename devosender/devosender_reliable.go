@@ -2,6 +2,8 @@ package devosender
 
 import (
 	"math"
+	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -215,6 +217,29 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 	}
 }
 
+
+// set sets the integer value of a key. Value is transformed using strvconv.Atoi(string(value)).
+// This method should be used when you need inc or dec one value more than one time in
+// same transacion. For example
+// Use:
+// n,_ := cont(tx, "bucket", []byte("key"))
+// ...
+// n++
+// n++
+// ...
+// n--
+// set(tx, "bucket", []byte("key"), n)
+// Instead of:
+// n,_ := cont(tx, "bucket", []byte("key"))
+// ...
+// inc(tx, "bucket", []byte("key"), 1, false)
+// inc(tx, "bucket", []byte("key"), 1, false)
+// ...
+// dec(tx, "bucket", []byte("key"), 1, false)
+func set(tx *nutsdb.Tx, bucket string, key []byte, v int) error {
+	vStr := strconv.Itoa(v)
+	return tx.Put(bucket, key, []byte(vStr), 0)
+}
 
 // del remove a key. Usefull alias of tx.Delete when you are working with inc, dec, cont and set
 func del(tx *nutsdb.Tx, bucket string, key []byte) error {
