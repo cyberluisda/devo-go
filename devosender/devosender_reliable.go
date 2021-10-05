@@ -137,6 +137,13 @@ func (dsrcb *ReliableClientBuilder) EventTimeToLiveInSeconds(d uint32) *Reliable
 	return dsrcb
 }
 
+// EnableStandByModeTimeout sets and enable if value is greter than 0, the timeout to wait
+// for pending async events in client when StandBy() func is called
+func (dsrcb *ReliableClientBuilder) EnableStandByModeTimeout(d time.Duration) *ReliableClientBuilder {
+	dsrcb.enableStandByModeTimeout = d
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
