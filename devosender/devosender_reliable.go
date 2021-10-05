@@ -215,6 +215,12 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 	}
 }
 
+
+// del remove a key. Usefull alias of tx.Delete when you are working with inc, dec, cont and set
+func del(tx *nutsdb.Tx, bucket string, key []byte) error {
+	return tx.Delete(bucket, key)
+}
+
 var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
 
 // nutsdbIsNotFoundError check and retur if error parameter is one of the "Not found"
