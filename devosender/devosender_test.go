@@ -858,6 +858,11 @@ func TestClient_Close(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Nil client",
+			nil,
+			true,
+		},
+		{
 			"Empty connection",
 			&Client{},
 			true,
