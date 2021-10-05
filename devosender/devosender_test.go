@@ -2265,6 +2265,14 @@ func TestClient_IsAsyncActive(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncsNumber_nil(t *testing.T) {
+	var dsc *Client
+	want := 0
+	if got := dsc.AsyncsNumber(); got != want {
+		t.Errorf("Client.AsyncsNumber() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncsNumber(t *testing.T) {
 	type fields struct {
 		asyncItems       map[string]interface{}
