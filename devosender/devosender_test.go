@@ -691,6 +691,14 @@ func TestClient_SetDefaultTag(t *testing.T) {
 	}
 }
 
+func TestClient_SetSyslogHostName_nil(t *testing.T) {
+	var dsc *Client
+	dsc.SetSyslogHostName("host")
+	if dsc != nil {
+		t.Errorf("Client.SetSyslogHostName() with not nil pointer failed")
+	}
+}
+
 func TestClient_SetSyslogHostName(t *testing.T) {
 	type fields struct {
 		entryPoint        string
