@@ -925,6 +925,14 @@ func TestClient_Write(t *testing.T) {
 	}
 }
 
+func TestClient_PurgeAsyncErrors_nil(t *testing.T) {
+	var dsc *Client
+	dsc.PurgeAsyncErrors()
+	if dsc != nil {
+		t.Errorf("Client.PurgeAsyncErrors() with not nil pointer failed")
+	}
+}
+
 func TestClient_PurgeAsyncErrors(t *testing.T) {
 	type fields struct {
 		entryPoint        string
