@@ -222,6 +222,39 @@ func (dsrc *ReliableClient) StandBy() error {
 	dsrc.standByMode = true
 	return nil
 }
+
+// ReliableClientStats represents the stats that can be queried
+type ReliableClientStats struct {
+	Count    int
+	Updated  int
+	Finished int
+	Dropped  int
+	Evicted  int
+}
+
+// Stats returns the curren stats (session + persisted). Erros when load stas are ignored
+func (dsrc *ReliableClient) Stats() ReliableClientStats {
+	r := ReliableClientStats{}
+	dsrc.db.View(func(tx *nutsdb.Tx) error {
+		v, _ := cont(tx, statsBucket, countKey, false)
+		r.Count = v
+
+		v, _ = cont(tx, statsBucket, updatedKey, false)
+		r.Updated = v
+
+		v, _ = cont(tx, statsBucket, finishedKey, false)
+		r.Finished = v
+
+		v, _ = cont(tx, statsBucket, droppedKey, false)
+		r.Dropped = v
+
+		v, _ = cont(tx, statsBucket, evictedKey, false)
+		r.Evicted = v
+
+		return nil
+	})
+
+	return r
 }
 
 // ResetSessionStats remove stats values from status. Stats values considerd at
