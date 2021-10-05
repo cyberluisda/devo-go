@@ -443,6 +443,15 @@ func TestClient_SendWTagAndCompressorAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
+			"Nil client",
+			nil,
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
+		{
 			"Nil compressor",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
