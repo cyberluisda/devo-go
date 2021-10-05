@@ -303,6 +303,14 @@ func TestClient_AsyncErrorsNumber(t *testing.T) {
 	}
 }
 
+func TestClient_WaitForPendingAsyncMessages_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.WaitForPendingAsyncMessages(); err != wantErr {
+		t.Errorf("Client.WaitForPendingAsyncMessages() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 	type fields struct {
 		entryPoint        string
