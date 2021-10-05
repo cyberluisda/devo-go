@@ -432,8 +432,13 @@ func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
 	return nil
 }
 
-// SendAsync is similar to Send but send events in async wayt (goroutine)
+// SendAsync is similar to Send but send events in async way (goroutine).
+// Empty string is returned in Client is nil
 func (dsc *Client) SendAsync(m string) string {
+	if dsc == nil {
+		return ""
+	}
+
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 	// Save asyncItems ref ids
