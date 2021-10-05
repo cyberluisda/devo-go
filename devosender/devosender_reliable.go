@@ -237,6 +237,18 @@ var (
 )
 
 
+// deleteRecords deletes one or more reliableClientRecord from status ID updating counters at same time
+func (dsrc *ReliableClient) deleteRecords(IDs ...string) error {
+	for _, ID := range IDs {
+		err := dsrc.deleteRecordRaw([]byte(ID))
+		if err != nil {
+			return fmt.Errorf("Error when delete record with ID: %s: %w", ID, err)
+		}
+	}
+
+	return nil
+}
+
 // deleteRecords deletes one reliableClientRecord from status ID updating counters at same time
 func (dsrc *ReliableClient) deleteRecordRaw(idsAsBytes []byte) error {
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
