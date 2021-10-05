@@ -338,6 +338,10 @@ func (dsc *Client) SetSyslogHostName(host string) {
 
 // SetDefaultTag set tag used when call funcs to send messages without splicit tag
 func (dsc *Client) SetDefaultTag(t string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
