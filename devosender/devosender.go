@@ -474,8 +474,13 @@ func (dsc *Client) SendAsync(m string) string {
 	return id
 }
 
-// SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
+// SendWTagAsync is similar to SendWTag but send events in async way (goroutine).
+// Empty string is returned in Client is nil
 func (dsc *Client) SendWTagAsync(t, m string) string {
+	if dsc == nil {
+		return ""
+	}
+
 	return dsc.SendWTagAndCompressorAsync(t, m, dsc.compressor)
 }
 
