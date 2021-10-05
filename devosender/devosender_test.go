@@ -2408,6 +2408,14 @@ func TestClient_String(t *testing.T) {
 	}
 }
 
+func TestClient_LastSendCallTimestamp_nil(t *testing.T) {
+	var dsc *Client
+	want := time.Time{}
+	if got := dsc.LastSendCallTimestamp(); got != want {
+		t.Errorf("Client.LastSendCallTimestamp() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_LastSendCallTimestamp(t *testing.T) {
 	type fields struct {
 		entryPoint              string
