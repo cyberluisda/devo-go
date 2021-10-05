@@ -408,6 +408,15 @@ func TestClient_SendWTagAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
+			"Nil client",
+			nil,
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
+		{
 			"Expected id pattern",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
