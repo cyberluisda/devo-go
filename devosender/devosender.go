@@ -565,6 +565,10 @@ func (dsc *Client) WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error
 // AsyncErrors return errors from async calls collected until now.
 // WARNING that map returned IS NOT thread safe.
 func (dsc *Client) AsyncErrors() map[string]error {
+	if dsc == nil {
+		return map[string]error{"": ErrNilPointerReceiver}
+	}
+
 	return dsc.asyncErrors
 }
 
