@@ -236,6 +236,22 @@ var (
 	nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
 )
 
+}
+
+// updateRecord updates the status of a reliableClientRecord with new ID updating counters at same time
+func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) {
+	oldID := r.AsyncIDs[len(r.AsyncIDs)-1] // Only for debug purpose
+
+	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
+		return updateRecordInTx(tx, r, newID, dsrc.eventTTLSeconds)
+	})
+
+	if err != nil {
+		fmt.Printf("ERROR uncontrolled when updateRecord newID %s, oldID %s: %v\n", newID, oldID, err)
+		panic(err)
+	}
+}
+
 // updateRecordInTx updates the status of a reliableClientRecord with new ID updating counters
 // at same time, using a provided sttus db transaction
 func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl uint32) error {
