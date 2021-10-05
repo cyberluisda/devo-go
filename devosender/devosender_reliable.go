@@ -217,6 +217,24 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 	}
 }
 
+// getRecordRaw returns the reliableClientRecord in the status identified by serialized
+// representation of the id
+func (dsrc *ReliableClient) getRecordRaw(idAsBytes []byte) *reliableClientRecord {
+	var r *reliableClientRecord
+	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
+		var err error
+		r, err = getRecordRawInTx(tx, idAsBytes)
+
+		return err
+	})
+
+	if err != nil {
+		fmt.Printf("ERROR uncontrolled when getRecordRaw %v\n", err)
+		panic(err)
+	}
+
+	return r
+}
 
 // getRecordRawInTx returns the reliableClientRecord in the status identified by serialized
 // representation of the id using a provided status db transaction
