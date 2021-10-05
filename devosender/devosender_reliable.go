@@ -193,6 +193,33 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+// SendWTagAndCompressorAsync sends Async message in same way like Client.SendWTagAndCompressorAsync
+// but saving the message,tag and Compressor in status until can ensure, at certain level of
+// confiance, that it was sent
+func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *Compressor) string {
+	var id string
+	if dsrc.IsStandBy() || dsrc.Client == nil {
+		id = nonConnIDPrefix + uuid.NewV4().String()
+	} else {
+		id = dsrc.Client.SendWTagAndCompressorAsync(t, m, c)
+	}
+
+	record := &reliableClientRecord{
+		AsyncIDs:   []string{id},
+		Timestamp:  time.Now(),
+		Tag:        t,
+		Msg:        m,
+		Compressor: c,
+	}
+	err := dsrc.newRecord(record)
+	if err != nil {
+		err = fmt.Errorf("Uncontrolled error when create status record in SendWTagAndCompressorAsync: %w", err)
+		panic(err)
+	}
+
+	return id
+}
+
 // Flush checks all pending messages (sent with Async funcs), waits for pending async messages
 // and update status of all of them. This func can call on demand but it is called by
 // internal retry send events daemon too
