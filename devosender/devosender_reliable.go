@@ -171,6 +171,49 @@ func (dsrcb *ReliableClientBuilder) ClientBuilder(cb *ClientBuilder) *ReliableCl
 	return dsrcb
 }
 
+// Build builds the ReliableClient based in current parameters.
+func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
+	// Check required config
+	if dsrcb.dbOpts.Dir == "" {
+		return nil, fmt.Errorf("Empty path where persist status")
+	}
+
+	if dsrcb.clientBuilder == nil {
+		return nil, fmt.Errorf("Undefined inner client builder")
+	}
+
+	// Build inner Client
+	cl, err := dsrcb.clientBuilder.Build()
+	// we can continue in connection error scenario
+	if err != nil && !isConnectionError(err) {
+		return nil, err
+	}
+
+	r := &ReliableClient{
+		Client:                   cl,
+		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
+		bufferSize:               dsrcb.bufferEventsSize,
+		eventTTLSeconds:          dsrcb.eventTimeToLive,
+		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
+		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
+		daemonStopTimeout:        dsrcb.daemonStopTimeout,
+		daemonStopped:            make(chan bool),
+		flushTimeout:             dsrcb.flushTimeout,
+		enableStandByModeTimeout: dsrcb.enableStandByModeTimeout,
+	}
+
+	// Status DB
+	r.db, err = nutsdb.Open(dsrcb.dbOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Error when load persistence engine with %+v options: %w", dsrcb.dbOpts, err)
+	}
+
+	// Daemons startup
+	r.daemonsSartup()
+
+	return r, nil
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
