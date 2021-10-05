@@ -73,6 +73,15 @@ func (dsrcb *ReliableClientBuilder) DbPath(path string) *ReliableClientBuilder {
 	return dsrcb
 }
 
+// RetryDaemonWaitBtwChecks sets the time wait interval between checks for retry send events daemon
+// value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) RetryDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.retryDaemonOpts.waitBtwChecks = d
+	}
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
