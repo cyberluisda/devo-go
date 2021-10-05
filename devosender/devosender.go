@@ -617,6 +617,9 @@ func (dsc *Client) LastSendCallTimestamp() time.Time {
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
 	if old == "" {
 		return fmt.Errorf("old param can not be empty")
 	}
