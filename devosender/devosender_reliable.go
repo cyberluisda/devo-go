@@ -25,6 +25,30 @@ type daemonOpts struct {
 	initDelay     time.Duration
 }
 
+const (
+	// DefaultDaemonWaitBtwChecks is the default time that daemons must wait between
+	// run checks or works
+	DefaultDaemonWaitBtwChecks = time.Second
+	// DefaultDaemonInitDelay is the default delay time that daemons must wait before
+	// start to work
+	DefaultDaemonInitDelay = time.Millisecond * 500
+	// DefaultBufferEventsSize is the default size of the total events buffer managed
+	// by Reliable client to save events
+	DefaultBufferEventsSize uint = 5000000
+	// DefaultEventTimeToLive is the expiration time in secods for each event before
+	//be evicted from the buffer by Reliable client
+	DefaultEventTimeToLive = 60 * 60
+	// DefaultEnableStandByModeTimeout is the Default timeout to wait for all pending
+	// async messages managed byclient when StandBy func is called . If timeout is
+	// reached then error will be send
+	DefaultEnableStandByModeTimeout = time.Second
+	// DefaultDaemonStopTimeout is the default timeout to wait when stopping (Close) each daemon
+	DefaultDaemonStopTimeout = time.Second * 2
+	// DefaultFlushAsyncTimeout is the Default timeout to wait for all pending async
+	// messages managed by client when Flush func is called. If timeout is reached
+	// then error will be send
+	DefaultFlushAsyncTimeout = time.Millisecond * 500
+)
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
