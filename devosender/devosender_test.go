@@ -552,6 +552,14 @@ func TestClient_SendWTag(t *testing.T) {
 	}
 }
 
+func TestClient_SendWTagAndCompressor_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SendWTagAndCompressor("tag", "msg", nil); err != wantErr {
+		t.Errorf("Client.SendWTagAndCompressor() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_SendWTagAndCompressor(t *testing.T) {
 	type args struct {
 		t string
