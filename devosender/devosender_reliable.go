@@ -194,6 +194,35 @@ type ReliableClient struct {
 }
 
 
+func (dsrc *ReliableClient) String() string {
+	db := "<nil>"
+	if dsrc.db != nil {
+		db = fmt.Sprintf("{KeyCount: %d, ListIdx: %v}", dsrc.db.KeyCount, dsrc.db.ListIdx)
+	}
+	return fmt.Sprintf(
+		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryWait: %v, "+
+			"reconnWait: %v, retryStop: %v, reconnStop: %v, retryInitDelay: %v, reconnInitDelay: %v, "+
+			"daemonStopTimeout: %v, standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
+			"daemonStopped: %v, flushTimeout: %v",
+		dsrc.Client.String(),
+		db,
+		dsrc.bufferSize,
+		dsrc.eventTTLSeconds,
+		dsrc.retryWait,
+		dsrc.reconnWait,
+		dsrc.retryStop,
+		dsrc.reconnStop,
+		dsrc.retryInitDelay,
+		dsrc.reconnInitDelay,
+		dsrc.daemonStopTimeout,
+		dsrc.standByMode,
+		dsrc.enableStandByModeTimeout,
+		dsrc.dbInitCleanedup,
+		dsrc.daemonStopped,
+		dsrc.flushTimeout,
+	)
+}
+
 // daemonsSartup perform init cleanup (only once) and starts the resend events and
 // reconnect daemons, capture interrumnt and term signals to close database, etc...
 func (dsrc *ReliableClient) daemonsSartup() error {
