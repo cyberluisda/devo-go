@@ -293,6 +293,19 @@ func deleteRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) error {
 	return nil
 }
 
+// dropRecords drops one or more older records and update the stat counters too.
+func (dsrc *ReliableClient) dropRecords(n int) error {
+
+	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
+		return dropRecordsInTx(tx, n)
+	})
+
+	if err != nil {
+		return fmt.Errorf("Error when dropRecord number %d: %w", n, err)
+	}
+
+	return nil
+}
 
 // dropRecords drops one or more older records and update the stat counters too using
 // a provided status db transaction
