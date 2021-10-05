@@ -648,6 +648,10 @@ func (dsc *Client) AreAsyncOps() bool {
 // IsAsyncActive returns true if id is present in AsyncIds(). This function is
 // more optimal that look into result of AsyncIds
 func (dsc *Client) IsAsyncActive(id string) bool {
+	if dsc == nil {
+		return false
+	}
+
 	dsc.asyncItemsMutext.Lock()
 
 	_, ok := dsc.asyncItems[id]
