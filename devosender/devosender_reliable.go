@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -193,4 +194,14 @@ type reliableClientRecord struct {
 	Msg        string
 	Compressor *Compressor
 	LastError  error
+}
+
+// Serialize returns the serialized value of a reliableClientRecord
+func (rcr *reliableClientRecord) Serialize() []byte {
+	r, err := msgpack.Marshal(rcr)
+	if err != nil {
+		fmt.Println("ERROR uncontrolled in reliableClientRecord.Serialize", err)
+		panic(err)
+	}
+	return r
 }
