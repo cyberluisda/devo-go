@@ -129,6 +129,14 @@ func (dsrcb *ReliableClientBuilder) BufferEventsSize(size uint) *ReliableClientB
 	}
 	return dsrcb
 }
+
+// EventTimeToLiveInSeconds sets the time to live per each event in seconds.
+// If d value is zero then no expiration will be active
+func (dsrcb *ReliableClientBuilder) EventTimeToLiveInSeconds(d uint32) *ReliableClientBuilder {
+	dsrcb.eventTimeToLive = d
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
