@@ -218,6 +218,26 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// cont returns the interger value of a key. If key exists value should be transformed using
+// strvconv.Atoi(string(value)). If key does not exist it will return 0 value unless errorIfNotFound
+// parameter is true. On this case it returns an error.
+// WARNING. con is not prepare to be called more than one time on same transaction. You should
+// solve it loading the value at the begining of the transcation and maintain internally updated.
+func cont(tx *nutsdb.Tx, bucket string, key []byte, errorIfNotFound bool) (int, error) {
+	ve, err := tx.Get(bucket, key)
+	if nutsdbIsNotFoundError(err) {
+		if errorIfNotFound {
+			return 0, err
+		}
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(string(ve.Value))
+}
+
 // set sets the integer value of a key. Value is transformed using strvconv.Atoi(string(value)).
 // This method should be used when you need inc or dec one value more than one time in
 // same transacion. For example
