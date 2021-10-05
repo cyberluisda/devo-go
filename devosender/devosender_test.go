@@ -2326,6 +2326,14 @@ func TestClient_AsyncsNumber(t *testing.T) {
 	}
 }
 
+func TestClient_String_nil(t *testing.T) {
+	var dsc *Client
+	want := "<nil>"
+	if got := dsc.String(); got != want {
+		t.Errorf("Client.String() with nil pointer: got = %s, want %s", got, want)
+	}
+}
+
 func TestClient_String(t *testing.T) {
 	type fields struct {
 		entryPoint              string
