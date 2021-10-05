@@ -544,6 +544,10 @@ var ErrWaitAsyncTimeout = errors.New("Timeout when wait for pending items")
 // WaitForPendingAsyncMsgsOrTimeout is similar to WaitForPendingAsyncMessages but
 // return ErrWaitAsyncTimeout error if timeout is reached
 func (dsc *Client) WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	c := make(chan error)
 	go func() {
 		defer close(c)
