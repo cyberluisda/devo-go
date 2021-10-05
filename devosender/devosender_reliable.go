@@ -91,6 +91,15 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 	return dsrcb
 }
 
+// RetryDaemonInitDelay sets the initial time delay when retry send events daemon is started
+// value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) RetryDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.retryDaemonOpts.initDelay = d
+	}
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
