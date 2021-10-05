@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -190,6 +193,48 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+
+// daemonsSartup perform init cleanup (only once) and starts the resend events and
+// reconnect daemons, capture interrumnt and term signals to close database, etc...
+func (dsrc *ReliableClient) daemonsSartup() error {
+	if dsrc.db == nil {
+		return fmt.Errorf("db is nil any setup action can not be done")
+	}
+
+	// Old saved state cleanup
+	err := dsrc.dbInitCleanup()
+	if err != nil {
+		return err
+	}
+
+	// Capture termination and close client
+	go func() {
+		sigchan := make(chan os.Signal)
+		signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+		<-sigchan
+
+		err := dsrc.Close()
+		if err != nil {
+			// FIXME log
+		}
+
+		fmt.Println("Bye!")
+	}()
+
+	// Pending events daemon
+	err = dsrc.startRetryEventsDaemon()
+	if err != nil {
+		return err
+	}
+
+	// Client reconnection
+	err = dsrc.clientReconnectionDaemon()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // daemonsShutdown tries to stop daemons in gracefull mode, grace period to wait for
 // each daemon stopped is set in dsrc.daemonStopTimeout
