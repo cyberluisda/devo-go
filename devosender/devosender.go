@@ -729,6 +729,10 @@ func (dsc *Client) Write(p []byte) (n int, err error) {
 
 // Close is the method to close all interanl elements like connection that should be closed at end
 func (dsc *Client) Close() error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if dsc.conn == nil {
 		return fmt.Errorf("Connection is nil")
 	}
