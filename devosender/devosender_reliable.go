@@ -154,6 +154,13 @@ func (dsrcb *ReliableClientBuilder) FlushTimeout(d time.Duration) *ReliableClien
 	return dsrcb
 }
 
+// ClientBuilder sets the ClientBuilder needed to build the underhood client. This is required
+// to initial setup and it is used by reconnect daemon too.
+func (dsrcb *ReliableClientBuilder) ClientBuilder(cb *ClientBuilder) *ReliableClientBuilder {
+	dsrcb.clientBuilder = cb
+	return dsrcb
+}
+
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
