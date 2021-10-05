@@ -897,6 +897,13 @@ func TestClient_Write(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Nil client",
+			nil,
+			args{[]byte{}},
+			0,
+			true,
+		},
+		{
 			"Send using udp",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
