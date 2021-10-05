@@ -987,6 +987,14 @@ func TestClient_PurgeAsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_GetEntryPoint_nil(t *testing.T) {
+	var dsc *Client
+	want := ""
+	if got := dsc.GetEntryPoint(); got != want {
+		t.Errorf("Client.GetEntryPoint() with nil pointer: got = '%s', want '%s'", got, want)
+	}
+}
+
 func TestClient_GetEntryPoint(t *testing.T) {
 	type fields struct {
 		entryPoint        string
