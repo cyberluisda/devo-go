@@ -193,6 +193,49 @@ type ReliableClient struct {
 	flushTimeout             time.Duration
 }
 
+// Close closes current client. This implies operations like shutdown daemons, call Flush func, etc.
+func (dsrc *ReliableClient) Close() error {
+	errors := make([]error, 0)
+
+	err := dsrc.daemonsShutdown()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
+	}
+
+	err = dsrc.Flush()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when flush: %w", err))
+	}
+
+	if dsrc.Client != nil {
+		dsrc.Client.Close()
+		if err != nil {
+			errors = append(errors, fmt.Errorf("Error when close client: %w", err))
+		}
+	}
+
+	err = dsrc.ResetSessionStats()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when reste session stats: %w", err))
+	}
+
+	err = dsrc.db.Close()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when close db: %w", err))
+	}
+
+	if len(errors) == 0 {
+		return nil
+	}
+
+	err = fmt.Errorf("")
+	for _, e := range errors {
+		err = fmt.Errorf("%v, %v", e, err)
+	}
+
+	return err
+}
+
 // StandBy put current client in stand by mode closing active connection and saving
 // new incoming events from Async operations in status.
 // Note that after call StandBy, Send Sync operations will return errors.
