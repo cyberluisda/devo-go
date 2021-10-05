@@ -378,6 +378,10 @@ func (dsc *Client) SendWTag(t, m string) error {
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressor(t, m, nil)
 func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
