@@ -137,6 +137,14 @@ func TestClient_makeConnection(t *testing.T) {
 	}
 }
 
+func TestClient_AddReplaceSequences_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.AddReplaceSequences("old", "new"); err != wantErr {
+		t.Errorf("Client.AddReplaceSequences() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_AddReplaceSequences(t *testing.T) {
 	type fields struct {
 		entryPoint        string
