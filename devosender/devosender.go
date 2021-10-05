@@ -740,6 +740,10 @@ func (dsc *Client) Close() error {
 }
 
 func (dsc *Client) String() string {
+	if dsc == nil {
+		return "<nil>"
+	}
+
 	connAddr := "<nil>"
 	if dsc.conn != nil {
 		connAddr = fmt.Sprintf("%s -> %s", dsc.conn.LocalAddr(), dsc.conn.RemoteAddr())
