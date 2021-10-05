@@ -272,6 +272,14 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrorsNumber_nil(t *testing.T) {
+	var dsc *Client
+	want := 0
+	if got := dsc.AsyncErrorsNumber(); got != want {
+		t.Errorf("Client.AsyncErrorsNumber() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncErrorsNumber(t *testing.T) {
 	type fields struct {
 		asyncErrors       map[string]error
