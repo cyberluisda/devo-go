@@ -223,6 +223,27 @@ func (dsrc *ReliableClient) StandBy() error {
 	return nil
 }
 
+// WakeUp is the inverse oeration to call StandBy
+func (dsrc *ReliableClient) WakeUp() error {
+	// We ever pass to standByMode to false, and delegate
+	// and delegate in reconnDaemon to try to restart connection if we are
+	// failling here
+	dsrc.standByMode = false
+
+	if dsrc.Client == nil {
+		dsrc.clientMtx.Lock()
+		defer dsrc.clientMtx.Unlock()
+
+		var err error
+		dsrc.Client, err = dsrc.clientBuilder.Build()
+		if err != nil {
+			return fmt.Errorf("Error when creating new client. StandByMode deactivated anyway: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // ReliableClientStats represents the stats that can be queried
 type ReliableClientStats struct {
 	Count    int
