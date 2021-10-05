@@ -219,6 +219,24 @@ func mustUnserialize(bs []byte, dst *reliableClientRecord) {
 }
 
 
+// findAllRecordsID returns a slice with []byte serialized representation of all
+// IDs saved in the status db
+func (dsrc *ReliableClient) findAllRecordsIDRaw() [][]byte {
+	var r [][]byte
+	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
+		var err error
+		r, err = findAllRecordsIDRawInTx(tx)
+		return err
+	})
+
+	if err != nil {
+		fmt.Printf("ERROR uncontrolled when findAllRecordsID %v\n", err)
+		panic(err)
+	}
+
+	return r
+}
+
 // findAllRecordsID returns a slice with []byte serialized representation of all IDs
 // saved in the status db using a provided status db transaction
 func findAllRecordsIDRawInTx(tx *nutsdb.Tx) ([][]byte, error) {
