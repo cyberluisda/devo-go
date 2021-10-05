@@ -367,6 +367,10 @@ func (dsc *Client) Send(m string) error {
 
 // SendWTag is similar to Send but using a specific tag
 func (dsc *Client) SendWTag(t, m string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	return dsc.SendWTagAndCompressor(t, m, dsc.compressor)
 }
 
