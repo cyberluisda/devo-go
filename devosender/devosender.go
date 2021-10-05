@@ -322,6 +322,9 @@ var ErrNilPointerReceiver = errors.New("Receiver func call with nil pointer")
 
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
 func (dsc *Client) SetSyslogHostName(host string) {
+	if dsc == nil {
+		return
+	}
 	if host == "" {
 		var err error
 		dsc.syslogHostname, err = os.Hostname()
