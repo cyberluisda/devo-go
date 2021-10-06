@@ -369,7 +369,10 @@ func (dsrc *ReliableClient) Flush() error {
 				evicted = append(evicted, k)
 			} else {
 				record.LastError = v
-				dsrc.resendRecord(record)
+				err = dsrc.resendRecord(record)
+				if err != nil {
+					return fmt.Errorf("Error when resend record with id %s: %w", k, err)
+				}
 			}
 		}
 
