@@ -17,11 +17,19 @@ func ExampleReliableClientBuilder_initErrors() {
 	fmt.Println("2 error", err)
 	fmt.Println("2 rc", rc)
 
+	// No path permissions
+	os.RemoveAll("/this-is-not-valid-path")
+	rc, err = NewReliableClientBuilder().DbPath("/this-is-not-valid-path").ClientBuilder(NewClientBuilder()).Build()
+	fmt.Println("3 error", errors.Unwrap(err)) // Unwrapped to decrese the verbose of the output
+	fmt.Println("3 rc", rc)
+
 	// Output:
 	// 1 error Empty path where persist status
 	// 1 rc <nil>
 	// 2 error Undefined inner client builder
 	// 2 rc <nil>
+	// 3 error mkdir /this-is-not-valid-path: permission denied
+	// 3 rc <nil>
 }
 
 func ExampleReliableClient_withoutConnection() {
