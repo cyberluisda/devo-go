@@ -945,7 +945,7 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 }
 
 // updateRecord updates the status of a reliableClientRecord with new ID updating counters at same time
-func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) {
+func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) error {
 	oldID := r.AsyncIDs[len(r.AsyncIDs)-1] // Only for debug purpose
 
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
@@ -953,9 +953,10 @@ func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) 
 	})
 
 	if err != nil {
-		fmt.Printf("ERROR uncontrolled when updateRecord newID %s, oldID %s: %v\n", newID, oldID, err)
-		panic(err)
+		return fmt.Errorf("Error when updateRecord newID %s, oldID %s: %w", newID, oldID, err)
 	}
+
+	return nil
 }
 
 // updateRecordInTx updates the status of a reliableClientRecord with new ID updating counters
