@@ -75,6 +75,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		dbOpts:                   nutsdb.DefaultOptions,
 		flushTimeout:             DefaultFlushAsyncTimeout,
+		appLogger:                &applogger.NoLogAppLogger{},
 	}
 
 	return r
