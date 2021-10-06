@@ -1197,7 +1197,7 @@ func findAllRecordsIDRawInTx(tx *nutsdb.Tx) ([][]byte, error) {
 }
 
 // getRecord returns the reliableClientRecord in the status identified by id
-func (dsrc *ReliableClient) getRecord(id string) *reliableClientRecord {
+func (dsrc *ReliableClient) getRecord(id string) (*reliableClientRecord, error) {
 	return dsrc.getRecordRaw([]byte(id))
 }
 
