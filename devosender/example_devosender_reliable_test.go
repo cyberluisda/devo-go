@@ -1,9 +1,14 @@
 package devosender
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
+
+	"github.com/cyberluisda/devo-go/applogger"
 )
 
 func ExampleReliableClientBuilder_initErrors() {
@@ -320,4 +325,46 @@ func ExampleReliableClient_nilInnerClient() {
 	// Write i: 0 err: Receiver func call with nil pointer
 	// Close: <nil>
 	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+}
+
+func ExampleReliableClient_appLoggerError() {
+	buf := &bytes.Buffer{}
+	lg := &applogger.WriterAppLogger{Writer: buf, Level: applogger.ERROR}
+
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/test").
+		ClientBuilder(
+			NewClientBuilder(),
+		).
+		AppLogger(lg).
+		Build()
+
+	fmt.Println("rc.IsStandBy()", rc.IsStandBy(), "err", err)
+
+	// close
+	err = rc.Close()
+	fmt.Println("rc.Close", err)
+
+	rc.SendAsync("test message")
+	rc.SendWTagAsync("tag", "test message")
+	rc.SendWTagAndCompressorAsync("tag", "test message", &Compressor{Algorithm: CompressorGzip})
+
+	// We hide the  ID to easy check the output
+	logString := buf.String()
+	re := regexp.MustCompile(`-\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`)
+	logString = re.ReplaceAllString(logString, "-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX")
+
+	fmt.Println("Log:")
+	fmt.Println(logString)
+
+	// Output:
+	// rc.IsStandBy() false err <nil>
+	// rc.Close <nil>
+	// Log:
+	// ERROR Uncontrolled error when create status record in SendAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
+
 }
