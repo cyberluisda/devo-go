@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -101,6 +102,75 @@ func TestReliableClient_String(t *testing.T) {
 				t.Errorf("ReliableClient.String() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_set(t *testing.T) {
+
+	type args struct {
+		bucket       string
+		key          []byte
+		v            int
+		existingKeys map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"Key does not exist",
+			args{
+				"test",
+				[]byte("new_key"),
+				22,
+				make(map[string][]byte, 0),
+			},
+			false,
+		},
+		{
+			"Key exists",
+			args{
+				"test",
+				[]byte("test-key"),
+				12,
+				map[string][]byte{
+					"test-key": []byte("22"),
+				},
+			},
+			false,
+		},
+		{
+			"Key exists other format",
+			args{
+				"test",
+				[]byte("test-key"),
+				12,
+				map[string][]byte{
+					"test-key": []byte("tarari que te vi"),
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			db.Update(func(tx *nutsdb.Tx) error {
+				if err := set(tx, tt.args.bucket, tt.args.key, tt.args.v); (err != nil) != tt.wantErr {
+					t.Errorf("set() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return nil
+			})
+
+			expectedValue := []byte(strconv.Itoa(tt.args.v))
+			if !assertKeyVal(db, tt.args.bucket, tt.args.key, expectedValue) {
+				t.Errorf("set() for key %s want value %d", string(tt.args.key), tt.args.v)
+			}
+		})
+
+		destroyDb(path, db)
 	}
 }
 
