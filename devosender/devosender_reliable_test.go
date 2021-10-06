@@ -1,7 +1,6 @@
 package devosender
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -22,7 +21,6 @@ func TestReliableClient_String(t *testing.T) {
 		retryInitDelay           time.Duration
 		reconnInitDelay          time.Duration
 		daemonStopTimeout        time.Duration
-		clientMtx                sync.Mutex
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
 		dbInitCleanedup          bool
@@ -88,7 +86,6 @@ func TestReliableClient_String(t *testing.T) {
 				retryInitDelay:           tt.fields.retryInitDelay,
 				reconnInitDelay:          tt.fields.reconnInitDelay,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
-				clientMtx:                tt.fields.clientMtx,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
 				dbInitCleanedup:          tt.fields.dbInitCleanedup,
