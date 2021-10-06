@@ -210,6 +210,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
 		enableStandByModeTimeout: dsrcb.enableStandByModeTimeout,
+		appLogger:                dsrcb.appLogger,
 	}
 
 	// Status DB
