@@ -105,6 +105,123 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
+func Test_inc(t *testing.T) {
+	type args struct {
+		bucket          string
+		key             []byte
+		v               int
+		errorIfNotFound bool
+		existingKeys    map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			"Key does not exist ignored",
+			args{
+				"test",
+				[]byte("new_key"),
+				1,
+				false,
+				make(map[string][]byte, 0),
+			},
+			"1",
+			false,
+		},
+		{
+			"Key does not exist error",
+			args{
+				"test",
+				[]byte("new_key"),
+				22,
+				true,
+				make(map[string][]byte, 0),
+			},
+			"0",
+			true,
+		},
+		{
+			"Key exists",
+			args{
+				"test",
+				[]byte("test-key"),
+				2,
+				true,
+				map[string][]byte{
+					"test-key": []byte("22"),
+				},
+			},
+			"24",
+			false,
+		},
+		{
+			"Key exists other format",
+			args{
+				"test",
+				[]byte("test-key"),
+				12,
+				true,
+				map[string][]byte{
+					"test-key": []byte("tarari que te vi"),
+				},
+			},
+			"12",
+			false,
+		},
+		{
+			"inc 0 key does not exists",
+			args{
+				"test",
+				[]byte("new_key"),
+				0,
+				true,
+				make(map[string][]byte, 0),
+			},
+			"0",
+			false,
+		},
+		{
+			"inc 0 other format",
+			args{
+				"test",
+				[]byte("new_key"),
+				0,
+				true,
+				map[string][]byte{
+					"test-key": []byte("tarari"),
+				},
+			},
+			"tarari",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			db.Update(func(tx *nutsdb.Tx) error {
+				err := inc(tx, tt.args.bucket, tt.args.key, tt.args.v, tt.args.errorIfNotFound)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("inc() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return nil
+			})
+
+			if !tt.args.errorIfNotFound {
+				expectedValue := []byte(tt.want)
+				if !assertKeyVal(db, tt.args.bucket, tt.args.key, expectedValue) {
+					t.Errorf("inc() for key %s want value %s", string(tt.args.key), tt.want)
+				}
+			}
+		})
+
+		destroyDb(path, db)
+	}
+}
+
 func Test_cont(t *testing.T) {
 	type args struct {
 		bucket          string
