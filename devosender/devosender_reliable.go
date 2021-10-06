@@ -236,6 +236,7 @@ type ReliableClient struct {
 	dbInitCleanedup          bool
 	daemonStopped            chan bool
 	flushTimeout             time.Duration
+	appLogger                applogger.SimpleAppLogger
 }
 
 // SendAsync sends Async message in same way like Client.SendAsync but saving the message
