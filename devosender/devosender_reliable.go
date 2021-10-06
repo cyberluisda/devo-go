@@ -174,6 +174,13 @@ func (dsrcb *ReliableClientBuilder) ClientBuilder(cb *ClientBuilder) *ReliableCl
 	return dsrcb
 }
 
+// AppLogger sets the AppLogger used to send logger messages in case that errors can not be
+// returned. Debug traces can be saved usint this logger too.
+func (dsrcb *ReliableClientBuilder) AppLogger(lg applogger.SimpleAppLogger) *ReliableClientBuilder {
+	dsrcb.appLogger = lg
+	return dsrcb
+}
+
 // Build builds the ReliableClient based in current parameters.
 func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Check required config
