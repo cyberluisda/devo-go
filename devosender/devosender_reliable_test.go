@@ -348,6 +348,7 @@ func Test_cont(t *testing.T) {
 	tests := []struct {
 		name         string
 		existingKeys map[string][]byte
+		closedTx     bool
 		args         args
 		want         int
 		wantErr      bool
@@ -355,6 +356,7 @@ func Test_cont(t *testing.T) {
 		{
 			"Key does not exist ignored",
 			make(map[string][]byte, 0),
+			false,
 			args{
 				"test",
 				[]byte("new_key"),
@@ -366,6 +368,7 @@ func Test_cont(t *testing.T) {
 		{
 			"Key does not exist error",
 			make(map[string][]byte, 0),
+			false,
 			args{
 				"test",
 				[]byte("new_key"),
@@ -379,6 +382,7 @@ func Test_cont(t *testing.T) {
 			map[string][]byte{
 				"test-key": []byte("22"),
 			},
+			false,
 			args{
 				"test",
 				[]byte("test-key"),
@@ -392,6 +396,19 @@ func Test_cont(t *testing.T) {
 			map[string][]byte{
 				"test-key": []byte("tarari que te vi"),
 			},
+			false,
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+			},
+			0,
+			true,
+		},
+		{
+			"DB error",
+			make(map[string][]byte, 0),
+			true,
 			args{
 				"test",
 				[]byte("test-key"),
@@ -406,6 +423,10 @@ func Test_cont(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			err := db.View(func(tx *nutsdb.Tx) error {
+				if tt.closedTx {
+					tx.Commit()
+				}
+
 				got, err := cont(tx, tt.args.bucket, tt.args.key, tt.args.errorIfNotFound)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("cont() error = %v, wantErr %v", err, tt.wantErr)
