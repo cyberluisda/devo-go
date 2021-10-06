@@ -1165,13 +1165,17 @@ func dropRecordsInTx(tx *nutsdb.Tx, n int) error {
 }
 
 // findAllRecordsID returns a slice with all string IDs saved in the status db
-func (dsrc *ReliableClient) findAllRecordsID() []string {
-	records := dsrc.findAllRecordsIDRaw()
+func (dsrc *ReliableClient) findAllRecordsID() ([]string, error) {
+	records, err := dsrc.findAllRecordsIDRaw()
 	r := make([]string, len(records))
 	for i, rc := range records {
 		r[i] = string(rc)
 	}
-	return r
+
+	if err != nil {
+		err = fmt.Errorf("Error when findAllRecordsID: %w", err)
+	}
+	return r, err
 }
 
 // findAllRecordsID returns a slice with []byte serialized representation of all
