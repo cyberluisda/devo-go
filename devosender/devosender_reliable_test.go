@@ -111,95 +111,95 @@ func Test_dec(t *testing.T) {
 		key             []byte
 		v               int
 		errorIfNotFound bool
-		existingKeys    map[string][]byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name         string
+		existingKeys map[string][]byte
+		args         args
+		want         string
+		wantErr      bool
 	}{
 		{
 			"Key does not exist ignored",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				1,
 				false,
-				make(map[string][]byte, 0),
 			},
 			"-1",
 			false,
 		},
 		{
 			"Key does not exist error",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				22,
 				true,
-				make(map[string][]byte, 0),
 			},
 			"0",
 			true,
 		},
 		{
 			"Key exists",
+			map[string][]byte{
+				"test-key": []byte("22"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				2,
 				true,
-				map[string][]byte{
-					"test-key": []byte("22"),
-				},
 			},
 			"20",
 			false,
 		},
 		{
 			"Key exists other format",
+			map[string][]byte{
+				"test-key": []byte("tarari que te vi"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				12,
 				true,
-				map[string][]byte{
-					"test-key": []byte("tarari que te vi"),
-				},
 			},
 			"-12",
 			false,
 		},
 		{
 			"dec 0 key does not exists",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				0,
 				true,
-				make(map[string][]byte, 0),
 			},
 			"0",
 			false,
 		},
 		{
 			"dec 0 other format",
+			map[string][]byte{
+				"test-key": []byte("tarari"),
+			},
 			args{
 				"test",
 				[]byte("new_key"),
 				0,
 				true,
-				map[string][]byte{
-					"test-key": []byte("tarari"),
-				},
 			},
 			"tarari",
 			false,
 		},
 	}
 	for _, tt := range tests {
-		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+		path, db := newDb(tt.args.bucket, tt.existingKeys)
 
 		t.Run(tt.name, func(t *testing.T) {
 			db.Update(func(tx *nutsdb.Tx) error {
@@ -228,95 +228,95 @@ func Test_inc(t *testing.T) {
 		key             []byte
 		v               int
 		errorIfNotFound bool
-		existingKeys    map[string][]byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name         string
+		existingKeys map[string][]byte
+		args         args
+		want         string
+		wantErr      bool
 	}{
 		{
 			"Key does not exist ignored",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				1,
 				false,
-				make(map[string][]byte, 0),
 			},
 			"1",
 			false,
 		},
 		{
 			"Key does not exist error",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				22,
 				true,
-				make(map[string][]byte, 0),
 			},
 			"0",
 			true,
 		},
 		{
 			"Key exists",
+			map[string][]byte{
+				"test-key": []byte("22"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				2,
 				true,
-				map[string][]byte{
-					"test-key": []byte("22"),
-				},
 			},
 			"24",
 			false,
 		},
 		{
 			"Key exists other format",
+			map[string][]byte{
+				"test-key": []byte("tarari que te vi"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				12,
 				true,
-				map[string][]byte{
-					"test-key": []byte("tarari que te vi"),
-				},
 			},
 			"12",
 			false,
 		},
 		{
 			"inc 0 key does not exists",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				0,
 				true,
-				make(map[string][]byte, 0),
 			},
 			"0",
 			false,
 		},
 		{
 			"inc 0 other format",
+			map[string][]byte{
+				"test-key": []byte("tarari"),
+			},
 			args{
 				"test",
 				[]byte("new_key"),
 				0,
 				true,
-				map[string][]byte{
-					"test-key": []byte("tarari"),
-				},
 			},
 			"tarari",
 			false,
 		},
 	}
 	for _, tt := range tests {
-		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+		path, db := newDb(tt.args.bucket, tt.existingKeys)
 
 		t.Run(tt.name, func(t *testing.T) {
 			db.Update(func(tx *nutsdb.Tx) error {
@@ -344,65 +344,65 @@ func Test_cont(t *testing.T) {
 		bucket          string
 		key             []byte
 		errorIfNotFound bool
-		existingKeys    map[string][]byte
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    int
-		wantErr bool
+		name         string
+		existingKeys map[string][]byte
+		args         args
+		want         int
+		wantErr      bool
 	}{
 		{
 			"Key does not exist ignored",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				false,
-				make(map[string][]byte, 0),
 			},
 			0,
 			false,
 		},
 		{
 			"Key does not exist error",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				true,
-				make(map[string][]byte, 0),
 			},
 			0,
 			true,
 		},
 		{
 			"Key exists",
+			map[string][]byte{
+				"test-key": []byte("22"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				true,
-				map[string][]byte{
-					"test-key": []byte("22"),
-				},
 			},
 			22,
 			false,
 		},
 		{
 			"Key exists other format",
+			map[string][]byte{
+				"test-key": []byte("tarari que te vi"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				true,
-				map[string][]byte{
-					"test-key": []byte("tarari que te vi"),
-				},
 			},
 			0,
 			true,
 		},
 	}
 	for _, tt := range tests {
-		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+		path, db := newDb(tt.args.bucket, tt.existingKeys)
 
 		t.Run(tt.name, func(t *testing.T) {
 			err := db.View(func(tx *nutsdb.Tx) error {
@@ -429,53 +429,53 @@ func Test_cont(t *testing.T) {
 
 func Test_set(t *testing.T) {
 	type args struct {
-		bucket       string
-		key          []byte
-		v            int
-		existingKeys map[string][]byte
+		bucket string
+		key    []byte
+		v      int
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name         string
+		existingKeys map[string][]byte
+		args         args
+		wantErr      bool
 	}{
 		{
 			"Key does not exist",
+			make(map[string][]byte, 0),
 			args{
 				"test",
 				[]byte("new_key"),
 				22,
-				make(map[string][]byte, 0),
 			},
 			false,
 		},
 		{
 			"Key exists",
+			map[string][]byte{
+				"test-key": []byte("22"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				12,
-				map[string][]byte{
-					"test-key": []byte("22"),
-				},
 			},
 			false,
 		},
 		{
 			"Key exists other format",
+			map[string][]byte{
+				"test-key": []byte("tarari que te vi"),
+			},
 			args{
 				"test",
 				[]byte("test-key"),
 				12,
-				map[string][]byte{
-					"test-key": []byte("tarari que te vi"),
-				},
 			},
 			false,
 		},
 	}
 	for _, tt := range tests {
-		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+		path, db := newDb(tt.args.bucket, tt.existingKeys)
 
 		t.Run(tt.name, func(t *testing.T) {
 			db.Update(func(tx *nutsdb.Tx) error {
