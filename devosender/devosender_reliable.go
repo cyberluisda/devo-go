@@ -817,13 +817,13 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 }
 
 // resendRecord send the event based on record status.
-func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) {
+func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) error {
 	var newID string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
 		currID := r.AsyncIDs[len(r.AsyncIDs)-1]
 		if strings.HasPrefix(currID, nonConnIDPrefix) {
 			// Same id, noting to do because client is not active
-			return
+			return nil
 		}
 		// Pass record to non-connection
 		newID = nonConnIDPrefix + uuid.NewV4().String()
@@ -840,7 +840,12 @@ func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) {
 		}
 	}
 
-	dsrc.updateRecord(r, newID)
+	err := dsrc.updateRecord(r, newID)
+	if err != nil {
+		return fmt.Errorf("Error when updateRecord after resend with newID %s: %w", newID, err)
+	}
+
+	return nil
 }
 
 // reliableClientRecord is the internal structure to save and manage the status of the event
