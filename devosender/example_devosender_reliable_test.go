@@ -24,7 +24,7 @@ func ExampleReliableClientBuilder_initErrors() {
 	// 2 rc <nil>
 }
 
-func ExampleReliableClientBuilder_withoutConnection() {
+func ExampleReliableClient_withoutConnection() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
@@ -60,7 +60,7 @@ func ExampleReliableClientBuilder_withoutConnection() {
 
 }
 
-func ExampleReliableClientBuilder() {
+func ExampleReliableClient() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
@@ -95,7 +95,7 @@ func ExampleReliableClientBuilder() {
 	// error close: <nil>
 }
 
-func ExampleReliableClientBuilder_standbyAndWakeUp() {
+func ExampleReliableClient_standbyAndWakeUp() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
@@ -140,7 +140,7 @@ func ExampleReliableClientBuilder_standbyAndWakeUp() {
 	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
 }
 
-func ExampleReliableClientBuilder_evicted() {
+func ExampleReliableClient_evicted() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
@@ -188,7 +188,7 @@ func ExampleReliableClientBuilder_evicted() {
 	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
 }
 
-func ExampleReliableClientBuilder_dropped() {
+func ExampleReliableClient_dropped() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
@@ -238,7 +238,7 @@ func ExampleReliableClientBuilder_dropped() {
 	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
 }
 
-func ExampleReliableClientBuilder_nilInnerClient() {
+func ExampleReliableClient_nilInnerClient() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 
