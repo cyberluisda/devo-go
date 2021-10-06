@@ -18,6 +18,8 @@ func main() {
 This command is an example of sending data to Devo relay in house
 (see https://docs.devo.com/confluence/ndt/sending-data-to-devo/the-devo-in-house-relay for more info)
 in ASYNCHRONOUS mode using a Reliable client.
+Half of the messages send to first url will be compressed to validate that compression algorithm is persisted too.
+REMEMBER that if you do not specify the compression algorithm, value will be loaded from current client.
 
 Alternatively you can create a relay-in-house mock using netcat tool. For example:
 Run 'nc -kl localhost 13000' and leave executing
@@ -81,11 +83,20 @@ The main procedure to implement this is:
 
 	// Send messages
 	fmt.Println("Starting to send first messages batch asynchronously at", time.Now())
+	cpr := &devosender.Compressor{devosender.CompressorGzip, 1}
 	for i := 1; i <= numMessages1; i++ {
-		sender.SendWTagAsync(
-			tag,
-			fmt.Sprintf("this is message the message number #%d of batch 1", i),
-		)
+		if i%2 == 0 {
+			sender.SendWTagAsync(
+				tag,
+				fmt.Sprintf("this is message the message number #%d of batch 1", i),
+			)
+		} else {
+			sender.SendWTagAndCompressorAsync(
+				tag,
+				fmt.Sprintf("this is message the message number #%d of batch 1 compressed", i),
+				cpr,
+			)
+		}
 	}
 
 	fmt.Println("Closing client and waiting a couple of secs")
