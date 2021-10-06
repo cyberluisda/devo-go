@@ -256,8 +256,7 @@ func (dsrc *ReliableClient) SendAsync(m string) string {
 	}
 	err := dsrc.newRecord(record)
 	if err != nil {
-		err = fmt.Errorf("Uncontrolled error when create status record in SendAsync: %w", err)
-		panic(err)
+		dsrc.appLogger.Logf(applogger.ERROR, "Uncontrolled error when create status record in SendAsync: %v", err)
 	}
 
 	return id
@@ -281,8 +280,7 @@ func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
 	}
 	err := dsrc.newRecord(record)
 	if err != nil {
-		err = fmt.Errorf("Uncontrolled error when create status record in SendWTagAsync: %w", err)
-		panic(err)
+		dsrc.appLogger.Logf(applogger.ERROR, "Uncontrolled error when create status record in SendWTagAsync: %v", err)
 	}
 
 	return id
@@ -308,8 +306,7 @@ func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *Co
 	}
 	err := dsrc.newRecord(record)
 	if err != nil {
-		err = fmt.Errorf("Uncontrolled error when create status record in SendWTagAndCompressorAsync: %w", err)
-		panic(err)
+		dsrc.appLogger.Logf(applogger.ERROR, "Uncontrolled error when create status record in SendWTagAndCompressorAsync: %v", err)
 	}
 
 	return id
