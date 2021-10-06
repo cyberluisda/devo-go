@@ -995,7 +995,13 @@ func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl 
 	if err != nil {
 		return err
 	}
-	err = tx.PutWithTimestamp(dataBucket, newIDAsBytes, r.Serialize(), ttl, uint64(r.Timestamp.Unix()))
+
+	bs, err := r.Serialize()
+	if err != nil {
+		return err
+	}
+
+	err = tx.PutWithTimestamp(dataBucket, newIDAsBytes, bs, ttl, uint64(r.Timestamp.Unix()))
 	if err != nil {
 		return err
 	}
