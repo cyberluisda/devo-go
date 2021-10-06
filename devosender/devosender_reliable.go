@@ -357,7 +357,10 @@ func (dsrc *ReliableClient) Flush() error {
 		// Now resend pending or mark as Evicted
 		evicted := make([]string, 0)
 		for k, v := range idsToBeResend {
-			record := dsrc.getRecord(k)
+			record, err := dsrc.getRecord(k)
+			if err != nil {
+				return fmt.Errorf("Error when load record from status with id %s to be processed: %w", k, err)
+			}
 			if record == nil {
 				// Evicted
 				evicted = append(evicted, k)
@@ -384,7 +387,11 @@ func (dsrc *ReliableClient) Flush() error {
 		for _, id := range allIds {
 			// If Id is no connecion
 			if !strings.HasPrefix(id, nonConnIDPrefix) {
-				record := dsrc.getRecord(id)
+				record, err := dsrc.getRecord(id)
+				if err != nil {
+					return fmt.Errorf("Error when load record from status with id %s: %w", id, err)
+				}
+
 				dsrc.updateRecord(record, nonConnIDPrefix+id)
 			}
 		}
