@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -102,6 +103,110 @@ func TestReliableClient_String(t *testing.T) {
 				t.Errorf("ReliableClient.String() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_getRecordRawInTx(t *testing.T) {
+	type args struct {
+		key []byte
+	}
+	tests := []struct {
+		name         string
+		existingKeys map[string][]byte
+		closedTx     bool
+		args         args
+		want         *reliableClientRecord
+		wantErr      bool
+	}{
+		{
+			"ID does not exist",
+			make(map[string][]byte, 0),
+			false,
+			args{
+				[]byte("id-1"),
+			},
+			nil,
+			false,
+		},
+		{
+			"ID exists",
+			map[string][]byte{
+				"id-1": func() []byte {
+					rd := &reliableClientRecord{
+						AsyncIDs:  []string{"id-1"},
+						Msg:       "the message",
+						Tag:       "the tag",
+						Timestamp: time.Unix(0, 0),
+					}
+					r, err := rd.Serialize()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+			},
+			false,
+			args{
+				[]byte("id-1"),
+			},
+			&reliableClientRecord{
+				AsyncIDs:  []string{"id-1"},
+				Msg:       "the message",
+				Tag:       "the tag",
+				Timestamp: time.Unix(0, 0),
+			},
+			false,
+		},
+		{
+			"Unmarshal error",
+			map[string][]byte{
+				"id-fail": []byte("tarari que te vi"),
+			},
+			false,
+			args{
+				[]byte("id-fail"),
+			},
+			nil,
+			true,
+		},
+		{
+			"DB Error",
+			make(map[string][]byte, 0),
+			true,
+			args{
+				[]byte("id-ok"),
+			},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		path, db := newDb(dataBucket, tt.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := db.View(func(tx *nutsdb.Tx) error {
+				if tt.closedTx {
+					tx.Commit()
+				}
+
+				got, err := getRecordRawInTx(tx, tt.args.key)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("getRecordRawInTx() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("getRecordRawInTx() got = %+v, want %+v", got, tt.want)
+					return errors.New("Test failed")
+				}
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+		})
+
+		destroyDb(path, db)
 	}
 }
 
