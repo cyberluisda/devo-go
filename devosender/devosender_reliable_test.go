@@ -1,7 +1,11 @@
 package devosender
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/rand"
+	"os"
 	"testing"
 	"time"
 
@@ -100,6 +104,59 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
+func Test_del(t *testing.T) {
+
+	type args struct {
+		bucket       string
+		key          []byte
+		existingKeys map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"Key does not exist",
+			args{
+				"test",
+				[]byte("Does not exists"),
+				make(map[string][]byte, 0),
+			},
+			false,
+		},
+		{
+			"Key exists",
+			args{
+				"test",
+				[]byte("test-key"),
+				map[string][]byte{
+					"test-key": []byte("test-value"),
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			db.Update(func(tx *nutsdb.Tx) error {
+				if err := del(tx, tt.args.bucket, tt.args.key); (err != nil) != tt.wantErr {
+					t.Errorf("del() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return nil
+			})
+
+			if existKey(db, tt.args.bucket, tt.args.key) {
+				t.Errorf("del() key %s exists in db", string(tt.args.key))
+			}
+		})
+
+		destroyDb(path, db)
+	}
+}
+
 func Test_nutsdbIsNotFoundError(t *testing.T) {
 	type args struct {
 		err error
@@ -157,4 +214,80 @@ func Test_nutsdbIsNotFoundError(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
+	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
+
+	opts := nutsdb.DefaultOptions
+	opts.Dir = path
+	db, err := nutsdb.Open(opts)
+	if err != nil {
+		panic(err)
+	}
+
+	// Add data
+	if initValBucket != "" && len(initVals) > 0 {
+		err := db.Update(func(tx *nutsdb.Tx) error {
+			for k, v := range initVals {
+				err := tx.Put(initValBucket, []byte(k), v, 0)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return path, db
+}
+
+func assertKeyVal(db *nutsdb.DB, bucket string, key []byte, val []byte) bool {
+	r := true
+	err := db.View(func(tx *nutsdb.Tx) error {
+		v, err := tx.Get(bucket, key)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(val, v.Value) {
+			return errors.New("val and v are not equal")
+		}
+		return nil
+	})
+	if err != nil {
+		r = false
+	}
+
+	return r
+}
+
+func existKey(db *nutsdb.DB, bucket string, key []byte) bool {
+	r := true
+	err := db.View(func(tx *nutsdb.Tx) error {
+		entries, err := tx.GetAll(bucket)
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range entries {
+			if bytes.Equal(entry.Key, key) {
+				return nil
+			}
+		}
+		return errors.New("key not found")
+	})
+	if err != nil {
+		r = false
+	}
+
+	return r
+}
+
+func destroyDb(path string, db *nutsdb.DB) {
+	db.Close()
+	os.RemoveAll(path)
 }
