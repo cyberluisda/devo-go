@@ -105,8 +105,95 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
-func Test_set(t *testing.T) {
+func Test_cont(t *testing.T) {
+	type args struct {
+		bucket          string
+		key             []byte
+		errorIfNotFound bool
+		existingKeys    map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    int
+		wantErr bool
+	}{
+		{
+			"Key does not exist ignored",
+			args{
+				"test",
+				[]byte("new_key"),
+				false,
+				make(map[string][]byte, 0),
+			},
+			0,
+			false,
+		},
+		{
+			"Key does not exist error",
+			args{
+				"test",
+				[]byte("new_key"),
+				true,
+				make(map[string][]byte, 0),
+			},
+			0,
+			true,
+		},
+		{
+			"Key exists",
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+				map[string][]byte{
+					"test-key": []byte("22"),
+				},
+			},
+			22,
+			false,
+		},
+		{
+			"Key exists other format",
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+				map[string][]byte{
+					"test-key": []byte("tarari que te vi"),
+				},
+			},
+			0,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		path, db := newDb(tt.args.bucket, tt.args.existingKeys)
 
+		t.Run(tt.name, func(t *testing.T) {
+			err := db.View(func(tx *nutsdb.Tx) error {
+				got, err := cont(tx, tt.args.bucket, tt.args.key, tt.args.errorIfNotFound)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("cont() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				if got != tt.want {
+					t.Errorf("cont() got = %v, want %v", got, tt.want)
+					return errors.New("Test failed")
+				}
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+		})
+
+		destroyDb(path, db)
+	}
+}
+
+func Test_set(t *testing.T) {
 	type args struct {
 		bucket       string
 		key          []byte
