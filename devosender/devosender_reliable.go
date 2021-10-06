@@ -325,10 +325,13 @@ func (dsrc *ReliableClient) Flush() error {
 	}
 
 	// Recollect pending events
-	allIds := dsrc.findAllRecordsID()
+	allIds, err := dsrc.findAllRecordsID()
+	if err != nil {
+		return fmt.Errorf("Error when findAllRecords before flush: %w", err)
+	}
 
 	if isClientUp {
-		err := dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.flushTimeout)
+		err = dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.flushTimeout)
 		if err != nil {
 			return fmt.Errorf("Timeout %s reached when wait for pending async msgs: %w", dsrc.flushTimeout, err)
 		}
