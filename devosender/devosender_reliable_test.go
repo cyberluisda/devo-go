@@ -1,6 +1,7 @@
 package devosender
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -94,6 +95,65 @@ func TestReliableClient_String(t *testing.T) {
 			}
 			if got := dsrc.String(); got != tt.want {
 				t.Errorf("ReliableClient.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_nutsdbIsNotFoundError(t *testing.T) {
+	type args struct {
+		err error
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"Nil error",
+			args{},
+			false,
+		},
+		{
+			"ErrBucketNotFound",
+			args{nutsdb.ErrBucketNotFound},
+			true,
+		},
+		{
+			"ErrBucketEmpty",
+			args{nutsdb.ErrBucketEmpty},
+			true,
+		},
+		{
+			"ErrNotFoundKey",
+			args{nutsdb.ErrNotFoundKey},
+			true,
+		},
+		{
+			"ErrKeyNotFound",
+			args{nutsdb.ErrKeyNotFound},
+			true,
+		},
+		{
+			"key not exits",
+			args{errors.New("key not exits")},
+			true,
+		},
+		{
+			"item not exits",
+			args{errors.New("item not exits")},
+			true,
+		},
+		{
+			"not found bucket:FOO,key:BAR",
+			args{errors.New("not found bucket:FOOfoo,key:BARbarBAR")},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := nutsdbIsNotFoundError(tt.args.err); got != tt.want {
+				t.Errorf("nutsdbIsNotFoundError() = %v, want %v", got, tt.want)
 			}
 		})
 	}
