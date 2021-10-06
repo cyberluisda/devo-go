@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cyberluisda/devo-go/applogger"
 	uuid "github.com/satori/go.uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
@@ -29,6 +30,7 @@ type ReliableClientBuilder struct {
 	eventTimeToLive          uint32
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
+	appLogger                applogger.SimpleAppLogger
 }
 
 type daemonOpts struct {
