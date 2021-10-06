@@ -863,13 +863,12 @@ type reliableClientRecord struct {
 }
 
 // Serialize returns the serialized value of a reliableClientRecord
-func (rcr *reliableClientRecord) Serialize() []byte {
+func (rcr *reliableClientRecord) Serialize() ([]byte, error) {
 	r, err := msgpack.Marshal(rcr)
 	if err != nil {
-		fmt.Println("ERROR uncontrolled in reliableClientRecord.Serialize", err)
-		panic(err)
+		return nil, fmt.Errorf("Error when serialize record: %w", err)
 	}
-	return r
+	return r, nil
 }
 
 // mustUnserialize returns the assoicated reliableClientRecord to a previously serialized value.
