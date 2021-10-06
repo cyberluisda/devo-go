@@ -407,8 +407,6 @@ func (dsrc *ReliableClient) Flush() error {
 					return fmt.Errorf("Error when load record from status with id %s: %w", id, err)
 				}
 
-				dsrc.updateRecord(record, nonConnIDPrefix+id)
-
 				err = dsrc.updateRecord(record, nonConnIDPrefix+id)
 				if err != nil {
 					return fmt.Errorf("Error when pass one status record with old id %s to no-conn state: %w", id, err)
