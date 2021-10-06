@@ -1176,7 +1176,7 @@ func (dsrc *ReliableClient) findAllRecordsID() []string {
 
 // findAllRecordsID returns a slice with []byte serialized representation of all
 // IDs saved in the status db
-func (dsrc *ReliableClient) findAllRecordsIDRaw() [][]byte {
+func (dsrc *ReliableClient) findAllRecordsIDRaw() ([][]byte, error) {
 	var r [][]byte
 	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
 		var err error
@@ -1185,11 +1185,10 @@ func (dsrc *ReliableClient) findAllRecordsIDRaw() [][]byte {
 	})
 
 	if err != nil {
-		fmt.Printf("ERROR uncontrolled when findAllRecordsID %v\n", err)
-		panic(err)
+		err = fmt.Errorf("Error when findAllRecordsIDRaw: %w", err)
 	}
 
-	return r
+	return r, err
 }
 
 // findAllRecordsID returns a slice with []byte serialized representation of all IDs
