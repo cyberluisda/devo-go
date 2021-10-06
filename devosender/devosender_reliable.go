@@ -921,7 +921,11 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 			droppedEvents = true
 		}
 
-		err = tx.PutWithTimestamp(dataBucket, idAsBytes, r.Serialize(), dsrc.eventTTLSeconds, uint64(r.Timestamp.Unix()))
+		bs, err := r.Serialize()
+		if err != nil {
+			return err
+		}
+		err = tx.PutWithTimestamp(dataBucket, idAsBytes, bs, dsrc.eventTTLSeconds, uint64(r.Timestamp.Unix()))
 		if err != nil {
 			return err
 		}
