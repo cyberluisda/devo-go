@@ -10,6 +10,11 @@ import (
 	"github.com/cyberluisda/devo-go/devosender"
 )
 
+const (
+	batch2CompressSomeEvents = false
+	batch2DelayBtwSendEvents = time.Second
+)
+
 func main() {
 
 	if len(os.Args) < 7 {
@@ -85,16 +90,17 @@ The main procedure to implement this is:
 	fmt.Println("Starting to send first messages batch asynchronously at", time.Now())
 	cpr := &devosender.Compressor{devosender.CompressorGzip, 1}
 	for i := 1; i <= numMessages1; i++ {
-		if i%2 == 0 {
-			sender.SendWTagAsync(
-				tag,
-				fmt.Sprintf("this is message the message number #%d of batch 1", i),
-			)
-		} else {
+		compress := batch2CompressSomeEvents && i%2 == 1
+		if compress {
 			sender.SendWTagAndCompressorAsync(
 				tag,
 				fmt.Sprintf("this is message the message number #%d of batch 1 compressed", i),
 				cpr,
+			)
+		} else {
+			sender.SendWTagAsync(
+				tag,
+				fmt.Sprintf("this is message the message number #%d of batch 1", i),
 			)
 		}
 	}
@@ -124,14 +130,14 @@ The main procedure to implement this is:
 	}
 
 	// Send messages
-	fmt.Println("Starting to send second messages batch asynchronously at", time.Now(), "with 1 second of dealy btw events")
+	fmt.Println("Starting to send second messages batch asynchronously at", time.Now(), "with ", batch2DelayBtwSendEvents, "dealy btw events")
 	for i := 1; i <= numMessages2; i++ {
 		sender.SendWTagAsync(
 			tag,
 			fmt.Sprintf("this is message the message number #%d of batch 2", i),
 		)
 		fmt.Print(".")
-		time.Sleep(time.Second)
+		time.Sleep(batch2DelayBtwSendEvents)
 	}
 
 	fmt.Println("")
