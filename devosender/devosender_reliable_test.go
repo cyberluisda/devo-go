@@ -113,7 +113,7 @@ func Test_dropRecordsInTx(t *testing.T) {
 	tests := []struct {
 		name            string
 		existingRecords []*reliableClientRecord
-		closedDb        bool
+		commitBeforeTx  bool // to force tx error
 		args            args
 		wantExistingIds []string
 		wantErr         bool
@@ -178,11 +178,10 @@ func Test_dropRecordsInTx(t *testing.T) {
 				}
 			}
 
-			if tt.closedDb {
-				db.Close()
-			}
-
 			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.commitBeforeTx {
+					tx.Commit()
+				}
 				return dropRecordsInTx(tx, tt.args.n)
 			})
 
