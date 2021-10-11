@@ -351,21 +351,21 @@ func Test_findAllRecordsIDRaw(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			path, db := newDb(ctrlBucket, tt.existingKeys)
 
-			db.Update(func(tx *nutsdb.Tx) error {
+			if len(tt.existingSets) > 0 {
+				db.Update(func(tx *nutsdb.Tx) error {
 
-				if len(tt.existingSets) > 0 {
 					for k, vs := range tt.existingSets {
 						for _, v := range vs {
 							err := tx.SAdd(ctrlBucket, []byte(k), v)
 							if err != nil {
-								panic(fmt.Errorf("Error when warnup sets: %w", err))
+								panic(fmt.Errorf("Error when warm up sets: %w", err))
 							}
 						}
 					}
-				}
 
-				return nil
-			})
+					return nil
+				})
+			}
 
 			if tt.closedDb {
 				db.Close()
