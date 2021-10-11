@@ -127,7 +127,7 @@ func Test_dropRecordsInTx(t *testing.T) {
 			false,
 		},
 		{
-			"Drop",
+			"Drop < size",
 			[]*reliableClientRecord{
 				{
 					AsyncIDs:  []string{"ID-1"},
@@ -150,11 +150,53 @@ func Test_dropRecordsInTx(t *testing.T) {
 			false,
 		},
 		{
-			"Error DB closed",
+			"Drop == size",
+			[]*reliableClientRecord{
+				{
+					AsyncIDs:  []string{"ID-1"},
+					Timestamp: time.Now().Add(time.Second * 3),
+				},
+				{
+					AsyncIDs:  []string{"ID-2"},
+					Timestamp: time.Now().Add(time.Second * 2),
+				},
+				{
+					AsyncIDs:  []string{"ID-3"},
+					Timestamp: time.Now().Add(time.Second),
+				},
+			},
+			false,
+			args{3},
+			[]string{},
+			false,
+		},
+		{
+			"Drop > size",
+			[]*reliableClientRecord{
+				{
+					AsyncIDs:  []string{"ID-1"},
+					Timestamp: time.Now().Add(time.Second * 3),
+				},
+				{
+					AsyncIDs:  []string{"ID-2"},
+					Timestamp: time.Now().Add(time.Second * 2),
+				},
+				{
+					AsyncIDs:  []string{"ID-3"},
+					Timestamp: time.Now().Add(time.Second),
+				},
+			},
+			false,
+			args{16},
+			[]string{},
+			false,
+		},
+		{
+			"Error in tx",
 			make([]*reliableClientRecord, 0),
 			true,
 			args{16},
-			nil,
+			[]string{},
 			true,
 		},
 	}
