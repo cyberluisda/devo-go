@@ -1173,14 +1173,9 @@ func dropRecordsInTx(tx *nutsdb.Tx, n int) error {
 	}
 
 	// Load n last elements from ctrl.keys_in_order
-	ids := make([][]byte, n)
-
-	for i := 0; i < n; i++ {
-		vs, err := tx.LPop(ctrlBucket, keysInOrderKey)
-		if err != nil {
-			return err
-		}
-		ids[i] = vs
+	ids, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+	if err != nil {
+		return err
 	}
 
 	// Now purge it
