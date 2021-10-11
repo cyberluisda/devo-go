@@ -106,6 +106,88 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
+func TestReliableClient_getRecord(t *testing.T) {
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name         string
+		existingKeys map[string][]byte
+		closedDb     bool
+		args         args
+		want         *reliableClientRecord
+		wantErr      bool
+	}{
+		{
+			"ID does not exist",
+			make(map[string][]byte, 0),
+			false,
+			args{"id-1"},
+			nil,
+			false,
+		},
+		{
+			"ID find",
+			map[string][]byte{
+				"id-1": func() []byte {
+					rd := &reliableClientRecord{
+						AsyncIDs:  []string{"id-1"},
+						Msg:       "the message",
+						Tag:       "the tag",
+						Timestamp: time.Unix(0, 0),
+					}
+					r, err := rd.Serialize()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+			},
+			false,
+			args{"id-1"},
+			&reliableClientRecord{
+				AsyncIDs:  []string{"id-1"},
+				Msg:       "the message",
+				Tag:       "the tag",
+				Timestamp: time.Unix(0, 0),
+			},
+			false,
+		},
+		{
+			"DB error",
+			make(map[string][]byte, 0),
+			true,
+			args{"id-1"},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			path, db := newDb(dataBucket, tt.existingKeys)
+
+			if tt.closedDb {
+				db.Close()
+			}
+			dsrc := &ReliableClient{
+				db: db,
+			}
+			got, err := dsrc.getRecord(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.getRecordRaw() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClient.getRecordRaw() = %v, want %v", got, tt.want)
+			}
+
+			destroyDb(path, db)
+		})
+
+	}
+}
+
 func TestReliableClient_getRecordRaw(t *testing.T) {
 	type args struct {
 		idAsBytes []byte
