@@ -106,6 +106,101 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
+func Test_dropRecordsInTx(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name            string
+		existingRecords []*reliableClientRecord
+		closedDb        bool
+		args            args
+		wantExistingIds []string
+		wantErr         bool
+	}{
+		{
+			"Empty",
+			make([]*reliableClientRecord, 0),
+			false,
+			args{16},
+			make([]string, 0),
+			false,
+		},
+		{
+			"Drop",
+			[]*reliableClientRecord{
+				{
+					AsyncIDs:  []string{"ID-1"},
+					Timestamp: time.Now().Add(time.Second * 3),
+				},
+				{
+					AsyncIDs:  []string{"ID-2"},
+					Timestamp: time.Now().Add(time.Second * 2),
+				},
+				{
+					AsyncIDs:  []string{"ID-3"},
+					Timestamp: time.Now().Add(time.Second),
+				},
+			},
+			false,
+			args{2},
+			[]string{
+				"ID-3",
+			},
+			false,
+		},
+		{
+			"Error DB closed",
+			make([]*reliableClientRecord, 0),
+			true,
+			args{16},
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+
+		t.Run(tt.name, func(t *testing.T) {
+			path, db := newDb(ctrlBucket, make(map[string][]byte, 0))
+
+			dsrc := &ReliableClient{
+				db:         db,
+				bufferSize: uint(len(tt.existingRecords)), // We need to ensure size to maintain exisitng records
+			}
+
+			if len(tt.existingRecords) > 0 {
+				for _, record := range tt.existingRecords {
+					err := dsrc.newRecord(record)
+
+					if err != nil {
+						panic(fmt.Errorf("Error when warm up records: %w", err))
+					}
+				}
+			}
+
+			if tt.closedDb {
+				db.Close()
+			}
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return dropRecordsInTx(tx, tt.args.n)
+			})
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("dropRecordsInTx() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			got, err := dsrc.findAllRecordsID()
+			if !reflect.DeepEqual(got, tt.wantExistingIds) {
+				t.Errorf("dropRecordsInTx() n=%d remainingRecordIds = %v, want %v", tt.args.n, got, tt.wantExistingIds)
+			}
+
+			destroyDb(path, db)
+		})
+	}
+}
+
 func Test_findAllRecordsID(t *testing.T) {
 	tests := []struct {
 		name         string
