@@ -106,6 +106,100 @@ func TestReliableClient_String(t *testing.T) {
 	}
 }
 
+func Test_findAllRecordsIDRaw(t *testing.T) {
+	tests := []struct {
+		name         string
+		existingKeys map[string][]byte
+		existingSets map[string][][]byte
+		closedDb     bool
+		want         [][]byte
+		wantErr      bool
+	}{
+		{
+			"Empty",
+			make(map[string][]byte, 0),
+			make(map[string][][]byte, 0),
+			false,
+			nil,
+			false,
+		},
+		{
+			"Key value format invalid",
+			map[string][]byte{
+				string(keysKey): []byte("should not be valid"),
+			},
+			make(map[string][][]byte, 0),
+			false,
+			nil,
+			false,
+		},
+		{
+			"Get values",
+			make(map[string][]byte, 0),
+			map[string][][]byte{
+				string(keysKey): {
+					[]byte("ID-1"),
+					[]byte("ID-2"),
+				},
+			},
+			false,
+			[][]byte{
+				[]byte("ID-1"),
+				[]byte("ID-2"),
+			},
+			false,
+		},
+		{
+			"Error DB closed",
+			make(map[string][]byte, 0),
+			make(map[string][][]byte, 0),
+			true,
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path, db := newDb(ctrlBucket, tt.existingKeys)
+
+			db.Update(func(tx *nutsdb.Tx) error {
+
+				if len(tt.existingSets) > 0 {
+					for k, vs := range tt.existingSets {
+						for _, v := range vs {
+							err := tx.SAdd(ctrlBucket, []byte(k), v)
+							if err != nil {
+								panic(fmt.Errorf("Error when warnup sets: %w", err))
+							}
+						}
+					}
+				}
+
+				return nil
+			})
+
+			if tt.closedDb {
+				db.Close()
+			}
+
+			dsrc := &ReliableClient{
+				db: db,
+			}
+			got, err := dsrc.findAllRecordsIDRaw()
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("findAllRecordsIDRaw() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("findAllRecordsIDRaw() = %v, want %v", got, tt.want)
+			}
+
+			destroyDb(path, db)
+		})
+	}
+}
+
 func Test_findAllRecordsIDRawInTx(t *testing.T) {
 	tests := []struct {
 		name         string
