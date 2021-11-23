@@ -135,7 +135,7 @@ func (dsrcb *ReliableClientBuilder) DaemonStopTimeout(d time.Duration) *Reliable
 // BufferEventsSize sets the maximun number of events to get in the buffer.
 // Be carefully when set this value, because some operations requires to load all keys in
 // memory
-// Value is only if size less or equal than math.MaxInt64
+// Value is set only if size less or equal than math.MaxInt64
 func (dsrcb *ReliableClientBuilder) BufferEventsSize(size uint) *ReliableClientBuilder {
 	if size <= math.MaxInt64 {
 		dsrcb.bufferEventsSize = size
