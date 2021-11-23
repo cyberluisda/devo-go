@@ -138,6 +138,62 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_DaemonStopTimeout(t *testing.T) {
+	type fields struct {
+		daemonStopTimeout time.Duration
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Duration eq to 0",
+			fields{
+				time.Hour,
+			},
+			args{0 * time.Millisecond},
+			&ReliableClientBuilder{
+				daemonStopTimeout: time.Hour,
+			},
+		},
+		{
+			"Duration less to 0",
+			fields{
+				time.Hour,
+			},
+			args{-1 * time.Second},
+			&ReliableClientBuilder{
+				daemonStopTimeout: time.Hour,
+			},
+		},
+		{
+			"Duration greater than 0",
+			fields{
+				0,
+			},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				daemonStopTimeout: time.Minute,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				daemonStopTimeout: tt.fields.daemonStopTimeout,
+			}
+			if got := dsrcb.DaemonStopTimeout(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DaemonStopTimeout() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
