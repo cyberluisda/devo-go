@@ -30,12 +30,12 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 		{
 			"Duration eq to 0",
 			fields{
-				daemonOpts{},
+				daemonOpts{waitBtwChecks: time.Hour},
 			},
 			args{0 * time.Millisecond},
 			&ReliableClientBuilder{
 				clientReconnOpts: daemonOpts{
-					waitBtwChecks: 0,
+					waitBtwChecks: time.Hour,
 				},
 			},
 		},
@@ -92,12 +92,12 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 		{
 			"Duration eq to 0",
 			fields{
-				daemonOpts{},
+				daemonOpts{initDelay: time.Hour},
 			},
 			args{0 * time.Millisecond},
 			&ReliableClientBuilder{
 				clientReconnOpts: daemonOpts{
-					initDelay: 0,
+					initDelay: time.Hour,
 				},
 			},
 		},
