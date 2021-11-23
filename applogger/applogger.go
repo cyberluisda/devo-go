@@ -1,3 +1,10 @@
+/*
+Package applogger define a set of simple logger interfaces that can be implement by the libraries client
+and that it should be used in all devo-go libraries
+
+Some implementations are added here like NoLogAppLogger (no log logger) and WriterAppLogger log that uses
+a provided Writer as destination of messages.
+*/
 package applogger
 
 import (
