@@ -76,6 +76,68 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
+	type fields struct {
+		clientReconnOpts daemonOpts
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Duration eq to 0",
+			fields{
+				daemonOpts{},
+			},
+			args{0 * time.Millisecond},
+			&ReliableClientBuilder{
+				clientReconnOpts: daemonOpts{
+					initDelay: 0,
+				},
+			},
+		},
+		{
+			"Duration less to 0",
+			fields{
+				daemonOpts{},
+			},
+			args{-1 * time.Second},
+			&ReliableClientBuilder{
+				clientReconnOpts: daemonOpts{
+					initDelay: 0,
+				},
+			},
+		},
+		{
+			"Duration greater than 0",
+			fields{
+				daemonOpts{},
+			},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				clientReconnOpts: daemonOpts{
+					initDelay: time.Minute,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				clientReconnOpts: tt.fields.clientReconnOpts,
+			}
+			if got := dsrcb.ClientReconnDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ClientReconnDaemonInitDelay() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
