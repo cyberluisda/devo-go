@@ -1,3 +1,8 @@
+/*
+Package devosender implements the tools to send data to Devo in a different ways and scenarios
+
+Interfaces to grant abstraction between implementations are defined and complex objects has associated their own builder
+*/
 package devosender
 
 import (
