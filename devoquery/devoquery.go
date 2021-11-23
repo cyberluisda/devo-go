@@ -1,3 +1,8 @@
+/*
+Package devoquery implements the tools to load data running queries to Devo in a different ways and scenarios
+
+Interfaces to grant abstraction between implementations are defined too
+*/
 package devoquery
 
 import (
