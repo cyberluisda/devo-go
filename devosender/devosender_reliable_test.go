@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cyberluisda/devo-go/applogger"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -301,6 +302,120 @@ func TestReliableClientBuilder_FlushTimeout(t *testing.T) {
 			}
 			if got := dsrcb.FlushTimeout(tt.args.d); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReliableClientBuilder.FlushTimeout() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReliableClientBuilder_Build(t *testing.T) {
+	type fields struct {
+		clientBuilder            *ClientBuilder
+		dbOpts                   nutsdb.Options
+		retryDaemonOpts          daemonOpts
+		clientReconnOpts         daemonOpts
+		daemonStopTimeout        time.Duration
+		bufferEventsSize         uint
+		eventTimeToLive          uint32
+		enableStandByModeTimeout time.Duration
+		flushTimeout             time.Duration
+		appLogger                applogger.SimpleAppLogger
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"Empty builder error: empty status path",
+			fields{},
+			nil,
+			true,
+		},
+		{
+			"Inner client builder nil",
+			fields{
+				dbOpts: nutsdb.Options{
+					Dir: "/tmp/test-builder-build",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"Client build error",
+			fields{
+				dbOpts: nutsdb.Options{
+					Dir: "/tmp/test-builder-build",
+				},
+				clientBuilder: &ClientBuilder{
+					keyFileName:  "/tmp/doesnotexists",
+					certFileName: "/tmp/doesnotexists",
+				},
+			},
+			nil,
+			true,
+		},
+		{
+			"Get client without conn",
+			fields{
+				// Copied directly from NewReliableClientBuilder
+				dbOpts: func() nutsdb.Options {
+					r := nutsdb.DefaultOptions
+					r.Dir = "/tmp/test-builder-build"
+					return r
+				}(),
+				appLogger: &applogger.NoLogAppLogger{},
+
+				clientBuilder: &ClientBuilder{
+					entrypoint: "udp://localhost:1234",
+				},
+			},
+			&ReliableClient{
+				Client: &Client{
+					entryPoint: "udp://localhost:1234",
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				clientBuilder:            tt.fields.clientBuilder,
+				dbOpts:                   tt.fields.dbOpts,
+				retryDaemonOpts:          tt.fields.retryDaemonOpts,
+				clientReconnOpts:         tt.fields.clientReconnOpts,
+				daemonStopTimeout:        tt.fields.daemonStopTimeout,
+				bufferEventsSize:         tt.fields.bufferEventsSize,
+				eventTimeToLive:          tt.fields.eventTimeToLive,
+				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
+				flushTimeout:             tt.fields.flushTimeout,
+				appLogger:                tt.fields.appLogger,
+			}
+			got, err := dsrcb.Build()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClientBuilder.Build() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// Copy dinamic fields that has no sense to be compared
+			if tt.want != nil && got != nil {
+				if got.Client != nil && tt.want.Client != nil {
+					tt.want.Client.syslogHostname = got.Client.syslogHostname
+					tt.want.Client.conn = got.Client.conn
+					tt.want.Client.connectionUsedTimestamp = got.Client.connectionUsedTimestamp
+					tt.want.tcp = got.Client.tcp
+				}
+				tt.want.db = got.db
+				tt.want.daemonStopped = got.daemonStopped
+
+				// Comparint string value, It abstracts it from test inner structure like mutex
+				gotStr := got.String()
+				wantStr := tt.want.String()
+				if gotStr != wantStr {
+					t.Errorf("ReliableClientBuilder.Build() = %s, want %s", gotStr, wantStr)
+				}
 			}
 		})
 	}
