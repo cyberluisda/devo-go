@@ -441,7 +441,7 @@ func (dsrc *ReliableClient) Close() error {
 
 	err = dsrc.ResetSessionStats()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when reste session stats: %w", err))
+		errors = append(errors, fmt.Errorf("Error when reset session stats: %w", err))
 	}
 
 	err = dsrc.db.Close()
