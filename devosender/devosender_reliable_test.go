@@ -775,6 +775,106 @@ func TestReliableClient_Flush(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
 }
 
+func TestReliableClient_Close(t *testing.T) {
+	type fields struct {
+		Client                   *Client
+		clientBuilder            *ClientBuilder
+		db                       *nutsdb.DB
+		bufferSize               uint
+		eventTTLSeconds          uint32
+		retryWait                time.Duration
+		reconnWait               time.Duration
+		retryStop                bool
+		reconnStop               bool
+		retryInitDelay           time.Duration
+		reconnInitDelay          time.Duration
+		daemonStopTimeout        time.Duration
+		standByMode              bool
+		enableStandByModeTimeout time.Duration
+		dbInitCleanedup          bool
+		daemonStopped            chan bool
+		flushTimeout             time.Duration
+		appLogger                applogger.SimpleAppLogger
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"All errors when close",
+			fields{
+				db: func() *nutsdb.DB {
+					// Clean previous status if exists
+					os.RemoveAll("/tmp/tests-reliable-Close")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-Close"
+
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Close, to force error
+					err = r.Close()
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				Client: func() *Client {
+					c, err := NewClientBuilder().EntryPoint("udp://localhost:13000").Build()
+					if err != nil {
+						panic(err)
+					}
+					err = c.conn.Close()
+					if err != nil {
+						panic(err)
+					}
+
+					// Set con to nil to force client close error
+					c.conn = nil
+					return c
+				}(),
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		// panic("TODO me llego aki")
+
+		t.Run(tt.name, func(t *testing.T) {
+			dsrc := &ReliableClient{
+				Client:                   tt.fields.Client,
+				clientBuilder:            tt.fields.clientBuilder,
+				db:                       tt.fields.db,
+				bufferSize:               tt.fields.bufferSize,
+				eventTTLSeconds:          tt.fields.eventTTLSeconds,
+				retryWait:                tt.fields.retryWait,
+				reconnWait:               tt.fields.reconnWait,
+				retryStop:                tt.fields.retryStop,
+				reconnStop:               tt.fields.reconnStop,
+				retryInitDelay:           tt.fields.retryInitDelay,
+				reconnInitDelay:          tt.fields.reconnInitDelay,
+				daemonStopTimeout:        tt.fields.daemonStopTimeout,
+				standByMode:              tt.fields.standByMode,
+				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
+				dbInitCleanedup:          tt.fields.dbInitCleanedup,
+				daemonStopped:            tt.fields.daemonStopped,
+				flushTimeout:             tt.fields.flushTimeout,
+				appLogger:                tt.fields.appLogger,
+			}
+			if err := dsrc.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-Close")
+
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
