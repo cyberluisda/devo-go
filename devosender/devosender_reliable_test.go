@@ -495,6 +495,85 @@ func TestReliableClient_SendAsync(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-sends-async-with-conn")
 }
 
+func TestReliableClient_SendWTagAndCompressorAsync(t *testing.T) {
+	type args struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		args           args
+		wantPattern    string
+	}{
+		{
+			"Send async without connection",
+			func() *ReliableClient {
+
+				// Remove status path if exists
+				os.RemoveAll("/tmp/tests-reliable-SendWTagAndCompressorAsync-no-conn")
+
+				r, err := NewReliableClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("tcp://this-is-not-exists:1234"),
+					).
+					DbPath("/tmp/tests-reliable-SendWTagAndCompressorAsync-no-conn").
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{
+				"my.app.tests.reliable",
+				"This is the message",
+				nil,
+			},
+			nonConnIDPrefix + `\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`,
+			// non-conn-483b88ce-88b0-4f66-a78d-e8dfbddf70b0
+		},
+		{
+			"Send async wit connection",
+			func() *ReliableClient {
+
+				// Remove status path if exists
+				os.RemoveAll("/tmp/tests-reliable-SendWTagAndCompressorAsync-no-conn")
+
+				r, err := NewReliableClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000"),
+					).
+					DbPath("/tmp/tests-reliable-SendWTagAndCompressorAsync-with-conn").
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{
+				"my.app.tests.reliable",
+				"This is the message",
+				&Compressor{Algorithm: CompressorZlib},
+			},
+			`\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`,
+			// 483b88ce-88b0-4f66-a78d-e8dfbddf70b0
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ptrn := regexp.MustCompile(tt.wantPattern)
+			if got := tt.reliableClient.SendWTagAndCompressorAsync(tt.args.t, tt.args.m, tt.args.c); !ptrn.Match([]byte(got)) {
+				t.Errorf("ReliableClient.my.app.tests.reliable() = %v, wantPattern %v", got, tt.wantPattern)
+			}
+		})
+	}
+
+	// Remove temporal paths
+	os.RemoveAll("/tmp/tests-reliable-SendWTagAndCompressorAsync-no-conn")
+	os.RemoveAll("/tmp/tests-reliable-SendWTagAndCompressorAsync-with-conn")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
