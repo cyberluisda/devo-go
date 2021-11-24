@@ -574,6 +574,207 @@ func TestReliableClient_SendWTagAndCompressorAsync(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-SendWTagAndCompressorAsync-with-conn")
 }
 
+func TestReliableClient_Flush(t *testing.T) {
+	type fields struct {
+		Client                   *Client
+		clientBuilder            *ClientBuilder
+		db                       *nutsdb.DB
+		bufferSize               uint
+		eventTTLSeconds          uint32
+		retryWait                time.Duration
+		reconnWait               time.Duration
+		retryStop                bool
+		reconnStop               bool
+		retryInitDelay           time.Duration
+		reconnInitDelay          time.Duration
+		daemonStopTimeout        time.Duration
+		standByMode              bool
+		enableStandByModeTimeout time.Duration
+		dbInitCleanedup          bool
+		daemonStopped            chan bool
+		flushTimeout             time.Duration
+		appLogger                applogger.SimpleAppLogger
+	}
+	type asyncMsgs struct {
+		t string
+		m string
+		c *Compressor
+	}
+	tests := []struct {
+		name                           string
+		fields                         fields
+		preAsyncMessages               []asyncMsgs
+		clientNillAFterPreAsyncMessags bool
+		wantErr                        bool
+	}{
+		{
+			"Error collecting pending events",
+			fields{
+				standByMode: true, // prevent sync
+				db: func() *nutsdb.DB {
+					// Clean previous status if exists
+					os.RemoveAll("/tmp/tests-reliable-Flush")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-Flush"
+
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Close, to force error
+					err = r.Close()
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			nil,
+			false,
+			true,
+		},
+		{
+			"Timeout reached when waiting for pending messages",
+			fields{
+				standByMode: false,
+				Client: func() *Client {
+					r, err := NewClientBuilder().EntryPoint("udp://example.com:80").Build()
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				db: func() *nutsdb.DB {
+					// Clean previous status if exists
+					os.RemoveAll("/tmp/tests-reliable-Flush-pending")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-Flush-pending"
+
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			nil,
+			false,
+			true,
+		},
+		{
+			"Flush mark as resend by error in pending messages",
+			fields{
+				standByMode: false,
+				Client: func() *Client {
+					r, err := NewClientBuilder().EntryPoint("udp://localhost:13000").Build()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				flushTimeout: time.Second,
+				db: func() *nutsdb.DB {
+					// Clean previous status if exists
+					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors"
+
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			[]asyncMsgs{
+				{m: "Error because tag is not defined"},
+			},
+			false,
+			false,
+		},
+		{
+			"Resend pending errored events with now conn",
+			fields{
+				standByMode: false,
+				Client: func() *Client {
+					r, err := NewClientBuilder().EntryPoint("udp://localhost:13000").Build()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				flushTimeout: time.Second,
+				db: func() *nutsdb.DB {
+					// Clean previous status if exists
+					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors-no-conn"
+
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			[]asyncMsgs{
+				{m: "Error because tag is not defined"},
+			},
+			true,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrc := &ReliableClient{
+				Client:                   tt.fields.Client,
+				clientBuilder:            tt.fields.clientBuilder,
+				db:                       tt.fields.db,
+				bufferSize:               tt.fields.bufferSize,
+				eventTTLSeconds:          tt.fields.eventTTLSeconds,
+				retryWait:                tt.fields.retryWait,
+				reconnWait:               tt.fields.reconnWait,
+				retryStop:                tt.fields.retryStop,
+				reconnStop:               tt.fields.reconnStop,
+				retryInitDelay:           tt.fields.retryInitDelay,
+				reconnInitDelay:          tt.fields.reconnInitDelay,
+				daemonStopTimeout:        tt.fields.daemonStopTimeout,
+				standByMode:              tt.fields.standByMode,
+				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
+				dbInitCleanedup:          tt.fields.dbInitCleanedup,
+				daemonStopped:            tt.fields.daemonStopped,
+				flushTimeout:             tt.fields.flushTimeout,
+				appLogger:                tt.fields.appLogger,
+			}
+
+			for _, am := range tt.preAsyncMessages {
+				dsrc.SendWTagAndCompressorAsync(am.t, am.m, am.c)
+			}
+
+			if tt.clientNillAFterPreAsyncMessags {
+				dsrc.Client.Close()
+				dsrc.Client = nil
+			}
+
+			if err := dsrc.Flush(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.Flush() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	// Clean previous status if exists
+	os.RemoveAll("/tmp/tests-reliable-Flush")
+	os.RemoveAll("/tmp/tests-reliable-Flush-pending")
+	os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors")
+	os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
