@@ -419,6 +419,9 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 			}
 		})
 	}
+
+	// Remove temporal status path
+	os.RemoveAll("/tmp/test-builder-build")
 }
 
 func TestReliableClient_String(t *testing.T) {
