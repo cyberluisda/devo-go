@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -422,6 +423,76 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 
 	// Remove temporal status path
 	os.RemoveAll("/tmp/test-builder-build")
+}
+
+func TestReliableClient_SendAsync(t *testing.T) {
+	type args struct {
+		m string
+	}
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		args           args
+		wantPattern    string
+	}{
+		{
+			"Send async without connection",
+			func() *ReliableClient {
+
+				// Remove status path if exists
+				os.RemoveAll("/tmp/tests-reliable-sends-async-no-conn")
+
+				r, err := NewReliableClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("tcp://this-is-not-exists:1234"),
+					).
+					DbPath("/tmp/tests-reliable-sends-async-no-conn").
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{"This is the message"},
+			nonConnIDPrefix + `\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`,
+			// non-conn-483b88ce-88b0-4f66-a78d-e8dfbddf70b0
+		},
+		{
+			"Send async wit connection",
+			func() *ReliableClient {
+
+				// Remove status path if exists
+				os.RemoveAll("/tmp/tests-reliable-sends-async-no-conn")
+
+				r, err := NewReliableClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000"),
+					).
+					DbPath("/tmp/tests-reliable-sends-async-with-conn").
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				r.SetDefaultTag("my.app.tests.reliable")
+				return r
+			}(),
+			args{"This is the message"},
+			`\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`,
+			// 483b88ce-88b0-4f66-a78d-e8dfbddf70b0
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ptrn := regexp.MustCompile(tt.wantPattern)
+			if got := tt.reliableClient.SendAsync(tt.args.m); !ptrn.Match([]byte(got)) {
+				t.Errorf("ReliableClient.SendAsync() = %v, wantPattern %v", got, tt.wantPattern)
+			}
+		})
+	}
+
+	// Remove temporal paths
+	os.RemoveAll("/tmp/tests-reliable-sends-async-no-conn")
+	os.RemoveAll("/tmp/tests-reliable-sends-async-with-conn")
 }
 
 func TestReliableClient_String(t *testing.T) {
