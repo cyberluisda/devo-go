@@ -875,6 +875,65 @@ func TestReliableClient_Close(t *testing.T) {
 
 }
 
+func TestReliableClient_StandBy(t *testing.T) {
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		wantErr        bool
+	}{
+		{
+			"Timeout error while wait for pending",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-StandBy")
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-StandBy").
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80"),
+					).
+					EnableStandByModeTimeout(time.Microsecond).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			true,
+		},
+		{
+			"Error while close client",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-StandBy-close-client")
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-StandBy-close-client").
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80"),
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Client closed to force error
+				r.Client.Close()
+				return r
+			}(),
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.reliableClient.StandBy(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.StandBy() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-StandBy")
+	os.RemoveAll("/tmp/tests-reliable-StandBy-close-client")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
