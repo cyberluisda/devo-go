@@ -934,6 +934,42 @@ func TestReliableClient_StandBy(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-StandBy-close-client")
 }
 
+func TestReliableClient_WakeUp(t *testing.T) {
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		wantErr        bool
+	}{
+		{
+			"Error while rebuild client",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-WakeUp")
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-WakeUp").
+					ClientBuilder(
+						NewClientBuilder(), // Empty EntryPoint to force error
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				return r
+			}(),
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.reliableClient.WakeUp(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.WakeUp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-WakeUp")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
