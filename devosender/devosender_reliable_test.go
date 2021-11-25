@@ -1188,7 +1188,17 @@ func Test_findAllRecordsID(t *testing.T) {
 				t.Errorf("findAllRecordsIDRaw() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+
+			// order is not important we transform to map to prevent order
+			gotMap := map[string]interface{}{}
+			wantMap := map[string]interface{}{}
+			for _, s := range got {
+				gotMap[s] = nil
+			}
+			for _, s := range tt.want {
+				wantMap[s] = nil
+			}
+			if !reflect.DeepEqual(gotMap, wantMap) {
 				t.Errorf("findAllRecordsIDRaw() = %v, want %v", got, tt.want)
 			}
 
