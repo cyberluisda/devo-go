@@ -970,6 +970,110 @@ func TestReliableClient_WakeUp(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-WakeUp")
 }
 
+
+func TestReliableClient_daemonsSartup(t *testing.T) {
+	type fields struct {
+		db         *nutsdb.DB
+		retryWait  time.Duration
+		reconnWait time.Duration
+		appLogger  applogger.SimpleAppLogger
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"Error: status db nil",
+			fields{
+				appLogger: &applogger.NoLogAppLogger{},
+			},
+			true,
+		},
+		{
+			"Error: db intialization",
+			fields{
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					// Ensure db stauts is clean
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-daemonsSartup"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Close db to force error
+					r.Close()
+					return r
+				}(),
+			},
+			true,
+		},
+		{
+			"Error: Retry events daemon",
+			fields{
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					// Ensure db stauts is clean
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-daemonsSartup-retryEvents"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				// Force error
+				retryWait: 0 * time.Second,
+			},
+			true,
+		},
+		{
+			"Error: Client reconnection daemon",
+			fields{
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					// Ensure db stauts is clean
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-daemonsSartup-clientReconn"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				// retryeEvents daemon should work
+				retryWait: time.Second,
+				// Force error
+				reconnWait: -1 * time.Second,
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrc := &ReliableClient{
+				db:         tt.fields.db,
+				retryWait:  tt.fields.retryWait,
+				reconnWait: tt.fields.reconnWait,
+				appLogger:  tt.fields.appLogger,
+			}
+			if err := dsrc.daemonsSartup(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.daemonsSartup() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	// Clean status db
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
