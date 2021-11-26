@@ -663,7 +663,10 @@ func (dsrc *ReliableClient) daemonsShutdown() error {
 		case <-time.After(dsrc.daemonStopTimeout):
 			errors = append(errors, fmt.Errorf("Timeout when wait for daemon number: %d", i))
 		case <-dsrc.daemonStopped:
-			// fmt.Println("Bye! daemon number", i)
+			dsrc.appLogger.Log(
+				applogger.INFO,
+				"Bye! daemon number", i,
+			)
 		}
 	}
 
