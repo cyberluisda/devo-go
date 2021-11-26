@@ -631,7 +631,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 			)
 		}
 
-		fmt.Println("Bye!")
+		dsrc.appLogger.Log(applogger.INFO, "Bye!")
 	}()
 
 	// Pending events daemon
