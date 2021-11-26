@@ -1094,6 +1094,137 @@ func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-errorAsyncClosing")
 }
 
+func TestReliableClient_dbInitCleanup(t *testing.T) {
+	type fields struct {
+		db              *nutsdb.DB
+		dbInitCleanedup bool
+		appLogger       applogger.SimpleAppLogger
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			"Prviously initiated",
+			fields{
+				dbInitCleanedup: true,
+			},
+			false,
+		},
+		{
+			"With previous no-conn data",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup")
+
+					// Using internal funcs of temporal reliable client with current db state for easy setup
+					rClient, err := NewReliableClientBuilder().
+						DbPath("/tmp/tests-reliable-dbInitCleanup").
+						ClientBuilder(
+							NewClientBuilder().EntryPoint("udp://localhost:13000")).
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Add data
+					err = rClient.StandBy()
+					if err != nil {
+						panic(err)
+					}
+					rClient.SendWTagAsync("tag.1", "no con msg")
+					// Close client
+					rClient.Close()
+
+					// Open new database
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-dbInitCleanup"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				appLogger: &applogger.NoLogAppLogger{},
+			},
+			false,
+		},
+		{
+			"With previous conn data",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
+
+					// Using internal funcs of temporal reliable client with current db state for easy setup
+					rClient, err := NewReliableClientBuilder().
+						DbPath("/tmp/tests-reliable-dbInitCleanup-conndata").
+						ClientBuilder(
+							NewClientBuilder().EntryPoint("udp://localhost:13000")).
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Add data
+					err = rClient.StandBy()
+					if err != nil {
+						panic(err)
+					}
+					id := rClient.SendWTagAsync("tag.1", "no con msg")
+					internalRecord, err := rClient.getRecord(id)
+					if err != nil {
+						panic(err)
+					}
+					// Close client
+					rClient.Close()
+
+					// Open new database
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-dbInitCleanup-conndata"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Now change uid to simulate conn data,
+					// We do directly to status database instead of using rClient because internal daemons will fix
+					// the status
+					newID := id[len(nonConnIDPrefix):]
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						return updateRecordInTx(tx, internalRecord, newID, 20)
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				// appLogger: &applogger.NoLogAppLogger{},
+				appLogger: &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrc := &ReliableClient{
+				db:              tt.fields.db,
+				dbInitCleanedup: tt.fields.dbInitCleanedup,
+				appLogger:       tt.fields.appLogger,
+			}
+			if err := dsrc.dbInitCleanup(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.dbInitCleanup() error = %+v, wantErr %+v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
