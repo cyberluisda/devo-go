@@ -2,6 +2,7 @@ package devosender
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -355,10 +356,18 @@ func (dsrc *ReliableClient) Flush() error {
 				// Check if Id is not pending
 				if !dsrc.IsAsyncActive(id) {
 					// Load errors and check on it
-					errors := dsrc.AsyncErrors()
-					if err, ok := errors[id]; ok {
+					errorsMap := dsrc.AsyncErrors()
+					if err, ok := errorsMap[id]; ok {
 						// We have found error, retrying
 						idsToBeResend[id] = err
+
+						// Advise through log that "ErrorTagEmpty" will be never send
+						if errors.Is(err, ErrorTagEmpty) {
+							dsrc.appLogger.Logf(
+								applogger.ERROR,
+								"Message with id '%s' will be never send because has empty tag", id,
+							)
+						}
 					} else {
 						assumingWasSent = append(assumingWasSent, id)
 					}
