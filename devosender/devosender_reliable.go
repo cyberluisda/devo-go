@@ -619,11 +619,16 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	go func() {
 		sigchan := make(chan os.Signal)
 		signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-		<-sigchan
+		s := <-sigchan
 
 		err := dsrc.Close()
 		if err != nil {
-			// FIXME log
+			dsrc.appLogger.Logf(
+				applogger.ERROR,
+				"Error while close ReliableClient by daemonStartup after %v signal received: %v",
+				s,
+				err,
+			)
 		}
 
 		fmt.Println("Bye!")
