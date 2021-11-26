@@ -379,6 +379,9 @@ func (dsc *Client) SendWTag(t, m string) error {
 	return dsc.SendWTagAndCompressor(t, m, dsc.compressor)
 }
 
+// ErrorTagEmpty is returneed when Devo tag is empty string
+var ErrorTagEmpty error = errors.New("Tag can not be empty")
+
 // SendWTagAndCompressor is similar to SendWTag but using a specific Compressor.
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressor(t, m, nil)
@@ -388,7 +391,7 @@ func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
 	}
 
 	if t == "" {
-		return fmt.Errorf("Tag can not be empty")
+		return ErrorTagEmpty
 	}
 
 	dsc.sendCalled()
