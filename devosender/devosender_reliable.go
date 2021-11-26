@@ -783,7 +783,10 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 		for !dsrc.retryStop {
 			err := dsrc.Flush()
 			if err != nil {
-				// FIXME log
+				dsrc.appLogger.Logf(
+					applogger.ERROR,
+					"Error received while retryEventsDaemon flush client: %v", err,
+				)
 			}
 
 			time.Sleep(dsrc.retryWait)
