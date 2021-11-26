@@ -691,6 +691,7 @@ func TestReliableClient_Flush(t *testing.T) {
 
 					return r
 				}(),
+				appLogger: &applogger.NoLogAppLogger{},
 			},
 			[]asyncMsgs{
 				{m: "Error because tag is not defined"},
@@ -970,7 +971,6 @@ func TestReliableClient_WakeUp(t *testing.T) {
 
 	os.RemoveAll("/tmp/tests-reliable-WakeUp")
 }
-
 
 func TestReliableClient_daemonsSartup(t *testing.T) {
 	type fields struct {
