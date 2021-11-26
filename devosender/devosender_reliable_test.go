@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1072,6 +1073,25 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+}
+
+func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-errorAsyncClosing")
+	dsrc, err := NewReliableClientBuilder().
+		DbPath("/tmp/tests-reliable-daemonsSartup-errorAsyncClosing").
+		ClientBuilder(
+			NewClientBuilder().EntryPoint("udp://example.com:80")).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	dsrc.db.Close() // Force error when daemon close database
+
+	t.Logf("Send term signal")
+	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-errorAsyncClosing")
 }
 
 func TestReliableClient_String(t *testing.T) {
