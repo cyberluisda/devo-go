@@ -754,8 +754,10 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 			}
 		}
 
-		for _, v := range toRemove {
-			fmt.Println(string(v))
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			for _, v := range toRemove {
+				dsrc.appLogger.Logf(applogger.DEBUG, "ID %s removed from status just when initialize DB", string(v))
+			}
 		}
 
 		// ctrl keys removed here
