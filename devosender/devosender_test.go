@@ -2,6 +2,7 @@ package devosender
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -136,6 +137,14 @@ func TestClient_makeConnection(t *testing.T) {
 	}
 }
 
+func TestClient_AddReplaceSequences_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.AddReplaceSequences("old", "new"); err != wantErr {
+		t.Errorf("Client.AddReplaceSequences() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_AddReplaceSequences(t *testing.T) {
 	type fields struct {
 		entryPoint        string
@@ -206,6 +215,14 @@ func TestClient_AddReplaceSequences(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrors_nil(t *testing.T) {
+	var dsc *Client
+	want := map[string]error{"": ErrNilPointerReceiver}
+	if got := dsc.AsyncErrors(); !reflect.DeepEqual(got, want) {
+		t.Errorf("Client.AsyncErrors() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncErrors(t *testing.T) {
 	type fields struct {
 		entryPoint        string
@@ -255,6 +272,14 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrorsNumber_nil(t *testing.T) {
+	var dsc *Client
+	want := 0
+	if got := dsc.AsyncErrorsNumber(); got != want {
+		t.Errorf("Client.AsyncErrorsNumber() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncErrorsNumber(t *testing.T) {
 	type fields struct {
 		asyncErrors       map[string]error
@@ -291,6 +316,14 @@ func TestClient_AsyncErrorsNumber(t *testing.T) {
 				t.Errorf("Client.AsyncErrorsNumber() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClient_WaitForPendingAsyncMessages_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.WaitForPendingAsyncMessages(); err != wantErr {
+		t.Errorf("Client.WaitForPendingAsyncMessages() with nil pointer: error = %v, wantErr %v", err, wantErr)
 	}
 }
 
@@ -338,6 +371,14 @@ func TestClient_WaitForPendingAsyncMessages(t *testing.T) {
 				t.Errorf("Client.WaitForPendingAsyncMessages() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestClient_WaitForPendingAsyncMsgsOrTimeout_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.WaitForPendingAsyncMsgsOrTimeout(0); err != wantErr {
+		t.Errorf("Client.WaitForPendingAsyncMsgsOrTimeout() with nil pointer: error = %v, wantErr %v", err, wantErr)
 	}
 }
 
@@ -399,6 +440,15 @@ func TestClient_SendWTagAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
+			"Nil client",
+			nil,
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
+		{
 			"Expected id pattern",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
@@ -433,6 +483,15 @@ func TestClient_SendWTagAndCompressorAsync(t *testing.T) {
 		args   args
 		want   *regexp.Regexp
 	}{
+		{
+			"Nil client",
+			nil,
+			args{
+				t: "tag",
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
 		{
 			"Nil compressor",
 			func() *Client {
@@ -480,6 +539,14 @@ func TestClient_SendAsync(t *testing.T) {
 		want   *regexp.Regexp
 	}{
 		{
+			"Nil Client",
+			nil,
+			args{
+				m: "message",
+			},
+			regexp.MustCompile("^$"),
+		},
+		{
 			"Expected id pattern",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
@@ -498,6 +565,14 @@ func TestClient_SendAsync(t *testing.T) {
 				t.Errorf("Client.SendWTagAsync() = %v, want matching with %v", got, tt.want.String())
 			}
 		})
+	}
+}
+
+func TestClient_SendWTag_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SendWTag("tag", "msg"); err != wantErr {
+		t.Errorf("Client.SendWTag() with nil pointer: error = %v, wantErr %v", err, wantErr)
 	}
 }
 
@@ -532,6 +607,14 @@ func TestClient_SendWTag(t *testing.T) {
 				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestClient_SendWTagAndCompressor_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SendWTagAndCompressor("tag", "msg", nil); err != wantErr {
+		t.Errorf("Client.SendWTagAndCompressor() with nil pointer: error = %v, wantErr %v", err, wantErr)
 	}
 }
 
@@ -583,6 +666,14 @@ func TestClient_SendWTagAndCompressor(t *testing.T) {
 	}
 }
 
+func TestClient_Send_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.Send("msg"); err != wantErr {
+		t.Errorf("Client.Send() with nil pointer: error = %v, wantErr %v", err, wantErr)
+	}
+}
+
 func TestClient_Send(t *testing.T) {
 	type args struct {
 		m string
@@ -613,6 +704,14 @@ func TestClient_Send(t *testing.T) {
 				t.Errorf("Client.SendWTag() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestClient_SetDefaultTag_nil(t *testing.T) {
+	var dsc *Client
+	wantErr := ErrNilPointerReceiver
+	if err := dsc.SetDefaultTag("tag"); err != wantErr {
+		t.Errorf("Client.SetDefaultTag() with nil pointer: error = %v, wantErr %v", err, wantErr)
 	}
 }
 
@@ -679,6 +778,14 @@ func TestClient_SetDefaultTag(t *testing.T) {
 				t.Errorf("Client.SetDefaultTag() defaultTag = %s, wantTag %s", dsc.defaultTag, tt.wantTag)
 			}
 		})
+	}
+}
+
+func TestClient_SetSyslogHostName_nil(t *testing.T) {
+	var dsc *Client
+	dsc.SetSyslogHostName("host")
+	if dsc != nil {
+		t.Errorf("Client.SetSyslogHostName() with not nil pointer failed")
 	}
 }
 
@@ -751,6 +858,11 @@ func TestClient_Close(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Nil client",
+			nil,
+			true,
+		},
+		{
 			"Empty connection",
 			&Client{},
 			true,
@@ -790,6 +902,13 @@ func TestClient_Write(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			"Nil client",
+			nil,
+			args{[]byte{}},
+			0,
+			true,
+		},
+		{
 			"Send using udp",
 			func() *Client {
 				r, _ := NewClientBuilder().EntryPoint("udp://example.org:80").Build() // real public service which we can stablish udp connection
@@ -815,6 +934,14 @@ func TestClient_Write(t *testing.T) {
 				t.Errorf("Client.Write() = %v, want %v", gotN, tt.wantN)
 			}
 		})
+	}
+}
+
+func TestClient_PurgeAsyncErrors_nil(t *testing.T) {
+	var dsc *Client
+	dsc.PurgeAsyncErrors()
+	if dsc != nil {
+		t.Errorf("Client.PurgeAsyncErrors() with not nil pointer failed")
 	}
 }
 
@@ -869,6 +996,14 @@ func TestClient_PurgeAsyncErrors(t *testing.T) {
 				t.Errorf("PurgeAsyncErrors() async errors still existing: %d", len(dsc.asyncErrors))
 			}
 		})
+	}
+}
+
+func TestClient_GetEntryPoint_nil(t *testing.T) {
+	var dsc *Client
+	want := ""
+	if got := dsc.GetEntryPoint(); got != want {
+		t.Errorf("Client.GetEntryPoint() with nil pointer: got = '%s', want '%s'", got, want)
 	}
 }
 
@@ -1901,6 +2036,14 @@ func TestClientBuilder_Build(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncIds_nil(t *testing.T) {
+	var dsc *Client
+	var want []string
+	if got := dsc.AsyncIds(); !reflect.DeepEqual(got, want) {
+		t.Errorf("Client.GetEntryPoint() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncIds(t *testing.T) {
 	type fields struct {
 		entryPoint              string
@@ -2054,6 +2197,14 @@ func TestClient_AreAsyncOps(t *testing.T) {
 	}
 }
 
+func TestClient_IsAsyncActive_nil(t *testing.T) {
+	var dsc *Client
+	want := false
+	if got := dsc.IsAsyncActive(""); got != want {
+		t.Errorf("Client.IsAsyncActive() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_IsAsyncActive(t *testing.T) {
 	type fields struct {
 		asyncItems       map[string]interface{}
@@ -2126,6 +2277,14 @@ func TestClient_IsAsyncActive(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncsNumber_nil(t *testing.T) {
+	var dsc *Client
+	want := 0
+	if got := dsc.AsyncsNumber(); got != want {
+		t.Errorf("Client.AsyncsNumber() with nil pointer: got = %v, want %v", got, want)
+	}
+}
+
 func TestClient_AsyncsNumber(t *testing.T) {
 	type fields struct {
 		asyncItems       map[string]interface{}
@@ -2164,6 +2323,14 @@ func TestClient_AsyncsNumber(t *testing.T) {
 				t.Errorf("Client.AsyncsNumber() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClient_String_nil(t *testing.T) {
+	var dsc *Client
+	want := "<nil>"
+	if got := dsc.String(); got != want {
+		t.Errorf("Client.String() with nil pointer: got = %s, want %s", got, want)
 	}
 }
 
@@ -2258,6 +2425,14 @@ func TestClient_String(t *testing.T) {
 				t.Errorf("Client.String() = \"%v\", want \"%v\"", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClient_LastSendCallTimestamp_nil(t *testing.T) {
+	var dsc *Client
+	want := time.Time{}
+	if got := dsc.LastSendCallTimestamp(); got != want {
+		t.Errorf("Client.LastSendCallTimestamp() with nil pointer: got = %v, want %v", got, want)
 	}
 }
 
@@ -2580,6 +2755,77 @@ func TestCompressor_Compress(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Compressor.Compress() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_connectionError_Error(t *testing.T) {
+	type fields struct {
+		Mode string
+		Err  error
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			"Error",
+			fields{
+				Mode: "test mode",
+				Err:  errors.New("test error"),
+			},
+			"Error when create new DevoSender (test mode): test error",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ce := &connectionError{
+				Mode: tt.fields.Mode,
+				Err:  tt.fields.Err,
+			}
+			if got := ce.Error(); got != tt.want {
+				t.Errorf("connectionError.Error() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_isConnectionError(t *testing.T) {
+	type args struct {
+		e error
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"nil error",
+			args{nil},
+			false,
+		},
+		{
+			"Other error",
+			args{errors.New("test error")},
+			false,
+		},
+		{
+			"isConnection error",
+			args{
+				&connectionError{
+					Mode: "test mode",
+					Err:  errors.New("test error"),
+				},
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isConnectionError(tt.args.e); got != tt.want {
+				t.Errorf("isConnectionError() = %v, want %v", got, tt.want)
 			}
 		})
 	}

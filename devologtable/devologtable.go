@@ -1,3 +1,27 @@
+/*
+Package devologtable implements the tools to use data saved in Devo (under certain tag) like a Table.
+
+This is based in the "LogTable" method that transform events like write create, update and delete saved in a stream
+to columns and values.
+
+For example next events pushed to any stream that can be queired at any time, like Devo
+
+	SET a=1
+	SET b=2
+	SET a=3
+	set c=5
+	DEL b
+
+Can be see as next key-value table when all stream was processed
+
+	+-----+-------+
+	| Key | Value |
+	+-----+-------+
+	|  a  |   3   |
+	+-----+------ +
+	|  c  |   5   |
+	+-----+-------+
+*/
 package devologtable
 
 import (

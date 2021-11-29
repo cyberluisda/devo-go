@@ -1,3 +1,8 @@
+/*
+Package devosender implements the tools to send data to Devo in a different ways and scenarios
+
+Interfaces to grant abstraction between implementations are defined and complex objects has associated their own builder
+*/
 package devosender
 
 import (
@@ -232,11 +237,11 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 
 	err := result.makeConnection()
 	if err != nil {
-		mode := "(Clear)"
+		newErr := &connectionError{"Clear", err}
 		if TLSSetup != nil {
-			mode = "(TLS)"
+			newErr.Mode = "TLS"
 		}
-		return nil, fmt.Errorf("Error when create new DevoSender %s: %w", mode, err)
+		return nil, newErr
 	}
 
 	// compressor, only if NoCompression algorithm is selected
@@ -248,6 +253,20 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 	result.init()
 
 	return &result, nil
+}
+
+type connectionError struct {
+	Mode string
+	Err  error
+}
+
+func (ce *connectionError) Error() string {
+	return fmt.Sprintf("Error when create new DevoSender (%s): %v", ce.Mode, ce.Err)
+}
+
+func isConnectionError(e error) bool {
+	var ce *connectionError
+	return errors.As(e, &ce)
 }
 
 // NewDevoSenderTLS create TLS connection using ClientBuiler with minimal configuration
@@ -303,8 +322,14 @@ type tcpConfig struct {
 	tcpDialer *net.Dialer
 }
 
+// ErrNilPointerReceiver is the error returned when received funcs are call over nil pointer
+var ErrNilPointerReceiver = errors.New("Receiver func call with nil pointer")
+
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
 func (dsc *Client) SetSyslogHostName(host string) {
+	if dsc == nil {
+		return
+	}
 	if host == "" {
 		var err error
 		dsc.syslogHostname, err = os.Hostname()
@@ -318,6 +343,10 @@ func (dsc *Client) SetSyslogHostName(host string) {
 
 // SetDefaultTag set tag used when call funcs to send messages without splicit tag
 func (dsc *Client) SetDefaultTag(t string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if t == "" {
 		return fmt.Errorf("Tag can not be empty")
 	}
@@ -330,6 +359,10 @@ func (dsc *Client) SetDefaultTag(t string) error {
 //Send func send message using default tag (SetDefaultTag).
 // Meessage will be transformed before send, using ReplaceAll with values from Client.ReplaceSequences
 func (dsc *Client) Send(m string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	err := dsc.SendWTag(dsc.defaultTag, m)
 	if err != nil {
 		return fmt.Errorf("Error when call SendWTag using default tag '%s': %w", dsc.defaultTag, err)
@@ -339,15 +372,26 @@ func (dsc *Client) Send(m string) error {
 
 // SendWTag is similar to Send but using a specific tag
 func (dsc *Client) SendWTag(t, m string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	return dsc.SendWTagAndCompressor(t, m, dsc.compressor)
 }
+
+// ErrorTagEmpty is returneed when Devo tag is empty string
+var ErrorTagEmpty error = errors.New("Tag can not be empty")
 
 // SendWTagAndCompressor is similar to SendWTag but using a specific Compressor.
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressor(t, m, nil)
 func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if t == "" {
-		return fmt.Errorf("Tag can not be empty")
+		return ErrorTagEmpty
 	}
 
 	dsc.sendCalled()
@@ -396,8 +440,13 @@ func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
 	return nil
 }
 
-// SendAsync is similar to Send but send events in async wayt (goroutine)
+// SendAsync is similar to Send but send events in async way (goroutine).
+// Empty string is returned in Client is nil
 func (dsc *Client) SendAsync(m string) string {
+	if dsc == nil {
+		return ""
+	}
+
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 	// Save asyncItems ref ids
@@ -433,15 +482,25 @@ func (dsc *Client) SendAsync(m string) string {
 	return id
 }
 
-// SendWTagAsync is similar to SendWTag but send events in async wayt (goroutine)
+// SendWTagAsync is similar to SendWTag but send events in async way (goroutine).
+// Empty string is returned in Client is nil
 func (dsc *Client) SendWTagAsync(t, m string) string {
+	if dsc == nil {
+		return ""
+	}
+
 	return dsc.SendWTagAndCompressorAsync(t, m, dsc.compressor)
 }
 
 // SendWTagAndCompressorAsync is similar to SendWTagAsync but send events with specific compressor.
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressorAsync(t, m, nil)
+// Empty string is returned in Client is nil
 func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+	if dsc == nil {
+		return ""
+	}
+
 	dsc.waitGroup.Add(1)
 	id := uuid.NewV4().String()
 	// Save asyncItems ref ids
@@ -479,6 +538,10 @@ func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string
 
 // WaitForPendingAsyncMessages wait for all Async messages that are pending to send
 func (dsc *Client) WaitForPendingAsyncMessages() error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	dsc.waitGroup.Wait()
 	return nil
 }
@@ -489,6 +552,10 @@ var ErrWaitAsyncTimeout = errors.New("Timeout when wait for pending items")
 // WaitForPendingAsyncMsgsOrTimeout is similar to WaitForPendingAsyncMessages but
 // return ErrWaitAsyncTimeout error if timeout is reached
 func (dsc *Client) WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	c := make(chan error)
 	go func() {
 		defer close(c)
@@ -506,11 +573,19 @@ func (dsc *Client) WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error
 // AsyncErrors return errors from async calls collected until now.
 // WARNING that map returned IS NOT thread safe.
 func (dsc *Client) AsyncErrors() map[string]error {
+	if dsc == nil {
+		return map[string]error{"": ErrNilPointerReceiver}
+	}
+
 	return dsc.asyncErrors
 }
 
 // AsyncErrorsNumber return then number of errors from async calls collected until now
 func (dsc *Client) AsyncErrorsNumber() int {
+	if dsc == nil {
+		return 0
+	}
+
 	dsc.asyncErrorsMutext.Lock()
 
 	r := len(dsc.asyncErrors)
@@ -522,6 +597,10 @@ func (dsc *Client) AsyncErrorsNumber() int {
 
 // PurgeAsyncErrors cleans internal AsyncErrors captured until now
 func (dsc *Client) PurgeAsyncErrors() {
+	if dsc == nil {
+		return
+	}
+
 	if dsc.asyncErrors != nil {
 		dsc.asyncErrorsMutext.Lock()
 
@@ -535,11 +614,19 @@ func (dsc *Client) PurgeAsyncErrors() {
 
 // GetEntryPoint return entrypoint used by client
 func (dsc *Client) GetEntryPoint() string {
+	if dsc == nil {
+		return ""
+	}
+
 	return dsc.entryPoint
 }
 
 // AsyncIds return asyncIds that are currently runnig
 func (dsc *Client) AsyncIds() []string {
+	if dsc == nil {
+		return nil
+	}
+
 	dsc.asyncItemsMutext.Lock()
 
 	r := make([]string, len(dsc.asyncItems))
@@ -569,6 +656,10 @@ func (dsc *Client) AreAsyncOps() bool {
 // IsAsyncActive returns true if id is present in AsyncIds(). This function is
 // more optimal that look into result of AsyncIds
 func (dsc *Client) IsAsyncActive(id string) bool {
+	if dsc == nil {
+		return false
+	}
+
 	dsc.asyncItemsMutext.Lock()
 
 	_, ok := dsc.asyncItems[id]
@@ -580,10 +671,12 @@ func (dsc *Client) IsAsyncActive(id string) bool {
 
 // AsyncsNumber return the number of async operations pending. This is more optimal that call len(dsc.AsyncIds())
 func (dsc *Client) AsyncsNumber() int {
+	if dsc == nil {
+		return 0
+	}
+
 	dsc.asyncItemsMutext.Lock()
-
 	r := len(dsc.asyncItems)
-
 	dsc.asyncItemsMutext.Unlock()
 
 	return r
@@ -591,6 +684,10 @@ func (dsc *Client) AsyncsNumber() int {
 
 // LastSendCallTimestamp returns the timestamp of last time that any of SendXXXX func was called with valid parameters
 func (dsc *Client) LastSendCallTimestamp() time.Time {
+	if dsc == nil {
+		return time.Time{}
+	}
+
 	dsc.statsMutex.Lock()
 	r := dsc.lastSendCallTimestamp
 	dsc.statsMutex.Unlock()
@@ -600,6 +697,9 @@ func (dsc *Client) LastSendCallTimestamp() time.Time {
 // AddReplaceSequences is helper function to add elements to Client.ReplaceSequences
 // old is the string to search in message and new is the replacement string. Replacement will be done using strings.ReplaceAll
 func (dsc *Client) AddReplaceSequences(old, new string) error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
 	if old == "" {
 		return fmt.Errorf("old param can not be empty")
 	}
@@ -622,8 +722,11 @@ func (dsc *Client) AddReplaceSequences(old, new string) error {
 
 // Write allow Client struct to follow io.Writer interface
 func (dsc *Client) Write(p []byte) (n int, err error) {
-	msg := string(p)
+	if dsc == nil {
+		return 0, ErrNilPointerReceiver
+	}
 
+	msg := string(p)
 	err = dsc.Send(msg)
 	if err != nil {
 		return 0, err
@@ -634,6 +737,10 @@ func (dsc *Client) Write(p []byte) (n int, err error) {
 
 // Close is the method to close all interanl elements like connection that should be closed at end
 func (dsc *Client) Close() error {
+	if dsc == nil {
+		return ErrNilPointerReceiver
+	}
+
 	if dsc.conn == nil {
 		return fmt.Errorf("Connection is nil")
 	}
@@ -641,6 +748,10 @@ func (dsc *Client) Close() error {
 }
 
 func (dsc *Client) String() string {
+	if dsc == nil {
+		return "<nil>"
+	}
+
 	connAddr := "<nil>"
 	if dsc.conn != nil {
 		connAddr = fmt.Sprintf("%s -> %s", dsc.conn.LocalAddr(), dsc.conn.RemoteAddr())
