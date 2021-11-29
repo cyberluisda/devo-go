@@ -1710,6 +1710,63 @@ func Test_updateRecordInTx(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
 }
 
+func Test_deleteRecordRawInTx(t *testing.T) {
+	type args struct {
+		tx        *nutsdb.Tx
+		idAsBytes []byte
+	}
+	tests := []struct {
+		name              string
+		args              args
+		txActionAfterTest string
+		wantErr           bool
+	}{
+		{
+			"Error tx closed",
+			args{
+				tx: func() *nutsdb.Tx {
+					os.RemoveAll("/tmp/tests-reliable-deleteRecordRawInTx")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-deleteRecordRawInTx"
+					db, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					tx, err := db.Begin(true)
+					if err != nil {
+						panic(err)
+					}
+					tx.Commit()
+					return tx
+				}(),
+			},
+			"",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := deleteRecordRawInTx(tt.args.tx, tt.args.idAsBytes); (err != nil) != tt.wantErr {
+				t.Errorf("deleteRecordRawInTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			var err error
+			switch tt.txActionAfterTest {
+			case "rollback":
+				err = tt.args.tx.Rollback()
+			case "commit":
+				err = tt.args.tx.Commit()
+			}
+			if err != nil {
+				panic(err)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-deleteRecordRawInTx")
+}
+
 func Test_dropRecordsInTx(t *testing.T) {
 	type args struct {
 		n int
