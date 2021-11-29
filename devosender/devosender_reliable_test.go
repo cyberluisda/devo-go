@@ -1514,6 +1514,69 @@ func TestReliableClient_resendRecord(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-resendRecord-compressor")
 }
 
+func TestReliableClient_newRecord(t *testing.T) {
+	type args struct {
+		r *reliableClientRecord
+	}
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		args           args
+		wantErr        bool
+	}{
+		{
+			"Error updating new counter",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-newRecord")
+
+				// Create new counter with an invalid type to force error
+				opts := nutsdb.DefaultOptions
+				opts.Dir = "/tmp/tests-reliable-newRecord"
+				db, err := nutsdb.Open(opts)
+
+				err = db.Update(func(tx *nutsdb.Tx) error {
+					return tx.Put(statsBucket, countKey, []byte("tarari"), 0)
+				})
+				if err != nil {
+					panic(err)
+				}
+
+				err = db.Close()
+				if err != nil {
+					panic(err)
+				}
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-newRecord").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+
+				if err != nil {
+					panic(err)
+				}
+
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs: []string{"11111"},
+				},
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.reliableClient.newRecord(tt.args.r); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.newRecord() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-newRecord")
+}
+
 func Test_dropRecordsInTx(t *testing.T) {
 	type args struct {
 		n int
