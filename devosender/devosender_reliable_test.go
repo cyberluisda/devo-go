@@ -1225,6 +1225,203 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
 }
 
+func TestReliableClient_resendRecord(t *testing.T) {
+	type args struct {
+		r *reliableClientRecord
+	}
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		args           args
+		wantErr        bool
+	}{
+		{
+			"Client StandBy no-conn record",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-resendRecord")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-resendRecord").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("upd://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Create record
+				r.newRecord(
+					&reliableClientRecord{
+						AsyncIDs: []string{nonConnIDPrefix + "11111"},
+					},
+				)
+
+				// pass to standby mode
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs: []string{nonConnIDPrefix + "11111"},
+				},
+			},
+			false,
+		},
+		{
+			"Client nil no-conn record",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-resendRecord-client-nil")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-resendRecord-client-nil").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Create record
+				r.newRecord(
+					&reliableClientRecord{
+						AsyncIDs: []string{nonConnIDPrefix + "11111"},
+					},
+				)
+
+				// Force client to nil
+				r.Client.Close()
+				r.Client = nil
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs: []string{nonConnIDPrefix + "11111"},
+				},
+			},
+			false,
+		},
+		{
+			"Client StandBy record",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-resendRecord-usual-record")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-resendRecord-usual-record").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Create record
+				r.newRecord(
+					&reliableClientRecord{
+						AsyncIDs: []string{"11111"},
+					},
+				)
+
+				// pass to standby mode
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs: []string{"11111"},
+				},
+			},
+			false,
+		},
+		{
+			"Error updating record",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-resendRecord-error-update")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-resendRecord-error-update").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Create record
+				r.newRecord(
+					&reliableClientRecord{
+						AsyncIDs: []string{"11111"},
+					},
+				)
+
+				// Close status database to force error
+				r.db.Close()
+
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs: []string{"11111"},
+				},
+			},
+			true,
+		},
+		{
+			"With compressor",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-resendRecord-compressor")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-resendRecord-compressor").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Create record
+				r.newRecord(
+					&reliableClientRecord{
+						AsyncIDs:   []string{"11111"},
+						Compressor: &Compressor{Algorithm: CompressorGzip},
+						Tag:        "test.keep.free",
+						Msg:        "The message",
+					},
+				)
+				return r
+			}(),
+			args{
+				&reliableClientRecord{
+					AsyncIDs:   []string{"11111"},
+					Compressor: &Compressor{Algorithm: CompressorGzip},
+					Tag:        "test.keep.free",
+					Msg:        "The message",
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.reliableClient.resendRecord(tt.args.r); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.resendRecord() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-resendRecord")
+	os.RemoveAll("/tmp/tests-reliable-resendRecord-client-nil")
+	os.RemoveAll("/tmp/tests-reliable-resendRecord-usual-record")
+	os.RemoveAll("/tmp/tests-reliable-resendRecord-error-update")
+	os.RemoveAll("/tmp/tests-reliable-resendRecord-compressor")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
