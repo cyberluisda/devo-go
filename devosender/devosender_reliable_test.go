@@ -1767,6 +1767,69 @@ func Test_deleteRecordRawInTx(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-deleteRecordRawInTx")
 }
 
+func TestReliableClient_dropRecords(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name           string
+		reliableClient *ReliableClient
+		args           args
+		wantErr        bool
+	}{
+		{
+			"Error while call dropRecordsInTx",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-dropRecords")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-dropRecords").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Close db to force error
+				r.db.Close()
+
+				return r
+			}(),
+			args{},
+			true,
+		},
+		{
+			"0 records",
+			func() *ReliableClient {
+				os.RemoveAll("/tmp/tests-reliable-dropRecords-0records")
+
+				r, err := NewReliableClientBuilder().
+					DbPath("/tmp/tests-reliable-dropRecords-0records").
+					ClientBuilder(
+						NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.reliableClient.dropRecords(tt.args.n); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.dropRecords() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-dropRecords")
+	os.RemoveAll("/tmp/tests-reliable-dropRecords-0records")
+}
+
 func Test_dropRecordsInTx(t *testing.T) {
 	type args struct {
 		n int
