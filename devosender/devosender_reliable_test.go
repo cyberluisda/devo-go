@@ -1577,6 +1577,139 @@ func TestReliableClient_newRecord(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-newRecord")
 }
 
+func Test_updateRecordInTx(t *testing.T) {
+	type args struct {
+		tx    *nutsdb.Tx
+		r     *reliableClientRecord
+		newID string
+		ttl   uint32
+	}
+	tests := []struct {
+		name              string
+		args              args
+		txActionAfterTest string
+		wantErr           bool
+	}{
+		{
+			"Error keysInOrder not found",
+			args{
+				tx: func() *nutsdb.Tx {
+					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-updateRecordInTx"
+					db, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					tx, err := db.Begin(true)
+					if err != nil {
+						panic(err)
+					}
+					return tx
+				}(),
+				r: &reliableClientRecord{
+					AsyncIDs:  []string{"1111111"},
+					Timestamp: time.Now(),
+				},
+				newID: "2222222222",
+				ttl:   3600,
+			},
+			"rollback",
+			true,
+		},
+		{
+			"Error tx closed",
+			args{
+				tx: func() *nutsdb.Tx {
+					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-tx-closed")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-tx-closed"
+					db, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					tx, err := db.Begin(true)
+					if err != nil {
+						panic(err)
+					}
+					tx.Commit()
+					return tx
+				}(),
+				r: &reliableClientRecord{
+					AsyncIDs:  []string{"1111111"},
+					Timestamp: time.Now(),
+				},
+				newID: "2222222222",
+				ttl:   3600,
+			},
+			"",
+			true,
+		},
+		{
+			"Error record not found",
+			args{
+				tx: func() *nutsdb.Tx {
+					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-recordNotFound"
+					db, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Add necessary fields
+					err = db.Update(func(tx *nutsdb.Tx) error {
+						// Create empty id list
+						return tx.RPush(ctrlBucket, keysInOrderKey, []byte("33333"))
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					tx, err := db.Begin(true)
+					if err != nil {
+						panic(err)
+					}
+					return tx
+				}(),
+				r: &reliableClientRecord{
+					AsyncIDs:  []string{"1111111"},
+					Timestamp: time.Now(),
+				},
+				newID: "2222222222",
+				ttl:   3600,
+			},
+			"rollback",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := updateRecordInTx(tt.args.tx, tt.args.r, tt.args.newID, tt.args.ttl); (err != nil) != tt.wantErr {
+				t.Errorf("updateRecordInTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			var err error
+			switch tt.txActionAfterTest {
+			case "rollback":
+				err = tt.args.tx.Rollback()
+			case "commit":
+				err = tt.args.tx.Commit()
+			}
+			if err != nil {
+				panic(err)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/tests-reliable-updateRecordInTx")
+	os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-tx-closed")
+	os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
+}
+
 func Test_dropRecordsInTx(t *testing.T) {
 	type args struct {
 		n int
