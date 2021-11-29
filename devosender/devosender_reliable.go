@@ -968,7 +968,6 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 			// Counter was properly updated by dropRecords
 			err = inc(tx, statsBucket, countKey, 1, false)
 		}
-		//}
 
 		return err
 	})
