@@ -1107,7 +1107,7 @@ func deleteRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) error {
 		return nil
 	} else if err != nil {
 
-		return fmt.Errorf("Error when look for member %s in %s.%s: %w",
+		return fmt.Errorf("Error when look for member '%s' in %s.%s: %w",
 			string(idAsBytes), ctrlBucket, string(keysKey), err)
 	}
 
