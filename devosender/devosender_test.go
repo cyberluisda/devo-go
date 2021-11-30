@@ -1932,6 +1932,7 @@ func TestClientBuilder_Build(t *testing.T) {
 		connExpiration        time.Duration
 		compressorAlgorithm   CompressorAlgorithm
 		compressorMinSize     int
+		defaultDevoTag        string
 	}
 	tests := []struct {
 		name    string
@@ -2030,6 +2031,20 @@ func TestClientBuilder_Build(t *testing.T) {
 			}(),
 			false,
 		},
+		{
+			"With default Devo tag",
+			fields{
+				entrypoint:     "udp://localhost:13000",
+				defaultDevoTag: "test.keep.free",
+			},
+			func() *Client {
+				r, _ := NewDevoSender("udp://localhost:13000")
+				c := r.(*Client)
+				c.SetDefaultTag("test.keep.free")
+				return r.(*Client)
+			}(),
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2048,6 +2063,7 @@ func TestClientBuilder_Build(t *testing.T) {
 				connExpiration:        tt.fields.connExpiration,
 				compressorAlgorithm:   tt.fields.compressorAlgorithm,
 				compressorMinSize:     tt.fields.compressorMinSize,
+				defaultDevoTag:        tt.fields.defaultDevoTag,
 			}
 			got, err := dsb.Build()
 			if (err != nil) != tt.wantErr {
