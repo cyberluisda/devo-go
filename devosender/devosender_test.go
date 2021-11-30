@@ -1827,6 +1827,40 @@ func TestClientBuilder_CompressorMinSize(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_DefaultDevoTag(t *testing.T) {
+	type fields struct {
+		defaultDevoTag string
+	}
+	type args struct {
+		t string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set tag",
+			fields{},
+			args{"test.keep.free"},
+			&ClientBuilder{
+				defaultDevoTag: "test.keep.free",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				defaultDevoTag: tt.fields.defaultDevoTag,
+			}
+			if got := dsb.DefaultDevoTag(tt.args.t); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.DefaultDevoTag() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
