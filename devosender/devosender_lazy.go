@@ -233,6 +233,18 @@ var (
 	ErrBufferFull = errors.New("Buffer is full")
 )
 
+func (lc *LazyClient) addToBuffer(r *lazyClientRecord) error {
+	var err error
+	lc.buffer = append(lc.buffer, r)
+	if int(lc.bufferSize) < len(lc.buffer) {
+		err = ErrBufferOverflow
+		// Removing first one (is the older one)
+		lc.buffer[0] = nil // required to prevent memory leaks
+		lc.buffer = lc.buffer[1:]
+	}
+	return err
+}
+
 // LazyClientStats is the metrics storage for LazyClient
 type LazyClientStats struct {
 	AsyncEvents    uint
