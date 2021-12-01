@@ -126,3 +126,72 @@ func ExampleLazyClient_StandBy() {
 	// LazyClient after WakeUp bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
 	// LazyClient as SwitchDevoSender closed bufferSize: 2, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
 }
+
+func ExampleLazyClient() {
+
+	lc, err := NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().EntryPoint("udp://localhost:13000")). // udp protocol never return error
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("LazyClient", lc.String()[:122])
+
+	// send messages in connected mode
+	err = lc.SendWTag("test.keep.free", "message 1") // No error because client is connected
+	if err != nil {
+		panic(err)
+	}
+	for i := 2; i <= 10; i++ {
+		id := lc.SendWTagAsync(
+			"test.keep.free",
+			fmt.Sprintf("message %d", i),
+		)
+		fmt.Printf("ID of msg %d has non-conn- prefix: %v\n", i, strings.HasPrefix(id, "non-conn-"))
+	}
+	fmt.Println("Stats", lc.Stats)
+
+	// WakeUp should not have any effect
+	err = lc.WakeUp()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Stats (after WakeUp)", lc.Stats)
+	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:122])
+
+	var sender SwitchDevoSender
+	sender = lc
+	sender.Close()
+	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
+
+	id := sender.SendWTagAsync("test.keep.free", "message after close is the same as after StandBy")
+	fmt.Printf("ID has non-conn- prefix: %v\n", strings.HasPrefix(id, "non-conn-"))
+	fmt.Println("SwitchDevoSender (pending events after close)", sender.String())
+	fmt.Println("Stats (pending events after close)", lc.Stats)
+	sender.Close()
+	fmt.Println("SwitchDevoSender (after last close)", sender.String())
+	fmt.Println("Stats (after last close)", lc.Stats)
+
+	// Output:
+	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// ID of msg 2 has non-conn- prefix: false
+	// ID of msg 3 has non-conn- prefix: false
+	// ID of msg 4 has non-conn- prefix: false
+	// ID of msg 5 has non-conn- prefix: false
+	// ID of msg 6 has non-conn- prefix: false
+	// ID of msg 7 has non-conn- prefix: false
+	// ID of msg 8 has non-conn- prefix: false
+	// ID of msg 9 has non-conn- prefix: false
+	// ID of msg 10 has non-conn- prefix: false
+	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// ID has non-conn- prefix: true
+	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, Client: {<nil>}
+	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
+	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
+}
