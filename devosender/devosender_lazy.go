@@ -55,6 +55,37 @@ func NewLazyClientBuilder() *LazyClientBuilder {
 	}
 }
 
+// BufferSize sets the buffer size if s is greater than 0
+func (lcb *LazyClientBuilder) BufferSize(s uint32) *LazyClientBuilder {
+	if s > 0 {
+		lcb.bufferEventsSize = s
+	}
+	return lcb
+}
+
+// ClientBuilder sets the ClientBuilder used to re-create connections after
+// StandyBy - WakeUp situation
+func (lcb *LazyClientBuilder) ClientBuilder(cb *ClientBuilder) *LazyClientBuilder {
+	lcb.clientBuilder = cb
+	return lcb
+}
+
+// EnableStandByModeTimeout sets and enable if value is greater than 0, the timeout to wait
+// for pending async events in client when StandBy() func is called
+func (lcb *LazyClientBuilder) EnableStandByModeTimeout(d time.Duration) *LazyClientBuilder {
+	lcb.enableStandByModeTimeout = d
+	return lcb
+}
+
+// FlushTimeout sets the timeout when wait for pending async envents in client when
+// Flush() func is called. Timeout is set only if parameter is greater than 0
+func (lcb *LazyClientBuilder) FlushTimeout(d time.Duration) *LazyClientBuilder {
+	if d >= 0 {
+		lcb.flushTimeout = d
+	}
+	return lcb
+}
+
 // LazyClient is a SwitchDevoSender that save events in a buffer when it is in "stand by" mode.
 // Events are saved in a circular buffer, and when limit of buffer size is reached, new arrived
 // events are saved at the begining of the buffer.
