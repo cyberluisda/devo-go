@@ -118,10 +118,11 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 
 	// Create LazyClient
 	r := &LazyClient{
-		Client:       client,
-		bufferSize:   lcb.bufferEventsSize,
-		flushTimeout: lcb.flushTimeout,
-		appLogger:    lcb.appLogger,
+		Client:        client,
+		bufferSize:    lcb.bufferEventsSize,
+		flushTimeout:  lcb.flushTimeout,
+		appLogger:     lcb.appLogger,
+		clientBuilder: lcb.clientBuilder,
 	}
 
 	return r, nil
