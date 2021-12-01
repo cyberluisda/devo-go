@@ -247,6 +247,26 @@ func (lc *LazyClient) Flush() error {
 	return nil
 }
 
+// Close send all events forcing WakeUp if it is in stand-by mode and then close the client
+func (lc *LazyClient) Close() error {
+	err := lc.WakeUp()
+	if err != nil {
+		return fmt.Errorf("While WakeUp client: %w", err)
+	}
+
+	err = lc.Flush()
+	if err != nil {
+		return fmt.Errorf("While Flush events: %w", err)
+	}
+
+	err = lc.StandBy()
+	if err != nil {
+		return fmt.Errorf("While pass to StandBy to force close inner client")
+	}
+
+	return nil
+}
+
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
