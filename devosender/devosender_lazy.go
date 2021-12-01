@@ -142,6 +142,7 @@ type LazyClient struct {
 	buffer        []*lazyClientRecord
 	appLogger     applogger.SimpleAppLogger
 	clientMtx     sync.Mutex
+	Stats         LazyClientStats
 }
 
 // lazyClientRecord is the internal structure to save in memory of the events while
