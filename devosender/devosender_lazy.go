@@ -272,6 +272,14 @@ func (lc *LazyClient) undoPopBuffer(r *lazyClientRecord) error {
 	return nil
 }
 
+func (lc *LazyClient) resetBuffer() {
+	// Clean buffer
+	for i := 0; i < len(lc.buffer); i++ {
+		lc.buffer[i] = nil // To prevent memory leaks
+	}
+	lc.buffer = nil
+}
+
 // LazyClientStats is the metrics storage for LazyClient
 type LazyClientStats struct {
 	AsyncEvents    uint
