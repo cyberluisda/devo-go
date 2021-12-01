@@ -3,6 +3,8 @@ package devosender
 import (
 	"io"
 	"time"
+
+	"github.com/cyberluisda/devo-go/applogger"
 )
 
 // SwitchDevoSender represents a Client that can be paused. That is that can close
@@ -24,4 +26,13 @@ type SwitchDevoSender interface {
 	StandBy() error
 	WakeUp() error
 	IsStandBy() bool
+}
+
+// LazyClientBuilder is the builder to build LazyClient
+type LazyClientBuilder struct {
+	clientBuilder            *ClientBuilder
+	bufferEventsSize         uint32
+	enableStandByModeTimeout time.Duration
+	flushTimeout             time.Duration
+	appLogger                applogger.SimpleAppLogger
 }
