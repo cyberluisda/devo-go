@@ -179,7 +179,12 @@ func (lc *LazyClient) StandBy() error {
 	if !lc.IsStandBy() {
 		lc.clientMtx.Lock()
 
-		err := lc.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
+		var err error
+		if lc.standByTimeout > 0 {
+			err = lc.WaitForPendingAsyncMsgsOrTimeout(lc.standByTimeout)
+		} else {
+			err = lc.WaitForPendingAsyncMessages()
+		}
 		if err != nil {
 			lc.clientMtx.Unlock()
 			return fmt.Errorf("While wait for pending async messages: %w", err)
