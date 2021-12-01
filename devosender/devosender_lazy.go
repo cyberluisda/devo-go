@@ -161,11 +161,12 @@ type lazyClientRecord struct {
 
 func (lc *LazyClient) String() string {
 	return fmt.Sprintf(
-		"bufferSize: %d, standByMode: %t, #eventsInBuffer: %d, flushTimeout: %v, Client: {%v}",
+		"bufferSize: %d, standByMode: %t, #eventsInBuffer: %d, flushTimeout: %v, standByModeTimeout: %v, Client: {%v}",
 		lc.bufferSize,
 		lc.IsStandBy(),
 		len(lc.buffer),
 		lc.flushTimeout,
+		lc.standByTimeout,
 		lc.Client,
 	)
 }
