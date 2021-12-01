@@ -317,6 +317,12 @@ func (lc *LazyClient) SendWTagAsync(t, m string) string {
 	return lc.SendWTagAndCompressorAsync(t, m, compressor)
 }
 
+// SendAsync is the same as Client.SendAsync but if the
+// Lazy Client is in stand-by mode then the event is saved in buffer
+func (lc *LazyClient) SendAsync(m string) string {
+	return lc.SendWTagAsync(lc.defaultTag, m)
+}
+
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
