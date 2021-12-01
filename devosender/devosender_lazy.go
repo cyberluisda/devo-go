@@ -226,6 +226,13 @@ func (lc *LazyClient) WakeUp() error {
 }
 
 
+var (
+	// ErrBufferOverflow is the error returned when buffer is full and element was lost
+	ErrBufferOverflow = errors.New("Overwriting item(s) because buffer is full")
+	//ErrBufferFull is the error returned when buffer is full and any other action taken
+	ErrBufferFull = errors.New("Buffer is full")
+)
+
 // LazyClientStats is the metrics storage for LazyClient
 type LazyClientStats struct {
 	AsyncEvents    uint
