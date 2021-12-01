@@ -258,6 +258,20 @@ func (lc *LazyClient) popBuffer() (*lazyClientRecord, bool) {
 	return r, true
 }
 
+func (lc *LazyClient) undoPopBuffer(r *lazyClientRecord) error {
+	if int(lc.bufferSize) == len(lc.buffer) {
+		return ErrBufferFull
+	}
+
+	// Prepend implementation based on append and copy (https://stackoverflow.com/a/53737602/14506791)
+	lc.buffer = append(lc.buffer, nil)
+	copy(lc.buffer[1:], lc.buffer)
+	lc.buffer[0] = nil // gc helps
+	lc.buffer[0] = r
+
+	return nil
+}
+
 // LazyClientStats is the metrics storage for LazyClient
 type LazyClientStats struct {
 	AsyncEvents    uint
