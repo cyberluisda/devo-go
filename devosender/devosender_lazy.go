@@ -167,6 +167,10 @@ func (lc *LazyClient) String() string {
 	)
 }
 
+// StandBy closes connection to Devo and pass the Client to admit Async send events calls only
+// These events will be saved in a buffer.
+// Client will wait for Pending events before to pass to StandBy, if timeout is triggered during
+// this operation, error will be returned and stand by mode will not be active
 func (lc *LazyClient) StandBy() error {
 	if !lc.IsStandBy() {
 		lc.clientMtx.Lock()
@@ -191,6 +195,7 @@ func (lc *LazyClient) StandBy() error {
 	return nil
 }
 
+// IsStandBy returns true if client is in STandBy mode or false in otherwise
 func (lc *LazyClient) IsStandBy() bool {
 	lc.clientMtx.Lock()
 	r := lc.isStandByUnlocked()
@@ -202,6 +207,8 @@ func (lc *LazyClient) isStandByUnlocked() bool {
 	return lc.Client == nil
 }
 
+// WakeUp leave stand by mode creating new connection to Devo. Any action will be done
+// if Client is not in stand-by mode.
 func (lc *LazyClient) WakeUp() error {
 	if lc.IsStandBy() {
 		lc.clientMtx.Lock()
