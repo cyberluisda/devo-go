@@ -1,6 +1,8 @@
 package devosender
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -84,6 +86,42 @@ func (lcb *LazyClientBuilder) FlushTimeout(d time.Duration) *LazyClientBuilder {
 		lcb.flushTimeout = d
 	}
 	return lcb
+}
+
+// Build creates new LazyClient instance
+func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
+	// Validations
+	if lcb.clientBuilder == nil {
+		return nil, errors.New("Undefined inner client builder")
+	}
+
+	if lcb.bufferEventsSize < 1 {
+		return nil, errors.New("Buffer size less than 1")
+	}
+	if lcb.flushTimeout < 1 {
+		return nil, errors.New("Flush timeout empty or negative")
+	}
+
+	// Default values
+	if lcb.appLogger == nil {
+		lcb.appLogger = &applogger.NoLogAppLogger{}
+	}
+
+	client, err := lcb.clientBuilder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("Error while initialize client: %v", err)
+	}
+
+	// Create LazyClient
+	r := &LazyClient{
+		Client:       client,
+		bufferSize:   lcb.bufferEventsSize,
+		flushTimeout: lcb.flushTimeout,
+		buffer:       []lazyClientRecord{},
+		appLogger:    lcb.appLogger,
+	}
+
+	return r, nil
 }
 
 // LazyClient is a SwitchDevoSender that save events in a buffer when it is in "stand by" mode.
