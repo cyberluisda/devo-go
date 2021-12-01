@@ -224,6 +224,15 @@ func (lc *LazyClient) WakeUp() error {
 	return nil
 }
 
+
+// LazyClientStats is the metrics storage for LazyClient
+type LazyClientStats struct {
+	AsyncEvents    uint
+	BufferedLost   uint
+	TotalBuffered  uint
+	SendFromBuffer uint
+}
+
 const nonConnIDPrefix = "non-conn-"
 
 var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
