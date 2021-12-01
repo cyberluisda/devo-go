@@ -91,3 +91,104 @@ func TestLazyClient_popBuffer(t *testing.T) {
 		})
 	}
 }
+
+func TestLazyClient_undoPopBuffer(t *testing.T) {
+	type fields struct {
+		bufferSize uint32
+		buffer     []*lazyClientRecord
+	}
+	type args struct {
+		r *lazyClientRecord
+	}
+	tests := []struct {
+		name       string
+		fields     fields
+		args       args
+		wantErr    bool
+		wantBuffer []*lazyClientRecord
+	}{
+		{
+			"Nil record",
+			fields{},
+			args{},
+			false,
+			nil,
+		},
+		{
+			"Zero buffer size",
+			fields{},
+			args{
+				&lazyClientRecord{
+					AsyncID: "async id 1",
+					Msg:     "msg 1",
+					Tag:     "tag 1",
+				},
+			},
+			true,
+			nil,
+		},
+		{
+			"Empty buffer",
+			fields{
+				bufferSize: 1,
+			},
+			args{
+				&lazyClientRecord{
+					AsyncID: "async id 1",
+					Msg:     "msg 1",
+					Tag:     "tag 1",
+				},
+			},
+			false,
+			[]*lazyClientRecord{
+				{
+					AsyncID: "async id 1",
+					Msg:     "msg 1",
+					Tag:     "tag 1",
+				},
+			},
+		},
+		{
+			"Full buffer",
+			fields{
+				bufferSize: 1,
+				buffer: []*lazyClientRecord{
+					{
+						AsyncID: "async id 1",
+						Msg:     "msg 1",
+						Tag:     "tag 1",
+					},
+				},
+			},
+			args{
+				&lazyClientRecord{
+					AsyncID: "async id 2",
+					Msg:     "msg 2",
+					Tag:     "tag 2",
+				},
+			},
+			true,
+			[]*lazyClientRecord{
+				{
+					AsyncID: "async id 1",
+					Msg:     "msg 1",
+					Tag:     "tag 1",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lc := &LazyClient{
+				bufferSize: tt.fields.bufferSize,
+				buffer:     tt.fields.buffer,
+			}
+			if err := lc.undoPopBuffer(tt.args.r); (err != nil) != tt.wantErr {
+				t.Errorf("LazyClient.undoPopBuffer() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(lc.buffer, tt.wantBuffer) {
+				t.Errorf("LazyClient.undoPopBuffer() remaining buffer got = %#v, want %#v", lc.buffer, tt.wantBuffer)
+			}
+		})
+	}
+}
