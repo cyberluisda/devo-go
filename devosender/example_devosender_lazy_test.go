@@ -195,3 +195,53 @@ func ExampleLazyClient() {
 	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
 	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
 }
+
+func ExampleLazyClient_SendAsync() {
+
+	lc, err := NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().EntryPoint("udp://localhost:13000")). // udp protocol never return error
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("LazyClient", lc.String()[0:122])
+
+	// send messages in connected mode
+	id := lc.SendAsync("message 1") // Empty default tag implies error
+	// Wait until id was processed
+	for lc.IsAsyncActive(id) {
+		time.Sleep(time.Millisecond * 100)
+	}
+	fmt.Printf("AsyncErrors associated with first id: %v\n", lc.AsyncErrors()[id])
+
+	lc.SetDefaultTag("test.keep.free")
+	id2 := lc.SendAsync("message 2")
+	fmt.Printf(
+		"Second msg id is equal to first id: %v, len(AsyncErrors): %d, AsyncErrors associated with first id: %v\n",
+		id == id2,
+		len(lc.AsyncErrors()),
+		lc.AsyncErrors()[id],
+	)
+
+	fmt.Println("Stats", lc.Stats)
+	fmt.Println("LazyClient (after events)", lc.String()[0:122])
+
+	err = lc.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Stats (after close)", lc.Stats)
+	fmt.Println("LazyClient (after close)", lc)
+
+	// Output:
+	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// AsyncErrors associated with first id: Tag can not be empty
+	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: Tag can not be empty
+	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+}
