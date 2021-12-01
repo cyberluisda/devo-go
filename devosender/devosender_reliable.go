@@ -9,13 +9,11 @@ import (
 	"os/signal"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/cyberluisda/devo-go/applogger"
-	uuid "github.com/satori/go.uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
@@ -254,7 +252,7 @@ type ReliableClient struct {
 func (dsrc *ReliableClient) SendAsync(m string) string {
 	var id string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
-		id = nonConnIDPrefix + uuid.NewV4().String()
+		id = newNoConnID()
 	} else {
 		id = dsrc.Client.SendAsync(m)
 	}
@@ -277,7 +275,7 @@ func (dsrc *ReliableClient) SendAsync(m string) string {
 func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
 	var id string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
-		id = nonConnIDPrefix + uuid.NewV4().String()
+		id = newNoConnID()
 	} else {
 		id = dsrc.Client.SendWTagAsync(t, m)
 	}
@@ -302,7 +300,7 @@ func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
 func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *Compressor) string {
 	var id string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
-		id = nonConnIDPrefix + uuid.NewV4().String()
+		id = newNoConnID()
 	} else {
 		id = dsrc.Client.SendWTagAndCompressorAsync(t, m, c)
 	}
@@ -350,7 +348,7 @@ func (dsrc *ReliableClient) Flush() error {
 		assumingWasSent := make([]string, 0)
 		for _, id := range allIds {
 			// If Id is no connecion
-			if strings.HasPrefix(id, nonConnIDPrefix) {
+			if isNoConnID(id) {
 				idsToBeResend[id] = nil
 			} else {
 				// Check if Id is not pending
@@ -410,13 +408,13 @@ func (dsrc *ReliableClient) Flush() error {
 		// Passing all elemetns as no-conn
 		for _, id := range allIds {
 			// If Id is no connecion
-			if !strings.HasPrefix(id, nonConnIDPrefix) {
+			if !isNoConnID(id) {
 				record, err := dsrc.getRecord(id)
 				if err != nil {
 					return fmt.Errorf("Error when load record from status with id %s: %w", id, err)
 				}
 
-				err = dsrc.updateRecord(record, nonConnIDPrefix+id)
+				err = dsrc.updateRecord(record, toNoConnID(id))
 				if err != nil {
 					return fmt.Errorf("Error when pass one status record with old id %s to no-conn state: %w", id, err)
 				}
@@ -721,10 +719,10 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 				return err
 			}
 
-			if bytes.HasPrefix(id, nonConnIDPrefixBytes) {
+			if isNoConnIDBytes(id) {
 				newIDs[idAsStr] = nil
 			} else {
-				newID := nonConnIDPrefix + idAsStr
+				newID := toNoConnID(idAsStr)
 				err = updateRecordInTx(tx, record, newID, dsrc.eventTTLSeconds)
 				if err != nil {
 					return err
@@ -853,12 +851,12 @@ func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) error {
 	var newID string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
 		currID := r.AsyncIDs[len(r.AsyncIDs)-1]
-		if strings.HasPrefix(currID, nonConnIDPrefix) {
+		if isNoConnID(currID) {
 			// Same id, noting to do because client is not active
 			return nil
 		}
 		// Pass record to non-connection
-		newID = nonConnIDPrefix + uuid.NewV4().String()
+		newID = newNoConnID()
 
 	} else {
 		// Resend based on properties
