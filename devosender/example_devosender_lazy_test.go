@@ -71,8 +71,11 @@ func ExampleLazyClient_StandBy() {
 
 	lc, err := NewLazyClientBuilder().
 		ClientBuilder(
-				NewClientBuilder().EntryPoint("udp://localhost:13000")). // udp protocol never return error
-		BufferSize(2). // very small buffers of two events only
+			// udp protocol never return error
+			NewClientBuilder().EntryPoint("udp://localhost:13000"),
+		).
+		BufferSize(2).                         // very small buffers of two events only
+		EnableStandByModeTimeout(time.Second). // Set to 0 to wait for ever for async events when pass to stand by mode
 		Build()
 	if err != nil {
 		panic(err)
@@ -115,16 +118,16 @@ func ExampleLazyClient_StandBy() {
 	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
 
 	// Output:
-	// LazyClient bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000'
 	// IsStandBy true
 	// SendWTag error Receiver func call with nil pointer
 	// ID has non-conn- prefix true
 	// Stats AsyncEvents: 1, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
 	// Stats AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 0
-	// LazyClient bufferSize: 2, standByMode: true, #eventsInBuffer: 2, flushTimeout: 2s, Client: {<nil>}
+	// LazyClient bufferSize: 2, standByMode: true, #eventsInBuffer: 2, flushTimeout: 2s, standByModeTimeout: 1s, Client: {<nil>}
 	// Stats after WakeUp AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 2
-	// LazyClient after WakeUp bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
-	// LazyClient as SwitchDevoSender closed bufferSize: 2, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// LazyClient after WakeUp bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient as SwitchDevoSender closed bufferSize: 2, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {<nil>}
 }
 
 func ExampleLazyClient() {
