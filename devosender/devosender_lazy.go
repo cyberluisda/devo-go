@@ -167,6 +167,30 @@ func (lc *LazyClient) String() string {
 	)
 }
 
+func (lc *LazyClient) StandBy() error {
+	if !lc.IsStandBy() {
+		lc.clientMtx.Lock()
+
+		err := lc.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
+		if err != nil {
+			lc.clientMtx.Unlock()
+			return fmt.Errorf("While wait for pending async messages: %w", err)
+		}
+
+		// Closing current client
+		err = lc.Client.Close()
+		if err != nil {
+			lc.appLogger.Logf(
+				applogger.WARNING,
+				"Error while close inner client. Uninstantiate client anyway: %v", err,
+			)
+		}
+		lc.Client = nil
+		lc.clientMtx.Unlock()
+	}
+	return nil
+}
+
 func (lc *LazyClient) IsStandBy() bool {
 	lc.clientMtx.Lock()
 	r := lc.isStandByUnlocked()
