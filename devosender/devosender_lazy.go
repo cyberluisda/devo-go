@@ -202,6 +202,21 @@ func (lc *LazyClient) isStandByUnlocked() bool {
 	return lc.Client == nil
 }
 
+func (lc *LazyClient) WakeUp() error {
+	if lc.IsStandBy() {
+		lc.clientMtx.Lock()
+
+		client, err := lc.clientBuilder.Build()
+		if err != nil {
+			lc.clientMtx.Unlock()
+			return fmt.Errorf("While (re)create client: %w", err)
+		}
+		lc.Client = client
+		lc.clientMtx.Unlock()
+	}
+	return nil
+}
+
 const nonConnIDPrefix = "non-conn-"
 
 var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
