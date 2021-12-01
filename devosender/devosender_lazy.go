@@ -245,6 +245,19 @@ func (lc *LazyClient) addToBuffer(r *lazyClientRecord) error {
 	return err
 }
 
+func (lc *LazyClient) popBuffer() (*lazyClientRecord, bool) {
+	if len(lc.buffer) == 0 {
+		return nil, false
+	}
+
+	r := lc.buffer[0]
+	// Removing first one (is the older one)
+	lc.buffer[0] = nil // required to prevent memory leaks
+	lc.buffer = lc.buffer[1:]
+
+	return r, true
+}
+
 // LazyClientStats is the metrics storage for LazyClient
 type LazyClientStats struct {
 	AsyncEvents    uint
