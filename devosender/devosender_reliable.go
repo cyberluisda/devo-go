@@ -901,21 +901,19 @@ func (rcr *reliableClientRecord) Serialize() ([]byte, error) {
 }
 
 const (
-	dataBucket      = "data"
-	ctrlBucket      = "ctrl"
-	statsBucket     = "stats"
-	nonConnIDPrefix = "non-conn-"
+	dataBucket  = "data"
+	ctrlBucket  = "ctrl"
+	statsBucket = "stats"
 )
 
 var (
-	keysKey              = []byte("keys")
-	countKey             = []byte("count")
-	keysInOrderKey       = []byte("keys_in_order")
-	updatedKey           = []byte("updated")
-	evictedKey           = []byte("evicted")
-	finishedKey          = []byte("finished")
-	droppedKey           = []byte("dropped")
-	nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
+	keysKey        = []byte("keys")
+	countKey       = []byte("count")
+	keysInOrderKey = []byte("keys_in_order")
+	updatedKey     = []byte("updated")
+	evictedKey     = []byte("evicted")
+	finishedKey    = []byte("finished")
+	droppedKey     = []byte("dropped")
 )
 
 // newRecord saves in status and persist new record updating counters at same time

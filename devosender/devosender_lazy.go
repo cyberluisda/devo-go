@@ -151,3 +151,7 @@ type lazyClientRecord struct {
 	Compressor *Compressor
 	LastError  error
 }
+
+const nonConnIDPrefix = "non-conn-"
+
+var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
