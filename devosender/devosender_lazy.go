@@ -233,6 +233,12 @@ type LazyClientStats struct {
 	SendFromBuffer uint
 }
 
+func (lcs LazyClientStats) String() string {
+	return fmt.Sprintf(
+		"AsyncEvents: %d, TotalBuffered: %d, BufferedLost: %d, SendFromBuffer: %d",
+		lcs.AsyncEvents, lcs.TotalBuffered, lcs.BufferedLost, lcs.SendFromBuffer)
+}
+
 const nonConnIDPrefix = "non-conn-"
 
 var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
