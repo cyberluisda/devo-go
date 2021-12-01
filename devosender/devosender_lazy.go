@@ -323,7 +323,6 @@ func (lc *LazyClient) SendAsync(m string) string {
 	return lc.SendWTagAsync(lc.defaultTag, m)
 }
 
-
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
 	ErrBufferOverflow = errors.New("Overwriting item(s) because buffer is full")
