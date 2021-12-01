@@ -156,6 +156,17 @@ type lazyClientRecord struct {
 	LastError  error
 }
 
+func (lc *LazyClient) String() string {
+	return fmt.Sprintf(
+		"bufferSize: %d, standByMode: %t, #eventsInBuffer: %d, flushTimeout: %v, Client: {%v}, ",
+		lc.bufferSize,
+		lc.IsStandBy(),
+		len(lc.buffer),
+		lc.flushTimeout,
+		lc.Client,
+	)
+}
+
 func (lc *LazyClient) IsStandBy() bool {
 	lc.clientMtx.Lock()
 	r := lc.isStandByUnlocked()
