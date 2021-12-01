@@ -38,6 +38,23 @@ type LazyClientBuilder struct {
 	appLogger                applogger.SimpleAppLogger
 }
 
+const (
+	// LCBDefaultBufferEventsSize is the default BufferSize value set in LazyClientBuilder
+	// when it is created with NewLazyClientBuilder
+	LCBDefaultBufferEventsSize uint32 = 256000
+	// LCBDefaultFlushTimeout is the default FlushTimeout value set in LazyClientBuilder
+	// when it is created with NewLazyClientBuilder
+	LCBDefaultFlushTimeout = time.Second * 2
+)
+
+// NewLazyClientBuilder is the factory method of LazyClientBuilder with defautl values set
+func NewLazyClientBuilder() *LazyClientBuilder {
+	return &LazyClientBuilder{
+		bufferEventsSize: LCBDefaultBufferEventsSize,
+		flushTimeout:     LCBDefaultFlushTimeout,
+	}
+}
+
 // LazyClient is a SwitchDevoSender that save events in a buffer when it is in "stand by" mode.
 // Events are saved in a circular buffer, and when limit of buffer size is reached, new arrived
 // events are saved at the begining of the buffer.
