@@ -221,6 +221,12 @@ func (lc *LazyClient) WakeUp() error {
 		}
 		lc.Client = client
 		lc.clientMtx.Unlock()
+
+		// Flush will send pending events
+		err = lc.Flush()
+		if err != nil {
+			return fmt.Errorf("While flush pending events: %w", err)
+		}
 	}
 	return nil
 }
