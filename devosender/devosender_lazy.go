@@ -352,6 +352,11 @@ func (lc *LazyClient) popBuffer() (*lazyClientRecord, bool) {
 	lc.buffer[0] = nil // required to prevent memory leaks
 	lc.buffer = lc.buffer[1:]
 
+	if len(lc.buffer) == 0 {
+		// Purge buffer
+		lc.buffer = nil
+	}
+
 	return r, true
 }
 
