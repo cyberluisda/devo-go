@@ -121,7 +121,6 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 		Client:       client,
 		bufferSize:   lcb.bufferEventsSize,
 		flushTimeout: lcb.flushTimeout,
-		buffer:       []*lazyClientRecord{},
 		appLogger:    lcb.appLogger,
 	}
 
