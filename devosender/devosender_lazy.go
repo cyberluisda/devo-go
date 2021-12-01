@@ -121,7 +121,7 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 		Client:       client,
 		bufferSize:   lcb.bufferEventsSize,
 		flushTimeout: lcb.flushTimeout,
-		buffer:       []lazyClientRecord{},
+		buffer:       []*lazyClientRecord{},
 		appLogger:    lcb.appLogger,
 	}
 
@@ -139,7 +139,7 @@ type LazyClient struct {
 	clientBuilder *ClientBuilder
 	bufferSize    uint32
 	flushTimeout  time.Duration
-	buffer        []lazyClientRecord
+	buffer        []*lazyClientRecord
 	appLogger     applogger.SimpleAppLogger
 	clientMtx     sync.Mutex
 }
