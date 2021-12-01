@@ -42,11 +42,11 @@ func ExampleLazyClientBuilder() {
 	lc, err = lcb.Build()
 
 	// Only print first n characters to easy test with output
-	lcStr := lc.String()[:120]
+	lcStr := lc.String()[:143]
 	fmt.Println("error", err, "- LazyClient", lcStr, "...")
 
 	// Output:
-	// error <nil> - LazyClient bufferSize: 256, standByMode: false, #eventsInBuffer: 0, flushTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000', ...
+	// error <nil> - LazyClient bufferSize: 256, standByMode: false, #eventsInBuffer: 0, flushTimeout: 1s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000' ...
 }
 
 func ExampleNewLazyClientBuilder() {
@@ -59,12 +59,12 @@ func ExampleNewLazyClientBuilder() {
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
 	// Only print first n characters to easy test with output
-	lcStr := lc.String()[:123]
+	lcStr := lc.String()[:146]
 	fmt.Println("2: error", err, "- LazyClient", lcStr, "...")
 
 	// Output:
 	// 1: error Undefined inner client builder - LazyClient <nil>
-	// 2: error <nil> - LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000', ...
+	// 2: error <nil> - LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000' ...
 }
 
 func ExampleLazyClient_StandBy() {
@@ -78,7 +78,7 @@ func ExampleLazyClient_StandBy() {
 		panic(err)
 	}
 
-	fmt.Println("LazyClient", lc.String()[:117])
+	fmt.Println("LazyClient", lc.String()[:141])
 
 	// Pass to stand by mode
 	err = lc.StandBy()
@@ -107,7 +107,7 @@ func ExampleLazyClient_StandBy() {
 	}
 
 	fmt.Println("Stats after WakeUp", lc.Stats)
-	fmt.Println("LazyClient after WakeUp", lc.String()[0:117])
+	fmt.Println("LazyClient after WakeUp", lc.String()[0:141])
 
 	var sender SwitchDevoSender
 	sender = lc
@@ -137,7 +137,7 @@ func ExampleLazyClient() {
 		panic(err)
 	}
 
-	fmt.Println("LazyClient", lc.String()[:122])
+	fmt.Println("LazyClient", lc.String()[:146])
 
 	// send messages in connected mode
 	err = lc.SendWTag("test.keep.free", "message 1") // No error because client is connected
@@ -159,7 +159,7 @@ func ExampleLazyClient() {
 		panic(err)
 	}
 	fmt.Println("Stats (after WakeUp)", lc.Stats)
-	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:122])
+	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:146])
 
 	var sender SwitchDevoSender
 	sender = lc
@@ -175,7 +175,7 @@ func ExampleLazyClient() {
 	fmt.Println("Stats (after last close)", lc.Stats)
 
 	// Output:
-	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000'
 	// ID of msg 2 has non-conn- prefix: false
 	// ID of msg 3 has non-conn- prefix: false
 	// ID of msg 4 has non-conn- prefix: false
@@ -187,12 +187,12 @@ func ExampleLazyClient() {
 	// ID of msg 10 has non-conn- prefix: false
 	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
-	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
-	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// ID has non-conn- prefix: true
-	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, Client: {<nil>}
+	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
-	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
 }
 
@@ -206,7 +206,7 @@ func ExampleLazyClient_SendAsync() {
 		panic(err)
 	}
 
-	fmt.Println("LazyClient", lc.String()[0:122])
+	fmt.Println("LazyClient", lc.String()[0:143])
 
 	// send messages in connected mode
 	id := lc.SendAsync("message 1") // Empty default tag implies error
@@ -226,7 +226,7 @@ func ExampleLazyClient_SendAsync() {
 	)
 
 	fmt.Println("Stats", lc.Stats)
-	fmt.Println("LazyClient (after events)", lc.String()[0:122])
+	fmt.Println("LazyClient (after events)", lc.String()[0:143])
 
 	err = lc.Close()
 	if err != nil {
@@ -237,11 +237,11 @@ func ExampleLazyClient_SendAsync() {
 	fmt.Println("LazyClient (after close)", lc)
 
 	// Output:
-	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// AsyncErrors associated with first id: Tag can not be empty
 	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: Tag can not be empty
 	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
-	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, Client: {entryPoint: 'udp://localhost:13000'
+	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
-	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, Client: {<nil>}
+	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 }
