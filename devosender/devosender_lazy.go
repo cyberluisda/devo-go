@@ -255,6 +255,11 @@ func (lc *LazyClient) Flush() error {
 
 		lc.appLogger.Logf(applogger.DEBUG, "IDS of events send from buffer: %v", newIDs)
 
+		err := lc.Client.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
+		if err != nil {
+			return fmt.Errorf("While waiting for pending messages: %w", err)
+		}
+
 		lc.resetBuffer()
 		lc.clientMtx.Unlock()
 	}
