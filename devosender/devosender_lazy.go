@@ -361,6 +361,10 @@ func (lc *LazyClient) popBuffer() (*lazyClientRecord, bool) {
 }
 
 func (lc *LazyClient) undoPopBuffer(r *lazyClientRecord) error {
+	if r == nil {
+		return nil
+	}
+
 	if int(lc.bufferSize) == len(lc.buffer) {
 		return ErrBufferFull
 	}
