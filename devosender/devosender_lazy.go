@@ -225,6 +225,28 @@ func (lc *LazyClient) WakeUp() error {
 	return nil
 }
 
+// Flush send all events in buffer only if client is not in stand by mode (IsStandBy == false)
+func (lc *LazyClient) Flush() error {
+	if !lc.IsStandBy() {
+		lc.clientMtx.Lock()
+
+		// Send events
+		newIDs := make([]string, len(lc.buffer))
+		for i, event := range lc.buffer {
+			newID := lc.Client.SendWTagAndCompressorAsync(event.Tag, event.Msg, event.Compressor)
+			newIDs[i] = newID
+
+			lc.Stats.SendFromBuffer++ // Update stats
+		}
+
+		lc.appLogger.Logf(applogger.DEBUG, "IDS of events send from buffer: %v", newIDs)
+
+		lc.resetBuffer()
+		lc.clientMtx.Unlock()
+	}
+	return nil
+}
+
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
