@@ -273,6 +273,40 @@ func (lc *LazyClient) Close() error {
 	return nil
 }
 
+// SendWTagAndCompressorAsync is the same as Client.SendWTagAndCompressorAsync but if the
+// Lazy Client is in stand-by mode then the event is saved in buffer
+func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+	var r string
+	lc.clientMtx.Lock()
+
+	lc.Stats.AsyncEvents++ // Update stats
+
+	if lc.isStandByUnlocked() {
+		// Save in buffer
+		r = newNoConnID()
+		record := &lazyClientRecord{
+			AsyncID:    r,
+			Timestamp:  time.Now(),
+			Tag:        t,
+			Msg:        m,
+			Compressor: c,
+		}
+		err := lc.addToBuffer(record)
+		if err == ErrBufferOverflow {
+			lc.appLogger.Log(
+				applogger.WARNING,
+				"Message discarted from buffer because buffer is full",
+			)
+			lc.Stats.BufferedLost++ // Update stats
+		}
+		lc.Stats.TotalBuffered++ // Update stats
+	} else {
+		r = lc.Client.SendWTagAndCompressorAsync(t, m, c)
+	}
+	lc.clientMtx.Unlock()
+	return r
+}
+
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
