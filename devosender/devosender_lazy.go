@@ -156,6 +156,17 @@ type lazyClientRecord struct {
 	LastError  error
 }
 
+func (lc *LazyClient) IsStandBy() bool {
+	lc.clientMtx.Lock()
+	r := lc.isStandByUnlocked()
+	lc.clientMtx.Unlock()
+	return r
+}
+
+func (lc *LazyClient) isStandByUnlocked() bool {
+	return lc.Client == nil
+}
+
 const nonConnIDPrefix = "non-conn-"
 
 var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
