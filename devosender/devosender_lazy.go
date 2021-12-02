@@ -288,7 +288,7 @@ func (lc *LazyClient) Close() error {
 
 	err = lc.StandBy()
 	if err != nil {
-		return fmt.Errorf("While pass to StandBy to force close inner client")
+		return fmt.Errorf("While pass to StandBy to force close inner client: %w", err)
 	}
 
 	return nil
