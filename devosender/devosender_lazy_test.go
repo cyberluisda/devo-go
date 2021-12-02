@@ -1,9 +1,78 @@
 package devosender
 
 import (
+	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
+	"time"
+
+	"github.com/cyberluisda/devo-go/applogger"
 )
+
+func TestLazyClient_StandBy(t *testing.T) {
+	tests := []struct {
+		name                string
+		lazyClient          *LazyClient
+		wantErr             bool
+		wantLogEventPattern *regexp.Regexp
+	}{
+		{
+			"Error waiting for pending msgs",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
+					EnableStandByModeTimeout(time.Microsecond).                           // To force timeout
+					Build()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			true,
+			nil,
+		},
+		{
+			"Log error while close connection",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
+					AppLogger(&MemoryAppLogger{}).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Close connection to force error
+				r.Client.conn.Close()
+				r.Client.conn = nil
+				return r
+			}(),
+			false,
+			regexp.MustCompile(`^WARN: Error while close inner client. Uninstantiate client anyway:`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.lazyClient.StandBy(); (err != nil) != tt.wantErr {
+				t.Errorf("LazyClient.StandBy() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.wantLogEventPattern != nil {
+				mal, ok := tt.lazyClient.appLogger.(*MemoryAppLogger)
+				if ok {
+					logEvent := mal.Events[len(mal.Events)-1]
+					if !tt.wantLogEventPattern.MatchString(logEvent) {
+						t.Errorf("LazyClient.StandBy() wantLogEventPatter = %v, last log msg := %s", tt.wantLogEventPattern, logEvent)
+					}
+
+				} else {
+					t.Errorf("LazyClient.StandBy() wantLogEventPatter = %v, but logger MemoryAppLogger instance: %T", tt.wantLogEventPattern, tt.lazyClient.appLogger)
+				}
+			}
+		})
+	}
+}
 
 func TestLazyClient_popBuffer(t *testing.T) {
 	type fields struct {
