@@ -74,6 +74,66 @@ func TestLazyClient_StandBy(t *testing.T) {
 	}
 }
 
+func TestLazyClient_WakeUp(t *testing.T) {
+	tests := []struct {
+		name       string
+		lazyClient *LazyClient
+		wantErr    bool
+	}{
+		{
+			"Error while recreate client",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(NewClientBuilder().EntryPoint("udp://localhost:13000")).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Pass to stand-by
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+
+				// Change ClientBuilder to force error
+				r.clientBuilder.entrypoint = ""
+
+				return r
+			}(),
+			true,
+		},
+		{
+			"Error when flush pending events",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
+					FlushTimeout(time.Microsecond).                                       // to force flush timeout error
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Pass to stand-by
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+
+				return r
+			}(),
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.lazyClient.WakeUp(); (err != nil) != tt.wantErr {
+				t.Errorf("LazyClient.WakeUp() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestLazyClient_popBuffer(t *testing.T) {
 	type fields struct {
 		buffer []*lazyClientRecord
