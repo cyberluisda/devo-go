@@ -192,3 +192,20 @@ func TestLazyClient_undoPopBuffer(t *testing.T) {
 		})
 	}
 }
+
+type MemoryAppLogger struct {
+	Events []string
+	Level  applogger.Level
+}
+
+func (mal *MemoryAppLogger) IsLevelEnabled(l applogger.Level) bool {
+	return l <= mal.Level
+}
+
+func (mal *MemoryAppLogger) Log(l applogger.Level, a ...interface{}) {
+	mal.Events = append(mal.Events, fmt.Sprint(l, a))
+}
+
+func (mal *MemoryAppLogger) Logf(l applogger.Level, format string, a ...interface{}) {
+	mal.Events = append(mal.Events, fmt.Sprintf("%s: "+format, applogger.LevelString(l), a))
+}
