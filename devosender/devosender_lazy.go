@@ -92,6 +92,14 @@ func (lcb *LazyClientBuilder) FlushTimeout(d time.Duration) *LazyClientBuilder {
 	return lcb
 }
 
+// AppLogger sets the applogger.SimpleAppLogger used to write log messages
+func (lcb *LazyClientBuilder) AppLogger(log applogger.SimpleAppLogger) *LazyClientBuilder {
+	if log != nil {
+		lcb.appLogger = log
+	}
+	return lcb
+}
+
 // Build creates new LazyClient instance
 func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 	// Validations
