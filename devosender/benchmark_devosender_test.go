@@ -466,6 +466,119 @@ func BenchmarkTestReliableClient_SendWTagAndCompressorAsync_udp(b *testing.B) {
 	}
 }
 
+func BenchmarkTestReliableClient_SendWTag_udp(b *testing.B) {
+	// Ensure status path does not exist
+	os.RemoveAll("/tmp/devo-sender-reliable-client-benchmar")
+
+	// Create client
+	lc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		ClientBuilder(
+			NewClientBuilder().EntryPoint("udp://localhost:13000")).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		lc.Close()
+		// Clean status path
+		os.RemoveAll("/tmp/devo-sender-reliable-client-benchmar")
+	}()
+
+	tests := []struct {
+		name    string
+		msgSize int
+	}{
+		{
+			"Msg of 256 bytes",
+			256,
+		},
+		{
+			"Msg of 512 bytes",
+			512,
+		},
+		{
+			"Msg of 1024 bytes",
+			1024,
+		},
+		{
+			"Msg of 2048 bytes",
+			2048,
+		},
+	}
+
+	for _, tt := range tests {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				lc.SendWTag(tag, getRandomMsg(tt.msgSize))
+			}
+		})
+	}
+}
+
+func BenchmarkTestReliableClient_SendWTagAndCompressor_udp(b *testing.B) {
+	// Ensure status path does not exist
+	os.RemoveAll("/tmp/devo-sender-reliable-client-benchmar")
+
+	// Create client
+	lc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		ClientBuilder(
+			NewClientBuilder().EntryPoint("udp://localhost:13000")).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		lc.Close()
+		// Clean status path
+		os.RemoveAll("/tmp/devo-sender-reliable-client-benchmar")
+	}()
+
+	tests := []struct {
+		name       string
+		msgSize    int
+		compressor *Compressor
+	}{
+		{
+			"Msg of 256 bytes",
+			256,
+			&Compressor{
+				Algorithm: CompressorGzip,
+			},
+		},
+		{
+			"Msg of 512 bytes",
+			512,
+			&Compressor{
+				Algorithm: CompressorGzip,
+			},
+		},
+		{
+			"Msg of 1024 bytes",
+			1024,
+			&Compressor{
+				Algorithm: CompressorGzip,
+			},
+		},
+		{
+			"Msg of 2048 bytes",
+			2048,
+			&Compressor{
+				Algorithm: CompressorGzip,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		b.Run(tt.name, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				lc.SendWTagAndCompressor(tag, getRandomMsg(tt.msgSize), tt.compressor)
+			}
+		})
+	}
+}
+
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func getRandomMsg(size int) string {
