@@ -104,7 +104,7 @@ func TestLazyClient_WakeUp(t *testing.T) {
 			true,
 		},
 		{
-			"Error when flush pending events",
+			"Error while flush pending events",
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
