@@ -79,6 +79,7 @@ type ClientBuilder struct {
 	connExpiration            time.Duration
 	compressorAlgorithm       CompressorAlgorithm
 	compressorMinSize         int
+	defaultDevoTag            string
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
@@ -167,6 +168,12 @@ func (dsb *ClientBuilder) CompressorMinSize(s int) *ClientBuilder {
 	return dsb
 }
 
+// DefaultDevoTag set the default tag to be used when send data to Devo in target client
+func (dsb *ClientBuilder) DefaultDevoTag(t string) *ClientBuilder {
+	dsb.defaultDevoTag = t
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
@@ -233,6 +240,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		},
 		maxTimeConnActive: dsb.connExpiration,
 		asyncItems:        make(map[string]interface{}),
+		defaultTag:        dsb.defaultDevoTag,
 	}
 
 	err := result.makeConnection()
