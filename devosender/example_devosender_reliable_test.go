@@ -108,6 +108,51 @@ func ExampleReliableClient() {
 	// error close: <nil>
 }
 
+func ExampleReliableClient_as_SwitchDevoSender() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test-reliable-client")
+
+	var sender SwitchDevoSender
+	var err error
+	sender, err = NewReliableClientBuilder().
+		DbPath("/tmp/test").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"),
+		).Build()
+
+	fmt.Println("error", err)
+	fmt.Println("SwitchDevoSender", sender.String()[0:61])
+	fmt.Println("rc.IsStandBy", sender.IsStandBy())
+
+	sender.SendWTagAsync("tag", fmt.Sprintf("async msg at %s", time.Now()))
+	rc, ok := sender.(*ReliableClient)
+	if ok {
+		fmt.Printf("rc.Stats %+v\n", rc.Stats())
+	} else {
+		panic(fmt.Sprintf("%v can not be casted to ReliableClient", sender))
+	}
+
+	err = sender.Flush()
+	fmt.Printf("error flush: %+v\n", err)
+	fmt.Printf("rc.Stats after flush %+v\n", rc.Stats())
+
+	err = sender.Close()
+	fmt.Printf("error close: %+v\n", err)
+
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test-reliable-client")
+
+	// Output:
+	// error <nil>
+	// SwitchDevoSender Client: {entryPoint: 'udp://localhost:13000', syslogHostname:
+	// rc.IsStandBy false
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// error flush: <nil>
+	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0}
+	// error close: <nil>
+}
+
 func ExampleReliableClient_standbyAndWakeUp() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
