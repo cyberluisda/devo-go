@@ -844,8 +844,6 @@ func TestReliableClient_Close(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		// panic("TODO me llego aki")
-
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
 				Client:                   tt.fields.Client,

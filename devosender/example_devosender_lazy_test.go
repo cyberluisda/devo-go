@@ -163,6 +163,7 @@ func ExampleLazyClient() {
 	}
 	fmt.Println("Stats (after WakeUp)", lc.Stats)
 	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:146])
+	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty", lc.LastSendCallTimestamp() == time.Time{})
 
 	var sender SwitchDevoSender
 	sender = lc
@@ -173,6 +174,7 @@ func ExampleLazyClient() {
 	fmt.Printf("ID has non-conn- prefix: %v\n", strings.HasPrefix(id, "non-conn-"))
 	fmt.Println("SwitchDevoSender (pending events after close)", sender.String())
 	fmt.Println("Stats (pending events after close)", lc.Stats)
+	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (pending events after close) is empty", lc.LastSendCallTimestamp() == time.Time{})
 	sender.Close()
 	fmt.Println("SwitchDevoSender (after last close)", sender.String())
 	fmt.Println("Stats (after last close)", lc.Stats)
@@ -191,10 +193,12 @@ func ExampleLazyClient() {
 	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000'
+	// SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty false
 	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// ID has non-conn- prefix: true
 	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
+	// SwitchDevoSender.LastSendCallTimestamp (pending events after close) is empty true
 	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
 }
@@ -247,4 +251,50 @@ func ExampleLazyClient_SendAsync() {
 	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
+}
+
+func ExampleSwitchDevoSender_StandBy_after_period_last_event() {
+
+	// Instantiate sender
+	var sender SwitchDevoSender
+	var err error
+	sender, err = NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().
+				DefaultDevoTag("test.keep.free").
+				EntryPoint("udp://localhost:13000")).
+		Build()
+
+	// Send event
+	sender.SendAsync("message 1") // Any other SendXXXX method can be used here but have in mind that SendXXXAsync needs small time to be processed
+
+	// Wait for event was processed
+	for sender.AreAsyncOps() {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// StandBy only if last event was send 1 second ago
+	if sender.LastSendCallTimestamp().Add(time.Second).Before(time.Now()) {
+		err = sender.StandBy()
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("IsStandBy", sender.IsStandBy())
+
+	// Wait one second
+	time.Sleep(time.Second)
+
+	// StandBy only if last event was send 1 second ago
+	if sender.LastSendCallTimestamp().Add(time.Second).Before(time.Now()) {
+		err = sender.StandBy()
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("IsStandBy", sender.IsStandBy())
+
+	// Output:
+	// IsStandBy false
+	// IsStandBy true
 }
