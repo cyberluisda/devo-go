@@ -273,7 +273,7 @@ func TestReliableClientBuilder_FlushTimeout(t *testing.T) {
 			},
 			args{0 * time.Millisecond},
 			&ReliableClientBuilder{
-				flushTimeout: 0,
+				flushTimeout: time.Hour,
 			},
 		},
 		{
