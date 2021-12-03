@@ -1,3 +1,9 @@
+# 0.1.2
+**Release date**: 2021-12-03
+
+**Features**
+* [#25](https://github.com/cyberluisda/devo-go/pull/25):  `FlushTimeout` in `ReliableClientBuilder` and `LazyClientBuilder` applies only with values greater than `0`
+
 # 0.1.1
 **Release date**: 2021-12-03
 
