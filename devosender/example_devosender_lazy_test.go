@@ -163,6 +163,7 @@ func ExampleLazyClient() {
 	}
 	fmt.Println("Stats (after WakeUp)", lc.Stats)
 	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:146])
+	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty", lc.LastSendCallTimestamp() == time.Time{})
 
 	var sender SwitchDevoSender
 	sender = lc
@@ -173,6 +174,7 @@ func ExampleLazyClient() {
 	fmt.Printf("ID has non-conn- prefix: %v\n", strings.HasPrefix(id, "non-conn-"))
 	fmt.Println("SwitchDevoSender (pending events after close)", sender.String())
 	fmt.Println("Stats (pending events after close)", lc.Stats)
+	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (pending events after close) is empty", lc.LastSendCallTimestamp() == time.Time{})
 	sender.Close()
 	fmt.Println("SwitchDevoSender (after last close)", sender.String())
 	fmt.Println("Stats (after last close)", lc.Stats)
@@ -191,10 +193,12 @@ func ExampleLazyClient() {
 	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000'
+	// SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty false
 	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// ID has non-conn- prefix: true
 	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
+	// SwitchDevoSender.LastSendCallTimestamp (pending events after close) is empty true
 	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
 }
