@@ -1,3 +1,9 @@
+# 0.1.1
+**Release date**: 2021-12-03
+
+**Features**
+* [#24](https://github.com/cyberluisda/devo-go/pull/24):  `LastSendCallTimestamp` added to `SwitchDevoSender` interface
+
 # 0.1.0
 **Release date**: 2021-12-02
 
