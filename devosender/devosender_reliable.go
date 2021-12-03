@@ -831,7 +831,10 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 					dsrc.Client, err = dsrc.clientBuilder.Build()
 					// we can continue in connection error scenario
 					if err != nil {
-						// FIXME log
+						dsrc.appLogger.Logf(
+							applogger.ERROR,
+							"Error While create new client in Reconnection daemon: %v", err,
+						)
 					}
 				}
 			}
