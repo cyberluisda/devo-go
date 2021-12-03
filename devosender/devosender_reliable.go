@@ -159,7 +159,7 @@ func (dsrcb *ReliableClientBuilder) EnableStandByModeTimeout(d time.Duration) *R
 // FlushTimeout sets the timeout when wait for pending async envents in clien when
 // Flush() func is called
 func (dsrcb *ReliableClientBuilder) FlushTimeout(d time.Duration) *ReliableClientBuilder {
-	if d >= 0 {
+	if d > 0 {
 		dsrcb.flushTimeout = d
 	}
 

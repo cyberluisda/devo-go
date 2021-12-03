@@ -87,7 +87,7 @@ func (lcb *LazyClientBuilder) EnableStandByModeTimeout(d time.Duration) *LazyCli
 // FlushTimeout sets the timeout when wait for pending async envents in client when
 // Flush() func is called. Timeout is set only if parameter is greater than 0
 func (lcb *LazyClientBuilder) FlushTimeout(d time.Duration) *LazyClientBuilder {
-	if d >= 0 {
+	if d > 0 {
 		lcb.flushTimeout = d
 	}
 	return lcb
