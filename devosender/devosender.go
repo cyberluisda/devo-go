@@ -691,6 +691,7 @@ func (dsc *Client) AsyncsNumber() int {
 }
 
 // LastSendCallTimestamp returns the timestamp of last time that any of SendXXXX func was called with valid parameters
+// If Client is nil default time.Time value will be returned
 func (dsc *Client) LastSendCallTimestamp() time.Time {
 	if dsc == nil {
 		return time.Time{}
