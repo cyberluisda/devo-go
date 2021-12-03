@@ -252,3 +252,49 @@ func ExampleLazyClient_SendAsync() {
 	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 }
+
+func ExampleSwitchDevoSender_StandBy_after_period_last_event() {
+
+	// Instantiate sender
+	var sender SwitchDevoSender
+	var err error
+	sender, err = NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().
+				DefaultDevoTag("test.keep.free").
+				EntryPoint("udp://localhost:13000")).
+		Build()
+
+	// Send event
+	sender.SendAsync("message 1") // Any other SendXXXX method can be used here but have in mind that SendXXXAsync needs small time to be processed
+
+	// Wait for event was processed
+	for sender.AreAsyncOps() {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// StandBy only if last event was send 1 second ago
+	if sender.LastSendCallTimestamp().Add(time.Second).Before(time.Now()) {
+		err = sender.StandBy()
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("IsStandBy", sender.IsStandBy())
+
+	// Wait one second
+	time.Sleep(time.Second)
+
+	// StandBy only if last event was send 1 second ago
+	if sender.LastSendCallTimestamp().Add(time.Second).Before(time.Now()) {
+		err = sender.StandBy()
+		if err != nil {
+			panic(err)
+		}
+	}
+	fmt.Println("IsStandBy", sender.IsStandBy())
+
+	// Output:
+	// IsStandBy false
+	// IsStandBy true
+}
