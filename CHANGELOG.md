@@ -1,3 +1,9 @@
+# 0.1.3
+**Release date**: 2021-12-09
+
+**Bugs**
+* [#26](https://github.com/cyberluisda/devo-go/issues/26): devo-sender: `LazyClient` totally blocked when `Flush` call returns error timeout
+
 # 0.1.2
 **Release date**: 2021-12-03
 
