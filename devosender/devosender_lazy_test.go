@@ -202,6 +202,47 @@ func TestLazyClient_Close(t *testing.T) {
 	}
 }
 
+func TestLazyClient_Wakeup_Close_unblocked(t *testing.T) {
+	// Unit tests to reproduce https://github.com/cyberluisda/devo-go/issues/26
+
+	// Create client with  very insane flush timeout
+	c, err := NewLazyClientBuilder().
+		ClientBuilder(NewClientBuilder().EntryPoint("udp://localhost:13000")).
+		FlushTimeout(time.Microsecond).
+		Build()
+	if err != nil {
+		t.FailNow()
+	}
+
+	// pass to standby and send async msg
+	err = c.StandBy()
+	if err != nil {
+		t.FailNow()
+	}
+	c.SendWTagAsync("test.keep.free", "msg")
+
+	// Call wake up that should return error:
+	err = c.WakeUp()
+	if err == nil {
+		t.Errorf("LazyClient.Wakeup and then LazyClient.Close, Wakeup want error bug got nil")
+	}
+
+	// Call Close() and waiting for timeout
+	w := make(chan error, 1)
+	go func() {
+		w <- c.Close()
+	}()
+
+	select {
+	case err = <-w:
+		if err == nil {
+			t.Errorf("LazyClient.Wakeup and then LazyClient.Close, Close want error bug got nil")
+		}
+	case <-time.After(time.Millisecond * 200):
+		t.Errorf("LazyClient.Wakeup and then LazyClient.Close timeout reached while wait for Close")
+	}
+}
+
 func TestLazyClient_popBuffer(t *testing.T) {
 	type fields struct {
 		buffer []*lazyClientRecord
