@@ -266,6 +266,7 @@ func (lc *LazyClient) Flush() error {
 
 		err := lc.Client.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
 		if err != nil {
+			lc.clientMtx.Unlock()
 			return fmt.Errorf("While waiting for pending messages: %w", err)
 		}
 
