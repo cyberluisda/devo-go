@@ -204,6 +204,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
+		retryInitDelay:           dsrcb.retryDaemonOpts.initDelay,
 		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
