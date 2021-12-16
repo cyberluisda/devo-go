@@ -526,6 +526,16 @@ func (dsrc *ReliableClient) IsStandBy() bool {
 	return dsrc.standByMode
 }
 
+// IsConnWorking is the same as Client.IsConnWorking but check first if client is in
+// stand by mode
+func (dsrc *ReliableClient) IsConnWorking() (bool, error) {
+	if dsrc.IsStandBy() {
+		return false, nil
+	}
+
+	return dsrc.Client.IsConnWorking()
+}
+
 // ReliableClientStats represents the stats that can be queried
 type ReliableClientStats struct {
 	Count    int
