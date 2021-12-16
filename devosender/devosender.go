@@ -757,6 +757,30 @@ func (dsc *Client) Close() error {
 	return dsc.conn.Close()
 }
 
+// IsConnWorking check if connection is opened and make a test writing data to ensure that is working
+func (dsc *Client) IsConnWorking() (bool, error) {
+
+	if dsc == nil {
+		return false, nil
+	}
+
+	if dsc.conn == nil {
+		return false, nil
+	}
+
+	if len(dsc.isConnWorkingPayload) == 0 {
+		return false, fmt.Errorf("Payload to check connection is not defined")
+	}
+
+	n, err := dsc.conn.Write(dsc.isConnWorkingPayload)
+	if err == nil {
+		// Double check to be sure
+		n, err = dsc.conn.Write(dsc.isConnWorkingPayload)
+	}
+
+	return n != 0 && err == nil, nil
+}
+
 func (dsc *Client) String() string {
 	if dsc == nil {
 		return "<nil>"
