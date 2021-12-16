@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
+	"net"
 	"os"
 	"reflect"
 	"regexp"
@@ -3143,4 +3145,88 @@ func existKey(db *nutsdb.DB, bucket string, key []byte) bool {
 func destroyDb(path string, db *nutsdb.DB) {
 	db.Close()
 	os.RemoveAll(path)
+}
+
+type tcpMockRelay struct {
+	Host   string
+	Port   int
+	Lines  []string
+	conns  []net.Conn
+	list   net.Listener
+	Errors []error
+	stop   bool
+}
+
+func (tmr *tcpMockRelay) Start() error {
+	if tmr.Host == "" {
+		tmr.Host = "0.0.0.0"
+	}
+
+	var err error
+	tmr.list, err = net.Listen(
+		"tcp", tmr.Host+":"+fmt.Sprintf(
+			"%d", tmr.Port))
+	if err != nil {
+		return fmt.Errorf("While create Listener: %w", err)
+	}
+
+	if tmr.Port == 0 {
+		tmr.Port = int(tmr.list.Addr().(*net.TCPAddr).Port)
+	}
+
+	go func() {
+		for !tmr.stop {
+			c, err := tmr.list.Accept()
+			if err != nil {
+				tmr.Errors = append(tmr.Errors, fmt.Errorf("While listener accepts new conn: %w", err))
+				return
+			}
+
+			go tmr.handleConnection(c)
+		}
+	}()
+
+	return nil
+}
+
+func (tmr *tcpMockRelay) Stop() error {
+	var errReturned error
+
+	tmr.stop = true
+
+	for _, conn := range tmr.conns {
+		err := conn.Close()
+		if err != nil {
+			errReturned = fmt.Errorf("%v, While close connection: %w", errReturned, err)
+		}
+	}
+
+	if tmr.list != nil {
+		err := tmr.list.Close()
+		if err != nil {
+			errReturned = fmt.Errorf("%v, While close listener: %w", errReturned, err)
+		}
+	}
+
+	return errReturned
+}
+
+func (tmr *tcpMockRelay) handleConnection(c net.Conn) {
+	tmr.conns = append(tmr.conns, c)
+
+	for !tmr.stop {
+
+		bs := make([]byte, 256)
+		n, err := c.Read(bs)
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			return
+		}
+
+		if n > 0 {
+			tmr.Lines = append(tmr.Lines, string(bs))
+		}
+	}
 }
