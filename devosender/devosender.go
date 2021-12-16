@@ -251,9 +251,10 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 				KeepAlive: dsb.tcpKeepAlive,
 			},
 		},
-		maxTimeConnActive: dsb.connExpiration,
-		asyncItems:        make(map[string]interface{}),
-		defaultTag:        dsb.defaultDevoTag,
+		maxTimeConnActive:    dsb.connExpiration,
+		asyncItems:           make(map[string]interface{}),
+		defaultTag:           dsb.defaultDevoTag,
+		isConnWorkingPayload: []byte(dsb.isConnWorkingCheckPayload),
 	}
 
 	err := result.makeConnection()
