@@ -2443,6 +2443,100 @@ func TestClient_AsyncsNumber(t *testing.T) {
 	}
 }
 
+func TestClient_IsConnWorking(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsc     *Client
+		want    bool
+		wantErr bool
+	}{
+		{
+			"Nil client",
+			nil,
+			false,
+			false,
+		},
+		{
+			"Nil connection",
+			&Client{},
+			false,
+			false,
+		},
+		{
+			"Error missing payload",
+			&Client{
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://localhost:13000").
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			false,
+			true,
+		},
+		{
+			"No working",
+			&Client{
+				isConnWorkingPayload: []byte("\n"),
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://localhost:13000").
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Close connection to force error if connection was stablished
+					err = c.conn.Close()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			false,
+			false,
+		},
+		{
+			"Working",
+			&Client{
+				isConnWorkingPayload: []byte("\n"),
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://example.com:80"). // Live server on internet
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			true,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.dsc.IsConnWorking()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.IsConnWorking() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("Client.IsConnWorking() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClient_String_nil(t *testing.T) {
 	var dsc *Client
 	want := "<nil>"
