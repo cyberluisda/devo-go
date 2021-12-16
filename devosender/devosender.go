@@ -321,6 +321,7 @@ type Client struct {
 	lastSendCallTimestamp   time.Time
 	statsMutex              sync.Mutex
 	compressor              *Compressor
+	isConnWorkingPayload    []byte
 }
 
 type tlsSetup struct {
