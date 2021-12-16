@@ -492,7 +492,7 @@ func (dsrc *ReliableClient) StandBy() error {
 			dsrc.standByMode = true
 			return fmt.Errorf("Error when close client passing to StandBy: %w", err)
 		}
-		// Destroy curret client to ensrue will be recreated when WakeUp
+		// Destroy curret client to ensure it will be recreated when WakeUp
 		dsrc.Client = nil
 	}
 
