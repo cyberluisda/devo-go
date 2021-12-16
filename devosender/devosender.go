@@ -80,6 +80,7 @@ type ClientBuilder struct {
 	compressorAlgorithm       CompressorAlgorithm
 	compressorMinSize         int
 	defaultDevoTag            string
+	isConnWorkingCheckPayload string
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
