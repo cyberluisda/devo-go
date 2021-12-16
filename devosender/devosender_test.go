@@ -1861,6 +1861,56 @@ func TestClientBuilder_DefaultDevoTag(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_IsConnWorkingCheckPayload(t *testing.T) {
+	type fields struct {
+		isConnWorkingCheckPayload string
+	}
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Empty",
+			fields{"old"},
+			args{""},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "",
+			},
+		},
+		{
+			"Overlength value",
+			fields{"old"},
+			args{"lengt is greater than 4"},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "old",
+			},
+		},
+		{
+			"Valid value",
+			fields{""},
+			args{"\n"},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "\n",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				isConnWorkingCheckPayload: tt.fields.isConnWorkingCheckPayload,
+			}
+			if got := dsb.IsConnWorkingCheckPayload(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.IsConnWorkingCheckPayload() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
