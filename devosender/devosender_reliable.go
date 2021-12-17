@@ -831,7 +831,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.retryInitDelay)
+		time.Sleep(dsrc.reconnInitDelay)
 
 		for !dsrc.reconnStop {
 			dsrc.clientMtx.Lock()
