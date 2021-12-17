@@ -1371,6 +1371,72 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
 }
 
+func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T) {
+	// Open new server
+	tcm := &tcpMockRelay{}
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start tcp mockrelay: %v", err)
+		return
+	}
+
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("tcp://localhost:" + fmt.Sprintf("%d", tcm.Port)).
+				IsConnWorkingCheckPayload("\n")).
+		EnableStandByModeTimeout(time.Millisecond * 100).
+		RetryDaemonInitDelay(time.Minute).                   // Prevent daemon runs during tests
+		ClientReconnDaemonInitDelay(time.Millisecond * 300). // Give me time to stop server
+		ClientReconnDaemonWaitBtwChecks(time.Millisecond * 300).
+		Build()
+	if err != nil {
+		t.Errorf("Error while create reliable client: %v", err)
+		return
+	}
+
+	// Close server
+	err = tcm.Stop()
+	if err != nil {
+		t.Errorf("Error while create stop mock reliable client: %v", err)
+		return
+	}
+
+	// Wait until isConnWorking will be failling or timeout
+	tries := 3
+	for ok, _ := rc.IsConnWorking(); ok; { // we are sure that IsConnWorking does not return error
+		tries--
+		if tries == 0 {
+			t.Errorf("Timeout reached while wait for IsConnWorking return false")
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// Restart the server
+	err = tcm.Start()
+	if err != nil {
+		t.Errorf("Error while restart tcp mockrelay: %v", err)
+		return
+	}
+
+	// Ensure we are waiting enouth time to reconn dameon does its job
+	time.Sleep(time.Millisecond * 400)
+
+	ok, _ := rc.IsConnWorking()
+	if !ok {
+		t.Error("ReliableClient.IsConnWorking() with server restarted, want true, got false", rc.Client)
+	}
+
+	// Cleant tmp
+	tcm.Stop()
+	rc.Close()
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
+}
+
 func TestReliableClient_resendRecord(t *testing.T) {
 	type args struct {
 		r *reliableClientRecord
