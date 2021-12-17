@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -569,6 +570,8 @@ type ReliableClientStats struct {
 }
 
 // Stats returns the curren stats (session + persisted). Erros when load stas are ignored
+// DbDataEntries and DbKeysSize will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment variable
+// is set with "yes" value
 func (dsrc *ReliableClient) Stats() ReliableClientStats {
 	r := ReliableClientStats{}
 	dsrc.db.View(func(tx *nutsdb.Tx) error {
@@ -587,8 +590,25 @@ func (dsrc *ReliableClient) Stats() ReliableClientStats {
 		v, _ = cont(tx, statsBucket, evictedKey, false)
 		r.Evicted = v
 
+		v, _ = tx.LSize(ctrlBucket, keysInOrderKey)
+		r.DbKeysInOrderSize = v
+
+		if ev, ok := os.LookupEnv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA"); ok && strings.ToLower(ev) == "yes" {
+			col, _ := tx.GetAll(dataBucket)
+			r.DbDataEntries = len(col)
+
+			allKeys, _ := tx.SMembers(ctrlBucket, keysKey)
+			r.DbKeysSize = len(allKeys)
+		} else {
+			// Not filled by default
+			r.DbDataEntries = -1
+			r.DbKeysSize = -1
+		}
+
 		return nil
 	})
+
+	r.DbMaxFileID = dsrc.db.MaxFileID
 
 	return r
 }
