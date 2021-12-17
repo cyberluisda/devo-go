@@ -80,6 +80,7 @@ type ClientBuilder struct {
 	compressorAlgorithm       CompressorAlgorithm
 	compressorMinSize         int
 	defaultDevoTag            string
+	isConnWorkingCheckPayload string
 }
 
 // ClienBuilderDevoCentralRelay is the type used to set Devo central relay as entrypoint
@@ -174,6 +175,19 @@ func (dsb *ClientBuilder) DefaultDevoTag(t string) *ClientBuilder {
 	return dsb
 }
 
+// IsConnWorkingCheckPayload sets the payload of the raw message that will be sent (Write) to check conection
+// during IsConnWorking call
+// Empty string implies that IsConnWorking will return an error. The payload size must be less that 4 characters
+// Recommended value for this payload when you like to enable this check is zero-character: "\x00"
+func (dsb *ClientBuilder) IsConnWorkingCheckPayload(s string) *ClientBuilder {
+	if s == "" {
+		dsb.isConnWorkingCheckPayload = s
+	} else if len(s) < 4 {
+		dsb.isConnWorkingCheckPayload = s
+	}
+	return dsb
+}
+
 // ParseDevoCentralEntrySite returns ClientBuilderDevoCentralRelay based on site code.
 // valid codes are 'US' and 'EU'
 func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
@@ -238,9 +252,10 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 				KeepAlive: dsb.tcpKeepAlive,
 			},
 		},
-		maxTimeConnActive: dsb.connExpiration,
-		asyncItems:        make(map[string]interface{}),
-		defaultTag:        dsb.defaultDevoTag,
+		maxTimeConnActive:    dsb.connExpiration,
+		asyncItems:           make(map[string]interface{}),
+		defaultTag:           dsb.defaultDevoTag,
+		isConnWorkingPayload: []byte(dsb.isConnWorkingCheckPayload),
 	}
 
 	err := result.makeConnection()
@@ -321,6 +336,7 @@ type Client struct {
 	lastSendCallTimestamp   time.Time
 	statsMutex              sync.Mutex
 	compressor              *Compressor
+	isConnWorkingPayload    []byte
 }
 
 type tlsSetup struct {
@@ -754,6 +770,35 @@ func (dsc *Client) Close() error {
 		return fmt.Errorf("Connection is nil")
 	}
 	return dsc.conn.Close()
+}
+
+// ErrPayloadNoDefined is the error returned when payload is required by was not defined
+var ErrPayloadNoDefined = errors.New("Payload to check connection is not defined")
+
+// IsConnWorking check if connection is opened and make a test writing data to ensure that is working
+// If payload to check is not defined (ClientBuilder.IsConnWorkingCheckPayload) then ErrPayloadNoDefined
+// will be returned
+func (dsc *Client) IsConnWorking() (bool, error) {
+
+	if dsc == nil {
+		return false, nil
+	}
+
+	if dsc.conn == nil {
+		return false, nil
+	}
+
+	if len(dsc.isConnWorkingPayload) == 0 {
+		return false, ErrPayloadNoDefined
+	}
+
+	n, err := dsc.conn.Write(dsc.isConnWorkingPayload)
+	if err == nil {
+		// Double check to be sure
+		n, err = dsc.conn.Write(dsc.isConnWorkingPayload)
+	}
+
+	return n != 0 && err == nil, nil
 }
 
 func (dsc *Client) String() string {

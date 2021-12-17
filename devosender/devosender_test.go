@@ -1861,6 +1861,56 @@ func TestClientBuilder_DefaultDevoTag(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_IsConnWorkingCheckPayload(t *testing.T) {
+	type fields struct {
+		isConnWorkingCheckPayload string
+	}
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Empty",
+			fields{"old"},
+			args{""},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "",
+			},
+		},
+		{
+			"Overlength value",
+			fields{"old"},
+			args{"lengt is greater than 4"},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "old",
+			},
+		},
+		{
+			"Valid value",
+			fields{""},
+			args{"\n"},
+			&ClientBuilder{
+				isConnWorkingCheckPayload: "\n",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				isConnWorkingCheckPayload: tt.fields.isConnWorkingCheckPayload,
+			}
+			if got := dsb.IsConnWorkingCheckPayload(tt.args.s); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.IsConnWorkingCheckPayload() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseDevoCentralEntrySite(t *testing.T) {
 	type args struct {
 		s string
@@ -1918,21 +1968,22 @@ func TestParseDevoCentralEntrySite(t *testing.T) {
 
 func TestClientBuilder_Build(t *testing.T) {
 	type fields struct {
-		entrypoint            string
-		key                   []byte
-		cert                  []byte
-		chain                 []byte
-		keyFileName           string
-		certFileName          string
-		chainFileName         *string
-		tlsInsecureSkipVerify bool
-		tlsRenegotiation      tls.RenegotiationSupport
-		tcpTimeout            time.Duration
-		tcpKeepAlive          time.Duration
-		connExpiration        time.Duration
-		compressorAlgorithm   CompressorAlgorithm
-		compressorMinSize     int
-		defaultDevoTag        string
+		entrypoint                string
+		key                       []byte
+		cert                      []byte
+		chain                     []byte
+		keyFileName               string
+		certFileName              string
+		chainFileName             *string
+		tlsInsecureSkipVerify     bool
+		tlsRenegotiation          tls.RenegotiationSupport
+		tcpTimeout                time.Duration
+		tcpKeepAlive              time.Duration
+		connExpiration            time.Duration
+		compressorAlgorithm       CompressorAlgorithm
+		compressorMinSize         int
+		defaultDevoTag            string
+		isConnWorkingCheckPayload string
 	}
 	tests := []struct {
 		name    string
@@ -2045,25 +2096,41 @@ func TestClientBuilder_Build(t *testing.T) {
 			}(),
 			false,
 		},
+		{
+			"With isConnWorkingCheckPayload",
+			fields{
+				entrypoint:                "udp://localhost:13000",
+				isConnWorkingCheckPayload: "\n",
+			},
+			func() *Client {
+				r, _ := NewDevoSender("udp://localhost:13000")
+				c := r.(*Client)
+				c.isConnWorkingPayload = []byte("\n")
+
+				return r.(*Client)
+			}(),
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsb := &ClientBuilder{
-				entrypoint:            tt.fields.entrypoint,
-				key:                   tt.fields.key,
-				cert:                  tt.fields.cert,
-				chain:                 tt.fields.chain,
-				keyFileName:           tt.fields.keyFileName,
-				certFileName:          tt.fields.certFileName,
-				chainFileName:         tt.fields.chainFileName,
-				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
-				tlsRenegotiation:      tt.fields.tlsRenegotiation,
-				tcpTimeout:            tt.fields.tcpTimeout,
-				tcpKeepAlive:          tt.fields.tcpKeepAlive,
-				connExpiration:        tt.fields.connExpiration,
-				compressorAlgorithm:   tt.fields.compressorAlgorithm,
-				compressorMinSize:     tt.fields.compressorMinSize,
-				defaultDevoTag:        tt.fields.defaultDevoTag,
+				entrypoint:                tt.fields.entrypoint,
+				key:                       tt.fields.key,
+				cert:                      tt.fields.cert,
+				chain:                     tt.fields.chain,
+				keyFileName:               tt.fields.keyFileName,
+				certFileName:              tt.fields.certFileName,
+				chainFileName:             tt.fields.chainFileName,
+				tlsInsecureSkipVerify:     tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:          tt.fields.tlsRenegotiation,
+				tcpTimeout:                tt.fields.tcpTimeout,
+				tcpKeepAlive:              tt.fields.tcpKeepAlive,
+				connExpiration:            tt.fields.connExpiration,
+				compressorAlgorithm:       tt.fields.compressorAlgorithm,
+				compressorMinSize:         tt.fields.compressorMinSize,
+				defaultDevoTag:            tt.fields.defaultDevoTag,
+				isConnWorkingCheckPayload: tt.fields.isConnWorkingCheckPayload,
 			}
 			got, err := dsb.Build()
 			if (err != nil) != tt.wantErr {
@@ -2371,6 +2438,100 @@ func TestClient_AsyncsNumber(t *testing.T) {
 			}
 			if got := dsc.AsyncsNumber(); got != tt.want {
 				t.Errorf("Client.AsyncsNumber() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_IsConnWorking(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsc     *Client
+		want    bool
+		wantErr bool
+	}{
+		{
+			"Nil client",
+			nil,
+			false,
+			false,
+		},
+		{
+			"Nil connection",
+			&Client{},
+			false,
+			false,
+		},
+		{
+			"Error missing payload",
+			&Client{
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://localhost:13000").
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			false,
+			true,
+		},
+		{
+			"No working",
+			&Client{
+				isConnWorkingPayload: []byte("\n"),
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://localhost:13000").
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Close connection to force error if connection was stablished
+					err = c.conn.Close()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			false,
+			false,
+		},
+		{
+			"Working",
+			&Client{
+				isConnWorkingPayload: []byte("\n"),
+				conn: func() net.Conn {
+					c, err := NewClientBuilder().
+						EntryPoint("udp://example.com:80"). // Live server on internet
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					return c.conn
+				}(),
+			},
+			true,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.dsc.IsConnWorking()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.IsConnWorking() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if got != tt.want {
+				t.Errorf("Client.IsConnWorking() = %v, want %v", got, tt.want)
 			}
 		})
 	}

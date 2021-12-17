@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
+	"net"
 	"os"
 	"reflect"
 	"regexp"
@@ -970,6 +972,60 @@ func TestReliableClient_WakeUp(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-WakeUp")
 }
 
+func TestReliableClient__check_closed_conn(t *testing.T) {
+	// Open new server
+	tcm := &tcpMockRelay{}
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start tcp mockrelay: %v", err)
+		return
+	}
+
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_IsStandBy_closedRelayConn")
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devosedner-tests-ReliableClient_IsStandBy_closedRelayConn").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("tcp://localhost:" + fmt.Sprintf("%d", tcm.Port)).
+				IsConnWorkingCheckPayload("\n")).
+		EnableStandByModeTimeout(time.Millisecond * 100).
+		RetryDaemonInitDelay(time.Second).
+		ClientReconnDaemonInitDelay(time.Second).
+		Build()
+	if err != nil {
+		t.Errorf("Error while create reliable client: %v", err)
+		return
+	}
+
+	if rc.IsStandBy() {
+		t.Error("ReliableClient.TestReliableClient_IsStandBy() with server started, want false, got true", rc.Client)
+	}
+	ok, _ := rc.IsConnWorking()
+	if !ok {
+		t.Error("ReliableClient.IsConnWorking() with server started, want true, got false", rc.Client)
+	}
+
+	// Close server
+	err = tcm.Stop()
+	if err != nil {
+		t.Errorf("Error while create stop mock reliable client: %v", err)
+	}
+	// time.Sleep(time.Millisecond * 5000) // Wait for server close
+
+	if rc.IsStandBy() {
+		t.Error("ReliableClient.IsStandBy() with server stopped, want false, got true", rc.Client)
+	}
+	ok, _ = rc.IsConnWorking()
+	if ok {
+		t.Error("ReliableClient.IsConnWorking() with server stopped, want false, got true", rc.Client)
+	}
+
+	// Cleant tmp
+	rc.Close()
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_IsStandBy_closedRelayConn")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
@@ -1313,6 +1369,72 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup")
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
+}
+
+func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T) {
+	// Open new server
+	tcm := &tcpMockRelay{}
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start tcp mockrelay: %v", err)
+		return
+	}
+
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("tcp://localhost:" + fmt.Sprintf("%d", tcm.Port)).
+				IsConnWorkingCheckPayload("\n")).
+		EnableStandByModeTimeout(time.Millisecond * 100).
+		RetryDaemonInitDelay(time.Minute).                   // Prevent daemon runs during tests
+		ClientReconnDaemonInitDelay(time.Millisecond * 300). // Give me time to stop server
+		ClientReconnDaemonWaitBtwChecks(time.Millisecond * 300).
+		Build()
+	if err != nil {
+		t.Errorf("Error while create reliable client: %v", err)
+		return
+	}
+
+	// Close server
+	err = tcm.Stop()
+	if err != nil {
+		t.Errorf("Error while create stop mock reliable client: %v", err)
+		return
+	}
+
+	// Wait until isConnWorking will be failling or timeout
+	tries := 3
+	for ok, _ := rc.IsConnWorking(); ok; { // we are sure that IsConnWorking does not return error
+		tries--
+		if tries == 0 {
+			t.Errorf("Timeout reached while wait for IsConnWorking return false")
+			return
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// Restart the server
+	err = tcm.Start()
+	if err != nil {
+		t.Errorf("Error while restart tcp mockrelay: %v", err)
+		return
+	}
+
+	// Ensure we are waiting enouth time to reconn dameon does its job
+	time.Sleep(time.Millisecond * 400)
+
+	ok, _ := rc.IsConnWorking()
+	if !ok {
+		t.Error("ReliableClient.IsConnWorking() with server restarted, want true, got false", rc.Client)
+	}
+
+	// Cleant tmp
+	tcm.Stop()
+	rc.Close()
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
 }
 
 func TestReliableClient_resendRecord(t *testing.T) {
@@ -3143,4 +3265,88 @@ func existKey(db *nutsdb.DB, bucket string, key []byte) bool {
 func destroyDb(path string, db *nutsdb.DB) {
 	db.Close()
 	os.RemoveAll(path)
+}
+
+type tcpMockRelay struct {
+	Host   string
+	Port   int
+	Lines  []string
+	conns  []net.Conn
+	list   net.Listener
+	Errors []error
+	stop   bool
+}
+
+func (tmr *tcpMockRelay) Start() error {
+	if tmr.Host == "" {
+		tmr.Host = "0.0.0.0"
+	}
+
+	var err error
+	tmr.list, err = net.Listen(
+		"tcp", tmr.Host+":"+fmt.Sprintf(
+			"%d", tmr.Port))
+	if err != nil {
+		return fmt.Errorf("While create Listener: %w", err)
+	}
+
+	if tmr.Port == 0 {
+		tmr.Port = int(tmr.list.Addr().(*net.TCPAddr).Port)
+	}
+
+	go func() {
+		for !tmr.stop {
+			c, err := tmr.list.Accept()
+			if err != nil {
+				tmr.Errors = append(tmr.Errors, fmt.Errorf("While listener accepts new conn: %w", err))
+				return
+			}
+
+			go tmr.handleConnection(c)
+		}
+	}()
+
+	return nil
+}
+
+func (tmr *tcpMockRelay) Stop() error {
+	var errReturned error
+
+	tmr.stop = true
+
+	for _, conn := range tmr.conns {
+		err := conn.Close()
+		if err != nil {
+			errReturned = fmt.Errorf("%v, While close connection: %w", errReturned, err)
+		}
+	}
+
+	if tmr.list != nil {
+		err := tmr.list.Close()
+		if err != nil {
+			errReturned = fmt.Errorf("%v, While close listener: %w", errReturned, err)
+		}
+	}
+
+	return errReturned
+}
+
+func (tmr *tcpMockRelay) handleConnection(c net.Conn) {
+	tmr.conns = append(tmr.conns, c)
+
+	for !tmr.stop {
+
+		bs := make([]byte, 256)
+		n, err := c.Read(bs)
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			return
+		}
+
+		if n > 0 {
+			tmr.Lines = append(tmr.Lines, string(bs))
+		}
+	}
 }

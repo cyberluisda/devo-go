@@ -204,7 +204,9 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
+		retryInitDelay:           dsrcb.retryDaemonOpts.initDelay,
 		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
+		reconnInitDelay:          dsrcb.clientReconnOpts.initDelay,
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
@@ -490,7 +492,7 @@ func (dsrc *ReliableClient) StandBy() error {
 			dsrc.standByMode = true
 			return fmt.Errorf("Error when close client passing to StandBy: %w", err)
 		}
-		// Destroy curret client to ensrue will be recreated when WakeUp
+		// Destroy curret client to ensure it will be recreated when WakeUp
 		dsrc.Client = nil
 	}
 
@@ -522,6 +524,16 @@ func (dsrc *ReliableClient) WakeUp() error {
 // IsStandBy retursn true when client is in StandBy() mode
 func (dsrc *ReliableClient) IsStandBy() bool {
 	return dsrc.standByMode
+}
+
+// IsConnWorking is the same as Client.IsConnWorking but check first if client is in
+// stand by mode
+func (dsrc *ReliableClient) IsConnWorking() (bool, error) {
+	if dsrc.IsStandBy() {
+		return false, nil
+	}
+
+	return dsrc.Client.IsConnWorking()
 }
 
 // ReliableClientStats represents the stats that can be queried
@@ -819,14 +831,20 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.retryInitDelay)
+		time.Sleep(dsrc.reconnInitDelay)
 
 		for !dsrc.reconnStop {
 			dsrc.clientMtx.Lock()
 			if !dsrc.IsStandBy() {
-				// TODO implement other heltcheck mechanism here
+				recreate := false
 				if dsrc.Client == nil {
-					// Build inner Client
+					recreate = true
+				} else if ok, err := dsrc.Client.IsConnWorking(); err != ErrPayloadNoDefined && !ok {
+					recreate = true
+				}
+
+				// Build inner Client
+				if recreate {
 					var err error
 					dsrc.Client, err = dsrc.clientBuilder.Build()
 					// we can continue in connection error scenario
