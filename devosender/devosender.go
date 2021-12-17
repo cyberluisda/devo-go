@@ -771,7 +771,12 @@ func (dsc *Client) Close() error {
 	return dsc.conn.Close()
 }
 
+// ErrPayloadNoDefined is the error returned when payload is required by was not defined
+var ErrPayloadNoDefined = errors.New("Payload to check connection is not defined")
+
 // IsConnWorking check if connection is opened and make a test writing data to ensure that is working
+// If payload to check is not defined (ClientBuilder.IsConnWorkingCheckPayload) then ErrPayloadNoDefined
+// will be returned
 func (dsc *Client) IsConnWorking() (bool, error) {
 
 	if dsc == nil {
@@ -783,7 +788,7 @@ func (dsc *Client) IsConnWorking() (bool, error) {
 	}
 
 	if len(dsc.isConnWorkingPayload) == 0 {
-		return false, fmt.Errorf("Payload to check connection is not defined")
+		return false, ErrPayloadNoDefined
 	}
 
 	n, err := dsc.conn.Write(dsc.isConnWorkingPayload)
