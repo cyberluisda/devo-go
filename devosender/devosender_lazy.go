@@ -299,12 +299,32 @@ func (lc *LazyClient) Close() error {
 // SendWTagAndCompressorAsync is the same as Client.SendWTagAndCompressorAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
 func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
-	var r string
 	lc.clientMtx.Lock()
+	defer lc.clientMtx.Unlock()
 
 	lc.Stats.AsyncEvents++ // Update stats
 
+	saveRecord := false
 	if lc.isStandByUnlocked() {
+		saveRecord = true
+	} else {
+		// Check if client needs to be restarted
+		if ok, err := lc.IsConnWorking(); err != ErrPayloadNoDefined && !ok {
+			lc.Client.Close() // Close ignoring errors
+			lc.Client = nil   // Passing to standby mode and easy gc
+
+			// New client
+			client, err := lc.clientBuilder.Build()
+			if err != nil {
+				saveRecord = true
+			} else {
+				lc.Client = client
+			}
+		}
+	}
+
+	var r string
+	if saveRecord {
 		// Save in buffer
 		r = newNoConnID()
 		record := &lazyClientRecord{
@@ -326,7 +346,7 @@ func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) str
 	} else {
 		r = lc.Client.SendWTagAndCompressorAsync(t, m, c)
 	}
-	lc.clientMtx.Unlock()
+
 	return r
 }
 
