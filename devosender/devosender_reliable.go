@@ -356,8 +356,7 @@ func (dsrc *ReliableClient) Flush() error {
 				// Check if Id is not pending
 				if !dsrc.IsAsyncActive(id) {
 					// Load errors and check on it
-					errorsMap := dsrc.AsyncErrors()
-					if err, ok := errorsMap[id]; ok {
+					if ok, err := dsrc.AsyncError(id); ok {
 						// We have found error, retrying
 						idsToBeResend[id] = err
 
