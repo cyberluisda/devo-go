@@ -272,6 +272,54 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrorsIds(t *testing.T) {
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name string
+		dsc  *Client
+		want []string
+	}{
+		{
+			"Nil",
+			nil,
+			nil,
+		},
+		{
+			"Nil error list",
+			&Client{},
+			nil,
+		},
+		{
+			"Empty error list",
+			&Client{
+				asyncErrors: map[string]error{},
+			},
+			nil,
+		},
+		{
+			"IDs with errors",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+					"ID-2": errors.New("test error 2"),
+					"ID-3": errors.New("test error 3"),
+				},
+			},
+			[]string{"ID-1", "ID-2", "ID-3"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.dsc.AsyncErrorsIds()
+			sort.Strings(got)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.AsyncErrorsIds() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestClient_AsyncError(t *testing.T) {
 	type args struct {
