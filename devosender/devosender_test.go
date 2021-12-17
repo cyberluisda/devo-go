@@ -272,6 +272,69 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+
+func TestClient_AsyncError(t *testing.T) {
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name    string
+		dsc     *Client
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			"Nil",
+			nil,
+			args{"any id"},
+			false,
+			true,
+		},
+		{
+			"Empty error list",
+			&Client{},
+			args{"any id"},
+			false,
+			false,
+		},
+		{
+			"Id does not found",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+				},
+			},
+			args{"any id"},
+			false,
+			false,
+		},
+		{
+			"ID found",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+				},
+			},
+			args{"ID-1"},
+			true,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.dsc.AsyncError(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.AsyncError() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Client.AsyncError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClient_AsyncErrorsNumber_nil(t *testing.T) {
 	var dsc *Client
 	want := 0
