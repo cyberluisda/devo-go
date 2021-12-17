@@ -604,6 +604,31 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// AsyncErrorsIds returns the request IDs with error registered.
+// This method is different from AsyncErrors because is thread safe at
+// cost of performance.
+func (dsc *Client) AsyncErrorsIds() []string {
+	if dsc == nil {
+		return nil
+	}
+
+	dsc.asyncErrorsMutext.Lock()
+	defer dsc.asyncErrorsMutext.Unlock()
+
+	numIds := len(dsc.asyncErrors)
+	if numIds == 0 {
+		return nil
+	}
+	r := make([]string, numIds)
+	i := 0
+	for id := range dsc.asyncErrors {
+		r[i] = id
+		i++
+	}
+
+	return r
+}
+
 // AsyncError return true and last error detected fo ID if error was captured or false, nil in other case
 // One special case is when dsc Pointer is nil, that this method returns (false, ErrNilPointerReceiver)
 // AsyncError is thread-safe mode
