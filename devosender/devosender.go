@@ -178,6 +178,7 @@ func (dsb *ClientBuilder) DefaultDevoTag(t string) *ClientBuilder {
 // IsConnWorkingCheckPayload sets the payload of the raw message that will be sent (Write) to check conection
 // during IsConnWorking call
 // Empty string implies that IsConnWorking will return an error. The payload size must be less that 4 characters
+// Recommended value for this payload when you like to enable this check is zero-character: "\x00"
 func (dsb *ClientBuilder) IsConnWorkingCheckPayload(s string) *ClientBuilder {
 	if s == "" {
 		dsb.isConnWorkingCheckPayload = s
