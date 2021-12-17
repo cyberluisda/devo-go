@@ -65,11 +65,11 @@ func ExampleReliableClient_withoutConnection() {
 	// error <nil>
 	// rc.Client <nil>
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error close: <nil>
-	// rc.Stats after close {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after close {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
 
 }
 
@@ -102,9 +102,9 @@ func ExampleReliableClient() {
 	// error <nil>
 	// rc.GetEntryPoint udp://example.com:80
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0}
+	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error close: <nil>
 }
 
@@ -147,9 +147,9 @@ func ExampleReliableClient_as_SwitchDevoSender() {
 	// error <nil>
 	// SwitchDevoSender Client: {entryPoint: 'udp://localhost:13000', syslogHostname:
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0}
+	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// error close: <nil>
 }
 
@@ -191,11 +191,11 @@ func ExampleReliableClient_standbyAndWakeUp() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
-	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:0 Updated:1 Finished:1 Dropped:0 Evicted:0}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after Wakeup and wait {Count:0 Updated:1 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
 }
 
 func ExampleReliableClient_evicted() {
@@ -238,12 +238,12 @@ func ExampleReliableClient_evicted() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after Wakeup and wait {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// Flush error <nil>
-	// rc.Stats after Flush and wait {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:1}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after Flush and wait {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:1 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
 }
 
 func ExampleReliableClient_dropped() {
@@ -288,12 +288,12 @@ func ExampleReliableClient_dropped() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0}
+	// rc.Stats {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0}
+	// rc.Stats after Wakeup and wait {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
 	// Flush error <nil>
-	// rc.Stats after Flush and wait {Count:2 Updated:2 Finished:3 Dropped:3 Evicted:0}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after Flush and wait {Count:2 Updated:2 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
 }
 
 func ExampleReliableClient_nilInnerClient() {
@@ -369,7 +369,7 @@ func ExampleReliableClient_nilInnerClient() {
 	// LastSendCallTimestamp returns: '0001-01-01 00:00:00 +0000 UTC'
 	// Write i: 0 err: Receiver func call with nil pointer
 	// Close: <nil>
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0}
+	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
 }
 
 func ExampleReliableClient_appLoggerError() {
