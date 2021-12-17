@@ -836,9 +836,15 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 		for !dsrc.reconnStop {
 			dsrc.clientMtx.Lock()
 			if !dsrc.IsStandBy() {
-				// TODO implement other heltcheck mechanism here
+				recreate := false
 				if dsrc.Client == nil {
-					// Build inner Client
+					recreate = true
+				} else if ok, err := dsrc.Client.IsConnWorking(); err != ErrPayloadNoDefined && !ok {
+					recreate = true
+				}
+
+				// Build inner Client
+				if recreate {
 					var err error
 					dsrc.Client, err = dsrc.clientBuilder.Build()
 					// we can continue in connection error scenario
