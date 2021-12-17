@@ -310,6 +310,63 @@ func TestLazyClient_SendWTagAndCompressorAsync__server_restarted(t *testing.T) {
 	c.Close()
 }
 
+func TestLazyClient_SendWTagAndCompressorAsync__server_stopped(t *testing.T) {
+
+	// Open new server
+	tcm := &tcpMockRelay{} // Implemented in devosender_reliable.go
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start mock relay server: %v", err)
+		return
+	}
+
+	// Create client
+	c, err := NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint(fmt.Sprintf("tcp://localhost:%d", tcm.Port)).
+				IsConnWorkingCheckPayload("\n")).
+		Build()
+	if err != nil {
+		t.FailNow()
+	}
+
+	// Check that connetion is working
+	ok, _ := c.IsConnWorking()
+	if !ok {
+		t.Error("LazyClient.IsConnWorking() with server started, want true, got false")
+		t.FailNow()
+	}
+
+	// Waiting for tcm register connections
+	time.Sleep(time.Millisecond * 100)
+
+	// Stop the server
+	err = tcm.Stop()
+	if err != nil {
+		t.Errorf("Error while stop mock relay server: %v", err)
+		t.FailNow()
+	}
+
+	// Wait for connection is marked as "no working" or timeout
+	tries := 3
+	for ok, _ := c.IsConnWorking(); ok; ok, _ = c.IsConnWorking() { // we are sure that IsConnWorking does not return error
+		tries--
+		if tries == 0 {
+			t.Error("Timeout reached while wait for IsConnWorking return false")
+			t.FailNow()
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// Send new event it should try to reconnect with error
+	id := c.SendWTagAndCompressorAsync("test.keep.free", "msg", nil)
+	if !isNoConnID(id) {
+		t.Errorf("LazyClient.SendWTagAndCompressorAsync() want no con id, got: %v", id)
+	}
+	c.Close()
+}
+
 func TestLazyClient_popBuffer(t *testing.T) {
 	type fields struct {
 		buffer []*lazyClientRecord
