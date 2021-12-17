@@ -413,3 +413,46 @@ func ExampleReliableClient_appLoggerError() {
 	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
 
 }
+
+func ExampleReliableClient_extendedStats() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	// Extended stats are enabled using environment variable. We add here in code but
+	// you can set in your shell session as well
+
+	err := os.Setenv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA", "yes")
+	if err != nil {
+		panic(err)
+	}
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/test").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://example.com:80"),
+		).Build()
+
+	fmt.Println("error", err)
+	fmt.Println("rc.GetEntryPoint", rc.GetEntryPoint())
+	fmt.Println("rc.IsStandBy", rc.IsStandBy())
+
+	rc.SendWTagAsync("tag", fmt.Sprintf("async msg at %s", time.Now()))
+	fmt.Printf("rc.Stats %+v\n", rc.Stats())
+
+	err = rc.Flush()
+	fmt.Printf("error flush: %+v\n", err)
+	fmt.Printf("rc.Stats after flush %+v\n", rc.Stats())
+
+	err = rc.Close()
+	fmt.Printf("error close: %+v\n", err)
+
+	// Output:
+	// error <nil>
+	// rc.GetEntryPoint udp://example.com:80
+	// rc.IsStandBy false
+	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:1 DbKeysSize:1}
+	// error flush: <nil>
+	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// error close: <nil>
+}
