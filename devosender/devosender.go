@@ -604,6 +604,27 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// AsyncError return true and last error detected fo ID if error was captured or false, nil in other case
+// One special case is when dsc Pointer is nil, that this method returns (false, ErrNilPointerReceiver)
+// AsyncError is thread-safe mode
+func (dsc *Client) AsyncError(id string) (bool, error) {
+	if dsc == nil {
+		return false, ErrNilPointerReceiver
+	}
+
+	dsc.asyncErrorsMutext.Lock()
+	defer dsc.asyncErrorsMutext.Unlock()
+
+	var r error
+	var ok bool
+	r, ok = dsc.asyncErrors[id]
+	if !ok {
+		return false, nil
+	}
+
+	return true, r
+}
+
 // AsyncErrorsNumber return then number of errors from async calls collected until now
 func (dsc *Client) AsyncErrorsNumber() int {
 	if dsc == nil {
