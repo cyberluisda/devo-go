@@ -277,6 +277,7 @@ type ReliableClient struct {
 	eventTTLSeconds          uint32
 	retryDaemon              reliableClientDaemon
 	reconnDaemon             reliableClientDaemon
+	consolidateDaemon        reliableClientDaemon
 	daemonStopTimeout        time.Duration
 	clientMtx                sync.Mutex
 	standByMode              bool
