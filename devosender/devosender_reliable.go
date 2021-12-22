@@ -274,6 +274,15 @@ type reliableClientDaemon struct {
 	stop bool
 }
 
+func (rcd reliableClientDaemon) String() string {
+	return fmt.Sprintf(
+		"{ waitBtwChecks: %v, initDelay: %v, top: %v}",
+		rcd.waitBtwChecks,
+		rcd.initDelay,
+		rcd.stop,
+	)
+}
+
 // SendAsync sends Async message in same way like Client.SendAsync but saving the message
 // in status until can ensure, at certain level of confiance, that it was sent
 func (dsrc *ReliableClient) SendAsync(m string) string {
