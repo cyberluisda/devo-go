@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
@@ -1491,4 +1492,9 @@ func nutsdbIsNotFoundError(err error) bool {
 
 	errStr := fmt.Sprint(err)
 	return reNotFoundError.MatchString(errStr)
+}
+
+func numberOfFiles(path string) int {
+	files, _ := ioutil.ReadDir(path)
+	return len(files)
 }
