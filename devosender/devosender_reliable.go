@@ -225,6 +225,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		flushTimeout:             dsrcb.flushTimeout,
 		enableStandByModeTimeout: dsrcb.enableStandByModeTimeout,
 		appLogger:                dsrcb.appLogger,
+		consolidateDbNumFiles:    dsrcb.consolidateDbNumFiles,
 	}
 
 	// Status DB
