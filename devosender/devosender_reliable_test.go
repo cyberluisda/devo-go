@@ -100,6 +100,55 @@ func TestReliableClientBuilder_DbEntryIdxMode(t *testing.T) {
 		})
 	}
 }
+
+func TestReliableClientBuilder_DbRWMode(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		mode nutsdb.RWMode
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Default value",
+			fields{nutsdb.Options{}},
+			args{},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					RWMode:               nutsdb.FileIO,
+					StartFileLoadingMode: nutsdb.FileIO,
+				},
+			},
+		},
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{nutsdb.MMap},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					RWMode:               nutsdb.MMap,
+					StartFileLoadingMode: nutsdb.MMap,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbRWMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbRWMode() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
 		clientReconnOpts daemonOpts
