@@ -311,6 +311,56 @@ func TestReliableClientBuilder_FlushTimeout(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ConsolidateDbNumFiles(t *testing.T) {
+	type fields struct {
+		consolidateDbNumFiles uint8
+	}
+	type args struct {
+		i uint8
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Param value less than 2",
+			fields{consolidateDbNumFiles: 23},
+			args{0},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 23,
+			},
+		},
+		{
+			"Param value equals to 2",
+			fields{consolidateDbNumFiles: 24},
+			args{2},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 2,
+			},
+		},
+		{
+			"Param value greater than 2",
+			fields{},
+			args{25},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 25,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
+			}
+			if got := dsrcb.ConsolidateDbNumFiles(tt.args.i); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbNumFiles() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_Build(t *testing.T) {
 	type fields struct {
 		clientBuilder            *ClientBuilder
