@@ -316,7 +316,7 @@ type reliableClientDaemon struct {
 
 func (rcd reliableClientDaemon) String() string {
 	return fmt.Sprintf(
-		"{ waitBtwChecks: %v, initDelay: %v, top: %v}",
+		"{ waitBtwChecks: %v, initDelay: %v, stop: %v}",
 		rcd.waitBtwChecks,
 		rcd.initDelay,
 		rcd.stop,
