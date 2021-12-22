@@ -182,6 +182,15 @@ func (dsrcb *ReliableClientBuilder) AppLogger(lg applogger.SimpleAppLogger) *Rel
 	return dsrcb
 }
 
+// ConsolidateDbNumFiles is the max number of files used by status db to really do a consolidation
+// (Merge) when ReliableClient.ConsolidateStatusDb is called
+func (dsrcb *ReliableClientBuilder) ConsolidateDbNumFiles(i uint8) *ReliableClientBuilder {
+	if i >= 2 {
+		dsrcb.consolidateDbNumFiles = i
+	}
+	return dsrcb
+}
+
 // Build builds the ReliableClient based in current parameters.
 func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Check required config
