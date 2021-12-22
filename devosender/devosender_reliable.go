@@ -248,6 +248,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
 		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
+		consolidateDaemon:        reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
