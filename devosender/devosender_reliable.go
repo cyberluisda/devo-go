@@ -654,6 +654,42 @@ func (dsrc *ReliableClient) ResetSessionStats() error {
 	return nil
 }
 
+// ConsolidateStatusDb does an internal db status consolidation if the number
+// max file match with thte thresold: status maxfile number module
+// ConsolidateDbFileIDModuleDivisor is equal to 0
+func (dsrc *ReliableClient) ConsolidateStatusDb() error {
+	if dsrc == nil {
+		return ErrNilPointerReceiver
+	}
+
+	if dsrc.db == nil {
+		return errors.New("Status db is nil")
+	}
+
+	if dsrc.consolidateDbNumFiles == 0 {
+		return errors.New("Number of files threshold must be defined")
+	}
+
+	numberOfFiles := numberOfFiles(dsrc.dbPath)
+	if numberOfFiles < int(dsrc.consolidateDbNumFiles) {
+		return nil
+	}
+
+	// TODO Using transaction to allow thread-safe, but maybe dbMtx will be required
+	// dsrc.dbMtx.Lock()
+	// defer dsrc.dbMtx.UnLock()
+	tx, _ := dsrc.db.Begin(true) // Ignore error
+	// We will ever accept transaction because it is used only for blocking-point reasons
+	defer tx.Commit()
+
+	err := dsrc.db.Merge()
+	if err != nil {
+		return fmt.Errorf("While consolidate db (Merge): %w", err)
+	}
+
+	return nil
+}
+
 func (dsrc *ReliableClient) String() string {
 	db := "<nil>"
 	if dsrc.db != nil {
