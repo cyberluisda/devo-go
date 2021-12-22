@@ -63,6 +63,9 @@ const (
 	// messages managed by client when Flush func is called. If timeout is reached
 	// then error will be send
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
+	// DefaultConsolidateDbNumFiles is default threshold value used to really consolidate
+	// statud db (Merge) when ReliableClient.ConsolidateStatusDb is called
+	DefaultConsolidateDbNumFiles uint8 = 4
 )
 
 // NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
@@ -78,6 +81,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 		dbOpts:                   nutsdb.DefaultOptions,
 		flushTimeout:             DefaultFlushAsyncTimeout,
 		appLogger:                &applogger.NoLogAppLogger{},
+		consolidateDbNumFiles:    DefaultConsolidateDbNumFiles,
 	}
 
 	return r
