@@ -811,6 +811,9 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 	if dsrc.dbInitCleanedup {
 		return nil
 	}
+
+	dsrc.dbInitCleanedup = true // Assuming db is cleaned ever
+
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if we have elements using count
 		c, err := cont(tx, statsBucket, countKey, false)
@@ -887,10 +890,15 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 	})
 
 	if err != nil {
-		err = fmt.Errorf("Error when make initial cleanup on status db: %w", err)
-		dsrc.dbInitCleanedup = true
+		return fmt.Errorf("While make initial cleanup on status db: %w", err)
 	}
-	return err
+
+	err = dsrc.ConsolidateStatusDb()
+	if err != nil {
+		return fmt.Errorf("While consolidate db after initial cleanup on status db: %w", err)
+	}
+
+	return nil
 }
 
 // startRetryEventsDaemon runs in background the retry send events daemon. This daemon checks
