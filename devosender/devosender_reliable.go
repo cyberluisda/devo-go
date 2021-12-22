@@ -221,8 +221,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
-		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
-		reconnInitDelay:          dsrcb.clientReconnOpts.initDelay,
+		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
@@ -252,9 +251,7 @@ type ReliableClient struct {
 	bufferSize               uint
 	eventTTLSeconds          uint32
 	retryDaemon              reliableClientDaemon
-	reconnWait               time.Duration
-	reconnStop               bool
-	reconnInitDelay          time.Duration
+	reconnDaemon             reliableClientDaemon
 	daemonStopTimeout        time.Duration
 	clientMtx                sync.Mutex
 	standByMode              bool
@@ -714,7 +711,7 @@ func (dsrc *ReliableClient) String() string {
 	}
 	return fmt.Sprintf(
 		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryDaemon: %v, "+
-			"reconnWait: %v, reconnStop: %v, reconnInitDelay: %v, "+
+			"reconnDaemon: %v, "+
 			"daemonStopTimeout: %v, standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
 			"daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
@@ -722,9 +719,7 @@ func (dsrc *ReliableClient) String() string {
 		dsrc.bufferSize,
 		dsrc.eventTTLSeconds,
 		dsrc.retryDaemon,
-		dsrc.reconnWait,
-		dsrc.reconnStop,
-		dsrc.reconnInitDelay,
+		dsrc.reconnDaemon,
 		dsrc.daemonStopTimeout,
 		dsrc.standByMode,
 		dsrc.enableStandByModeTimeout,
@@ -785,7 +780,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 // each daemon stopped is set in dsrc.daemonStopTimeout
 func (dsrc *ReliableClient) daemonsShutdown() error {
 	dsrc.retryDaemon.stop = true
-	dsrc.reconnStop = true
+	dsrc.reconnDaemon.stop = true
 
 	errors := make([]error, 0)
 
@@ -947,14 +942,14 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 // if ReliableClient is not in stand by mode and inner Client is nill or IsConnWorking returns false without
 // ErrPayloadNoDefined.
 func (dsrc *ReliableClient) clientReconnectionDaemon() error {
-	if dsrc.reconnWait <= 0 {
-		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnWait)
+	if dsrc.reconnDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.reconnInitDelay)
+		time.Sleep(dsrc.reconnDaemon.initDelay)
 
-		for !dsrc.reconnStop {
+		for !dsrc.reconnDaemon.stop {
 			dsrc.clientMtx.Lock()
 			if !dsrc.IsStandBy() {
 				recreate := false
@@ -978,7 +973,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 				}
 			}
 			dsrc.clientMtx.Unlock()
-			time.Sleep(dsrc.reconnWait)
+			time.Sleep(dsrc.reconnDaemon.waitBtwChecks)
 		}
 
 		// Closed signal
