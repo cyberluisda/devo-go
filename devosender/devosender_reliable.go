@@ -105,6 +105,15 @@ func (dsrcb *ReliableClientBuilder) DbEntryIdxMode(mode nutsdb.EntryIdxMode) *Re
 	dsrcb.dbOpts.EntryIdxMode = mode
 	return dsrcb
 }
+
+// DbRWMode sets the Database read-write mode. The mode value is set to StartFileLoadingMode option too.
+// See https://pkg.go.dev/github.com/xujiajun/nutsdb@v0.6.0#section-readme for more info
+func (dsrcb *ReliableClientBuilder) DbRWMode(mode nutsdb.RWMode) *ReliableClientBuilder {
+	dsrcb.dbOpts.RWMode = mode
+	dsrcb.dbOpts.StartFileLoadingMode = mode
+	return dsrcb
+}
+
 // RetryDaemonWaitBtwChecks sets the time wait interval between checks for retry send events daemon
 // value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) RetryDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
