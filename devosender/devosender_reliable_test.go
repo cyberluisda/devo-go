@@ -635,12 +635,8 @@ func TestReliableClient_Flush(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
@@ -793,12 +789,8 @@ func TestReliableClient_Flush(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
@@ -837,12 +829,8 @@ func TestReliableClient_Close(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
@@ -904,12 +892,8 @@ func TestReliableClient_Close(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
@@ -1264,12 +1248,8 @@ func TestReliableClient_String(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
@@ -1297,15 +1277,23 @@ func TestReliableClient_String(t *testing.T) {
 				Client: &Client{
 					entryPoint: "udp://example.com:80",
 				},
-				db:                       &nutsdb.DB{},
-				bufferSize:               123,
-				eventTTLSeconds:          20,
-				retryWait:                time.Minute,
-				reconnWait:               time.Second * 10,
-				retryStop:                true,
-				reconnStop:               true,
-				retryInitDelay:           time.Second * 2,
-				reconnInitDelay:          time.Second,
+				db:              &nutsdb.DB{},
+				bufferSize:      123,
+				eventTTLSeconds: 20,
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Minute,
+						initDelay:     time.Second * 2,
+					},
+					stop: true,
+				},
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Second * 10,
+						initDelay:     time.Second,
+					},
+					stop: true,
+				},
 				daemonStopTimeout:        time.Second * 5,
 				standByMode:              true,
 				enableStandByModeTimeout: time.Second * 3,
@@ -1332,12 +1320,8 @@ func TestReliableClient_String(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
@@ -1355,10 +1339,10 @@ func TestReliableClient_String(t *testing.T) {
 
 func TestReliableClient_daemonsSartup(t *testing.T) {
 	type fields struct {
-		db         *nutsdb.DB
-		retryWait  time.Duration
-		reconnWait time.Duration
-		appLogger  applogger.SimpleAppLogger
+		db           *nutsdb.DB
+		retryDaemon  reliableClientDaemon
+		reconnDaemon reliableClientDaemon
+		appLogger    applogger.SimpleAppLogger
 	}
 	tests := []struct {
 		name    string
@@ -1409,7 +1393,9 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 					return r
 				}(),
 				// Force error
-				retryWait: 0 * time.Second,
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 0 * time.Second}},
 			},
 			true,
 		},
@@ -1428,10 +1414,14 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 					}
 					return r
 				}(),
-				// retryeEvents daemon should work
-				retryWait: time.Second,
+				// retryEvents daemon should work
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 0 * time.Second}},
 				// Force error
-				reconnWait: -1 * time.Second,
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: -1 * time.Second}},
 			},
 			true,
 		},
@@ -1439,10 +1429,10 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				db:         tt.fields.db,
-				retryWait:  tt.fields.retryWait,
-				reconnWait: tt.fields.reconnWait,
-				appLogger:  tt.fields.appLogger,
+				db:           tt.fields.db,
+				retryDaemon:  tt.fields.retryDaemon,
+				reconnDaemon: tt.fields.retryDaemon,
+				appLogger:    tt.fields.appLogger,
 			}
 			if err := dsrc.daemonsSartup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.daemonsSartup() error = %v, wantErr %v", err, tt.wantErr)
