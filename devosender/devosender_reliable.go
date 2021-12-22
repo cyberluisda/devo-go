@@ -213,6 +213,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	r := &ReliableClient{
 		Client:                   cl,
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
+		dbPath:                   dsrcb.dbOpts.Dir,
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
