@@ -663,8 +663,7 @@ func (dsrc *ReliableClient) ResetSessionStats() error {
 }
 
 // ConsolidateStatusDb does an internal db status consolidation if the number
-// max file match with thte thresold: status maxfile number module
-// ConsolidateDbFileIDModuleDivisor is equal to 0
+// of status db files is grater than max db files thresold
 func (dsrc *ReliableClient) ConsolidateStatusDb() error {
 	if dsrc == nil {
 		return ErrNilPointerReceiver
