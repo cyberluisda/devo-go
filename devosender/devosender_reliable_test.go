@@ -211,6 +211,48 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
+	type fields struct {
+		consolidateDbDaemonOpts daemonOpts
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Zero value",
+			fields{daemonOpts{waitBtwChecks: time.Second}},
+			args{},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Second},
+			},
+		},
+		{
+			"Value greater than 0",
+			fields{daemonOpts{waitBtwChecks: time.Second}},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Minute},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+			}
+			if got := dsrcb.ConsolidateDbDaemonWaitBtwChecks(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonWaitBtwChecks() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 	type fields struct {
 		clientReconnOpts daemonOpts
