@@ -19,6 +19,41 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestReliableClientBuilder_DbSegmentSize(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		size int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{128},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					SegmentSize: 128,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbSegmentSize(tt.args.size); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbSegmentSize() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
 func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
 		clientReconnOpts daemonOpts
