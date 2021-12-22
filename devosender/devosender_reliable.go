@@ -164,6 +164,15 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonInitDelay(d time.Duration)
 	return dsrcb
 }
 
+// ConsolidateDbDaemonInitDelay sets the initial time delay to wait while consolidate status db daemon is starting.
+// Value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.consolidateDbDaemonOpts.initDelay = d
+	}
+	return dsrcb
+}
+
 // DaemonStopTimeout sets the timeout to wait for each daemon when ReliableClient is closed
 // value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) DaemonStopTimeout(d time.Duration) *ReliableClientBuilder {
