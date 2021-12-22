@@ -1471,9 +1471,10 @@ func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
 
 func TestReliableClient_dbInitCleanup(t *testing.T) {
 	type fields struct {
-		db              *nutsdb.DB
-		dbInitCleanedup bool
-		appLogger       applogger.SimpleAppLogger
+		db                    *nutsdb.DB
+		dbInitCleanedup       bool
+		appLogger             applogger.SimpleAppLogger
+		consolidateDbNumFiles uint8
 	}
 	tests := []struct {
 		name    string
@@ -1481,7 +1482,7 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Prviously initiated",
+			"Previously initiated",
 			fields{
 				dbInitCleanedup: true,
 			},
@@ -1522,7 +1523,8 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					}
 					return r
 				}(),
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 1,
 			},
 			false,
 		},
@@ -1578,7 +1580,8 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					return r
 				}(),
 				// appLogger: &applogger.NoLogAppLogger{},
-				appLogger: &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
 			},
 			false,
 		},
@@ -1586,9 +1589,10 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				db:              tt.fields.db,
-				dbInitCleanedup: tt.fields.dbInitCleanedup,
-				appLogger:       tt.fields.appLogger,
+				db:                    tt.fields.db,
+				dbInitCleanedup:       tt.fields.dbInitCleanedup,
+				appLogger:             tt.fields.appLogger,
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
 			}
 			if err := dsrc.dbInitCleanup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.dbInitCleanup() error = %+v, wantErr %+v", err, tt.wantErr)
