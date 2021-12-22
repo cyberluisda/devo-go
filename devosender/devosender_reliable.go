@@ -220,8 +220,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		dbPath:                   dsrcb.dbOpts.Dir,
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
-		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
-		retryInitDelay:           dsrcb.retryDaemonOpts.initDelay,
+		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
 		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
 		reconnInitDelay:          dsrcb.clientReconnOpts.initDelay,
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
@@ -252,11 +251,9 @@ type ReliableClient struct {
 	dbPath                   string
 	bufferSize               uint
 	eventTTLSeconds          uint32
-	retryWait                time.Duration
+	retryDaemon              reliableClientDaemon
 	reconnWait               time.Duration
-	retryStop                bool
 	reconnStop               bool
-	retryInitDelay           time.Duration
 	reconnInitDelay          time.Duration
 	daemonStopTimeout        time.Duration
 	clientMtx                sync.Mutex
@@ -716,19 +713,17 @@ func (dsrc *ReliableClient) String() string {
 		)
 	}
 	return fmt.Sprintf(
-		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryWait: %v, "+
-			"reconnWait: %v, retryStop: %v, reconnStop: %v, retryInitDelay: %v, reconnInitDelay: %v, "+
+		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryDaemon: %v, "+
+			"reconnWait: %v, reconnStop: %v, reconnInitDelay: %v, "+
 			"daemonStopTimeout: %v, standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
 			"daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
 		db,
 		dsrc.bufferSize,
 		dsrc.eventTTLSeconds,
-		dsrc.retryWait,
+		dsrc.retryDaemon,
 		dsrc.reconnWait,
-		dsrc.retryStop,
 		dsrc.reconnStop,
-		dsrc.retryInitDelay,
 		dsrc.reconnInitDelay,
 		dsrc.daemonStopTimeout,
 		dsrc.standByMode,
@@ -789,7 +784,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 // daemonsShutdown tries to stop daemons in gracefull mode, grace period to wait for
 // each daemon stopped is set in dsrc.daemonStopTimeout
 func (dsrc *ReliableClient) daemonsShutdown() error {
-	dsrc.retryStop = true
+	dsrc.retryDaemon.stop = true
 	dsrc.reconnStop = true
 
 	errors := make([]error, 0)
@@ -919,15 +914,16 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 // every dsr.retryWait time  the pending events and update status or resend it if error
 // was saved by inner client. This actions are delegated to call Flush func
 func (dsrc *ReliableClient) startRetryEventsDaemon() error {
-	if dsrc.retryWait <= 0 {
-		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s", dsrc.retryWait)
+	if dsrc.retryDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s",
+			dsrc.retryDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.retryInitDelay)
+		time.Sleep(dsrc.retryDaemon.initDelay)
 
 		// Daemon loop
-		for !dsrc.retryStop {
+		for !dsrc.retryDaemon.stop {
 			err := dsrc.Flush()
 			if err != nil {
 				dsrc.appLogger.Logf(
@@ -936,7 +932,7 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 				)
 			}
 
-			time.Sleep(dsrc.retryWait)
+			time.Sleep(dsrc.retryDaemon.waitBtwChecks)
 		}
 
 		// Closed signal
