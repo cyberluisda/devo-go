@@ -827,11 +827,12 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 func (dsrc *ReliableClient) daemonsShutdown() error {
 	dsrc.retryDaemon.stop = true
 	dsrc.reconnDaemon.stop = true
+	dsrc.consolidateDaemon.stop = true
 
 	errors := make([]error, 0)
 
-	// two daemons
-	for i := 0; i < 2; i++ {
+	// three daemons
+	for i := 0; i < 3; i++ {
 		select {
 		case <-time.After(dsrc.daemonStopTimeout):
 			errors = append(errors, fmt.Errorf("Timeout when wait for daemon number: %d", i))
