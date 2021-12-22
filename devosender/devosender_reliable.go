@@ -657,7 +657,13 @@ func (dsrc *ReliableClient) ResetSessionStats() error {
 func (dsrc *ReliableClient) String() string {
 	db := "<nil>"
 	if dsrc.db != nil {
-		db = fmt.Sprintf("{KeyCount: %d, ListIdx: %v}", dsrc.db.KeyCount, dsrc.db.ListIdx)
+		db = fmt.Sprintf(
+			"{KeyCount: %d, ListIdx: %v, consolidationDbNumFilesThreshold: %d, dbFiles: %d}",
+			dsrc.db.KeyCount,
+			dsrc.db.ListIdx,
+			dsrc.consolidateDbNumFiles,
+			numberOfFiles(dsrc.dbPath),
+		)
 	}
 	return fmt.Sprintf(
 		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryWait: %v, "+
