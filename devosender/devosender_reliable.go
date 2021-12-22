@@ -819,6 +819,12 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 		return err
 	}
 
+	// Consolidate status db
+	err = dsrc.consolidateDbDaemon()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
