@@ -54,6 +54,52 @@ func TestReliableClientBuilder_DbSegmentSize(t *testing.T) {
 		})
 	}
 }
+
+func TestReliableClientBuilder_DbEntryIdxMode(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		mode nutsdb.EntryIdxMode
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Default value",
+			fields{nutsdb.Options{}},
+			args{},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					EntryIdxMode: nutsdb.HintKeyValAndRAMIdxMode,
+				},
+			},
+		},
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{nutsdb.HintKeyAndRAMIdxMode},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					EntryIdxMode: nutsdb.HintKeyAndRAMIdxMode,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbEntryIdxMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbEntryIdxMode() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
 func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
 		clientReconnOpts daemonOpts
