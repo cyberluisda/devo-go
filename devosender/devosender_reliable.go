@@ -67,6 +67,9 @@ const (
 	// DefaultConsolidateDbNumFiles is default threshold value used to really consolidate
 	// statud db (Merge) when ReliableClient.ConsolidateStatusDb is called
 	DefaultConsolidateDbNumFiles uint8 = 4
+	// DefaultConsolidateDbDaemonWaitBtwChecks is the default time that consolidate db daemon must wait
+	// between run checks or do any action
+	DefaultConsolidateDbDaemonWaitBtwChecks = time.Minute
 )
 
 // NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
