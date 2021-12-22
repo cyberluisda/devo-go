@@ -250,6 +250,7 @@ type ReliableClient struct {
 	daemonStopped            chan bool
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
+	consolidateDbNumFiles    uint8
 }
 
 // SendAsync sends Async message in same way like Client.SendAsync but saving the message
