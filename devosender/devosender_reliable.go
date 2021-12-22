@@ -26,6 +26,7 @@ type ReliableClientBuilder struct {
 	dbOpts                   nutsdb.Options
 	retryDaemonOpts          daemonOpts
 	clientReconnOpts         daemonOpts
+	consolidateDbDaemonOpts  daemonOpts
 	daemonStopTimeout        time.Duration
 	bufferEventsSize         uint
 	eventTimeToLive          uint32
