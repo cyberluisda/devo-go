@@ -1029,6 +1029,35 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	return nil
 }
 
+// consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
+// periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
+func (dsrc *ReliableClient) consolidateDbDaemon() error {
+	if dsrc.consolidateDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.consolidateDaemon.waitBtwChecks)
+	}
+	go func() {
+		// Init delay
+		time.Sleep(dsrc.consolidateDaemon.initDelay)
+
+		for !dsrc.consolidateDaemon.stop {
+			// FIXME db mutex??
+			err := dsrc.ConsolidateStatusDb()
+			if err != nil {
+				dsrc.appLogger.Logf(
+					applogger.ERROR,
+					"Error While consolidate status db in consolidateDbDaemon: %v", err,
+				)
+			}
+			time.Sleep(dsrc.consolidateDaemon.waitBtwChecks)
+		}
+
+		// Closed signal
+		dsrc.daemonStopped <- true
+	}()
+
+	return nil
+}
+
 // resendRecord send the event based on record status.
 func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) error {
 	var newID string
