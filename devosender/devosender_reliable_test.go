@@ -1077,6 +1077,186 @@ func TestReliableClient__check_closed_conn(t *testing.T) {
 	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_IsStandBy_closedRelayConn")
 }
 
+func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
+	tests := []struct {
+		name              string
+		dsrc              *ReliableClient
+		wantErr           bool
+		wantNumberOfFiles int
+	}{
+		{
+			"Nil ReliableClient error",
+			nil,
+			true,
+			0,
+		},
+		{
+			"Nil stuts db error",
+			&ReliableClient{},
+			true,
+			0,
+		},
+		{
+			"Threshold not enought error",
+			&ReliableClient{
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			true,
+			0,
+		},
+		{
+			"Consolidation error",
+			&ReliableClient{
+				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write one event to get at least one file
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						err := tx.Put("tmp", []byte("key-1"), val, 0)
+						if err != nil {
+							return fmt.Errorf("While write test key %s: %w", "key-1", err)
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 1,
+			},
+			true,
+			1,
+		},
+		{
+			"Consolidation not needed",
+			&ReliableClient{
+				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write one event to get at least one file
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						err := tx.Put("tmp", []byte("key-1"), val, 0)
+						if err != nil {
+							return fmt.Errorf("While write test key %s: %w", "key-1", err)
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 2,
+			},
+			false,
+			1,
+		},
+		{
+			"Consolidation",
+			&ReliableClient{
+				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done",
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
+
+					opts := nutsdb.DefaultOptions
+					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done"
+					opts.SegmentSize = 128 // Very small size
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write keys gt than 128 bytes to ensure we have more than two files
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						for i := 1; i <= 20; i++ {
+							key := fmt.Sprintf("key-%d", i)
+							err := tx.Put("tmp", []byte(key), val, 0)
+							if err != nil {
+								return fmt.Errorf("While write test key %s: %w", key, err)
+							}
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					// Delete keys to get "recoverable" space on files
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						for i := 1; i <= 20; i++ {
+							key := fmt.Sprintf("key-%d", i)
+							err := tx.Delete("tmp", []byte(key))
+							if err != nil {
+								return fmt.Errorf("While delete test key %s: %w", key, err)
+							}
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 2,
+			},
+			false,
+			0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.ConsolidateStatusDb(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.ConsolidateStatusDb() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.dsrc != nil && tt.dsrc.dbPath != "" {
+				if nfiles := numberOfFiles(tt.dsrc.dbPath); nfiles != tt.wantNumberOfFiles {
+					t.Errorf("ReliableClient.ConsolidateStatusDb() numberOfFiles = %v, want %v", nfiles, tt.wantNumberOfFiles)
+				}
+			}
+		})
+	}
+
+	//Clen tmp
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
