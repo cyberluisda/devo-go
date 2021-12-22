@@ -315,6 +315,48 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
+	type fields struct {
+		consolidateDbDaemonOpts daemonOpts
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Zero value",
+			fields{daemonOpts{initDelay: time.Second}},
+			args{},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Second},
+			},
+		},
+		{
+			"Value greater than 0",
+			fields{daemonOpts{initDelay: time.Second}},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Minute},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+			}
+			if got := dsrcb.ConsolidateDbDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonInitDelay() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_DaemonStopTimeout(t *testing.T) {
 	type fields struct {
 		daemonStopTimeout time.Duration
