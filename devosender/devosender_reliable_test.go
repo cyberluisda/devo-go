@@ -429,6 +429,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				Client: &Client{
 					entryPoint: "udp://localhost:1234",
 				},
+				dbPath: "/tmp/test-builder-build",
 			},
 			false,
 		},
