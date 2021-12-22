@@ -869,7 +869,7 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		return nil
 	}
 
-	dsrc.dbInitCleanedup = true // Assuming db is cleaned ever
+	dsrc.dbInitCleanedup = true // Assuming db is cleaned by default
 
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if we have elements using count
@@ -947,11 +947,13 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 	})
 
 	if err != nil {
+		dsrc.dbInitCleanedup = false
 		return fmt.Errorf("While make initial cleanup on status db: %w", err)
 	}
 
 	err = dsrc.ConsolidateStatusDb()
 	if err != nil {
+		dsrc.dbInitCleanedup = false
 		return fmt.Errorf("While consolidate db after initial cleanup on status db: %w", err)
 	}
 
