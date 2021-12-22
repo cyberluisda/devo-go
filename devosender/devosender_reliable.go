@@ -233,6 +233,7 @@ type ReliableClient struct {
 	*Client
 	clientBuilder            *ClientBuilder
 	db                       *nutsdb.DB
+	dbPath                   string
 	bufferSize               uint
 	eventTTLSeconds          uint32
 	retryWait                time.Duration
