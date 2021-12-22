@@ -93,6 +93,11 @@ func (dsrcb *ReliableClientBuilder) DbPath(path string) *ReliableClientBuilder {
 	return dsrcb
 }
 
+// DbSegmentSize sets the Database satus file segment size: Maximum size for each status persisted file
+func (dsrcb *ReliableClientBuilder) DbSegmentSize(size int64) *ReliableClientBuilder {
+	dsrcb.dbOpts.SegmentSize = size
+	return dsrcb
+}
 // RetryDaemonWaitBtwChecks sets the time wait interval between checks for retry send events daemon
 // value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) RetryDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
