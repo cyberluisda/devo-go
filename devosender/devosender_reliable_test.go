@@ -1266,10 +1266,12 @@ func TestReliableClient_String(t *testing.T) {
 		{
 			"Empty",
 			fields{},
-			"Client: {<nil>}, db: <nil>, bufferSize: 0, eventTTLSeconds: 0, retryWait: 0s, " +
-				"reconnWait: 0s, retryStop: false, reconnStop: false, retryInitDelay: 0s, " +
-				"reconnInitDelay: 0s, daemonStopTimeout: 0s, standByMode: false, enableStandByModeTimeout: 0s, " +
-				"dbInitCleanedup: false, daemonStopped: <nil>, flushTimeout: 0s",
+			"Client: {<nil>}, db: <nil>, bufferSize: 0, eventTTLSeconds: 0, retryDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, reconnDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, consolidateDbDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, daemonStopTimeout: 0s, " +
+				"standByMode: false, enableStandByModeTimeout: 0s, dbInitCleanedup: false, " +
+				"daemonStopped: <nil>, flushTimeout: 0s",
 		},
 		{
 			"With some values",
@@ -1302,14 +1304,16 @@ func TestReliableClient_String(t *testing.T) {
 				consolidateDbNumFiles:    4,
 			},
 			"Client: {entryPoint: 'udp://example.com:80', syslogHostname: '', defaultTag: '', " +
-				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, " +
-				"connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', " +
-				"#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'}, db: {" +
-				"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 4, dbFiles: 0}, " +
-				"bufferSize: 123, eventTTLSeconds: 20, retryWait: 1m0s, reconnWait: 10s, retryStop: true, " +
-				"reconnStop: true, retryInitDelay: 2s, reconnInitDelay: 1s, daemonStopTimeout: 5s, " +
-				"standByMode: true, enableStandByModeTimeout: 3s, dbInitCleanedup: true, " +
-				"daemonStopped: <nil>, flushTimeout: 2m0s",
+				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, " +
+				"tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', " +
+				"maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: " +
+				"'0001-01-01 00:00:00 +0000 UTC'}, db: {KeyCount: 0, ListIdx: map[], " +
+				"consolidationDbNumFilesThreshold: 4, dbFiles: 0}, bufferSize: 123, " +
+				"eventTTLSeconds: 20, retryDaemon: { waitBtwChecks: 1m0s, initDelay: 2s, " +
+				"stop: true}, reconnDaemon: { waitBtwChecks: 10s, initDelay: 1s, stop: true}, " +
+				"consolidateDbDaemon: { waitBtwChecks: 0s, initDelay: 0s, stop: false}, " +
+				"daemonStopTimeout: 5s, standByMode: true, enableStandByModeTimeout: 3s, " +
+				"dbInitCleanedup: true, daemonStopped: <nil>, flushTimeout: 2m0s",
 		},
 	}
 	for _, tt := range tests {
