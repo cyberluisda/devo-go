@@ -1096,6 +1096,7 @@ func TestReliableClient_String(t *testing.T) {
 		dbInitCleanedup          bool
 		daemonStopped            chan bool
 		flushTimeout             time.Duration
+		consolidateDbNumFiles    uint8
 	}
 	tests := []struct {
 		name   string
@@ -1130,11 +1131,13 @@ func TestReliableClient_String(t *testing.T) {
 				enableStandByModeTimeout: time.Second * 3,
 				dbInitCleanedup:          true,
 				flushTimeout:             time.Minute * 2,
+				consolidateDbNumFiles:    4,
 			},
 			"Client: {entryPoint: 'udp://example.com:80', syslogHostname: '', defaultTag: '', " +
 				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, " +
 				"connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', " +
-				"#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'}, db: {KeyCount: 0, ListIdx: map[]}, " +
+				"#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'}, db: {" +
+				"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 4, dbFiles: 0}, " +
 				"bufferSize: 123, eventTTLSeconds: 20, retryWait: 1m0s, reconnWait: 10s, retryStop: true, " +
 				"reconnStop: true, retryInitDelay: 2s, reconnInitDelay: 1s, daemonStopTimeout: 5s, " +
 				"standByMode: true, enableStandByModeTimeout: 3s, dbInitCleanedup: true, " +
@@ -1161,6 +1164,7 @@ func TestReliableClient_String(t *testing.T) {
 				dbInitCleanedup:          tt.fields.dbInitCleanedup,
 				daemonStopped:            tt.fields.daemonStopped,
 				flushTimeout:             tt.fields.flushTimeout,
+				consolidateDbNumFiles:    tt.fields.consolidateDbNumFiles,
 			}
 			if got := dsrc.String(); got != tt.want {
 				t.Errorf("ReliableClient.String() = %v, want %v", got, tt.want)
