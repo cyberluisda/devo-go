@@ -934,9 +934,8 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 }
 
 // clientReconnectionDaemon runs in background the reconnect  daemon. This daemon create new connection
-// if ReliableClient is not in stand by mode and inner Client is nill.
-// TODO Do other check if configured (for example Send Sync test message configured table) and recreate
-// inner Client if it is failing
+// if ReliableClient is not in stand by mode and inner Client is nill or IsConnWorking returns false without
+// ErrPayloadNoDefined.
 func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	if dsrc.reconnWait <= 0 {
 		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnWait)
