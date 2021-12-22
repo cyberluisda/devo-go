@@ -756,8 +756,8 @@ func (dsrc *ReliableClient) String() string {
 	}
 	return fmt.Sprintf(
 		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryDaemon: %v, "+
-			"reconnDaemon: %v, "+
-			"daemonStopTimeout: %v, standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
+			"reconnDaemon: %v, consolidateDbDaemon: %v, daemonStopTimeout: %v, "+
+			"standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
 			"daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
 		db,
@@ -765,6 +765,7 @@ func (dsrc *ReliableClient) String() string {
 		dsrc.eventTTLSeconds,
 		dsrc.retryDaemon,
 		dsrc.reconnDaemon,
+		dsrc.consolidateDaemon,
 		dsrc.daemonStopTimeout,
 		dsrc.standByMode,
 		dsrc.enableStandByModeTimeout,
