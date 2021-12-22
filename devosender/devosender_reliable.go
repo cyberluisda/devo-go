@@ -137,6 +137,15 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 	return dsrcb
 }
 
+// ConsolidateDbDaemonWaitBtwChecks sets the interval time waited by daemon between checks for consolidate status db.
+// Value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.consolidateDbDaemonOpts.waitBtwChecks = d
+	}
+	return dsrcb
+}
+
 // RetryDaemonInitDelay sets the initial time delay when retry send events daemon is started
 // value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) RetryDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
