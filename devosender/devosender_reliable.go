@@ -78,6 +78,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 	r := &ReliableClientBuilder{
 		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		consolidateDbDaemonOpts:  daemonOpts{DefaultConsolidateDbDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
 		bufferEventsSize:         DefaultBufferEventsSize,
 		eventTimeToLive:          DefaultEventTimeToLive,
