@@ -31,6 +31,7 @@ type ReliableClientBuilder struct {
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
+	consolidateDbNumFiles    uint8
 }
 
 type daemonOpts struct {
