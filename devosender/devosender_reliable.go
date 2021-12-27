@@ -1186,6 +1186,10 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 			err = inc(tx, statsBucket, countKey, 1, false)
 		}
 
+		// easy GC
+		bs = nil
+		idAsBytes = nil
+
 		return err
 	})
 
