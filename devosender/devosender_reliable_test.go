@@ -628,11 +628,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 			"Get client without conn",
 			fields{
 				// Copied directly from NewReliableClientBuilder
-				dbOpts: func() nutsdb.Options {
-					r := nutsdb.DefaultOptions
-					r.Dir = "/tmp/test-builder-build"
-					return r
-				}(),
+				dbOpts:    nutsdbOptionsWithDir("/tmp/test-builder-build"),
 				appLogger: &applogger.NoLogAppLogger{},
 
 				clientBuilder: &ClientBuilder{
@@ -878,8 +874,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -914,8 +909,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -944,8 +938,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending-errors")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -977,8 +970,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors-no-conn"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending-errors-no-conn")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -1064,8 +1056,7 @@ func TestReliableClient_Close(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Close")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Close"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Close")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -1300,8 +1291,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb"
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1321,8 +1311,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1356,8 +1345,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1391,8 +1379,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done"
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
 					opts.SegmentSize = 128 // Very small size
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -1584,8 +1571,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1605,8 +1591,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup-retryEvents"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-retryEvents")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1627,8 +1612,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup-clientReconn"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-clientReconn")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1732,8 +1716,7 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					rClient.Close()
 
 					// Open new database
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-dbInitCleanup"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1776,8 +1759,7 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					rClient.Close()
 
 					// Open new database
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-dbInitCleanup-conndata"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-conndata")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -2100,8 +2082,7 @@ func TestReliableClient_newRecord(t *testing.T) {
 				os.RemoveAll("/tmp/tests-reliable-newRecord")
 
 				// Create new counter with an invalid type to force error
-				opts := nutsdb.DefaultOptions
-				opts.Dir = "/tmp/tests-reliable-newRecord"
+				opts := nutsdbOptionsWithDir("/tmp/tests-reliable-newRecord")
 				db, err := nutsdb.Open(opts)
 
 				err = db.Update(func(tx *nutsdb.Tx) error {
@@ -2166,8 +2147,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -2194,8 +2174,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-tx-closed")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-tx-closed"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx-tx-closed")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -2223,8 +2202,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-recordNotFound"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -2297,8 +2275,7 @@ func Test_deleteRecordRawInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-deleteRecordRawInTx")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-deleteRecordRawInTx"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-deleteRecordRawInTx")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -3644,8 +3621,7 @@ func Test_nutsdbIsNotFoundError(t *testing.T) {
 func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
 	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 
-	opts := nutsdb.DefaultOptions
-	opts.Dir = path
+	opts := nutsdbOptionsWithDir(path)
 	db, err := nutsdb.Open(opts)
 	if err != nil {
 		panic(err)
