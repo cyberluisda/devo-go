@@ -1316,7 +1316,8 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation error",
 			&ReliableClient{
-				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 
@@ -1350,7 +1351,8 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation not needed",
 			&ReliableClient{
-				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
 
@@ -1384,7 +1386,8 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation",
 			&ReliableClient{
-				dbPath: "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done",
+				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done",
+				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
 
