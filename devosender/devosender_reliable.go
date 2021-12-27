@@ -293,6 +293,7 @@ type ReliableClient struct {
 	clientBuilder            *ClientBuilder
 	db                       *nutsdb.DB
 	dbPath                   string
+	dbOpts                   nutsdb.Options
 	dbMtx                    sync.Mutex
 	bufferSize               uint
 	eventTTLSeconds          uint32
