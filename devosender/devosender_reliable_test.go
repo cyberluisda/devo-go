@@ -3800,3 +3800,9 @@ func (tmr *tcpMockRelay) handleConnection(c net.Conn) {
 		}
 	}
 }
+
+func nutsdbOptionsWithDir(d string) nutsdb.Options {
+	r := nutsdb.DefaultOptions
+	r.Dir = d
+	return r
+}
