@@ -639,7 +639,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				Client: &Client{
 					entryPoint: "udp://localhost:1234",
 				},
-				dbPath: "/tmp/test-builder-build",
+				dbOpts: nutsdbOptionsWithDir("/tmp/test-builder-build"),
 			},
 			false,
 		},
@@ -1306,7 +1306,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation error",
 			&ReliableClient{
-				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"),
 				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
@@ -1340,7 +1340,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation not needed",
 			&ReliableClient{
-				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded",
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"),
 				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
@@ -1374,7 +1374,7 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 		{
 			"Consolidation",
 			&ReliableClient{
-				dbPath:    "/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done",
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done"),
 				appLogger: &applogger.NoLogAppLogger{},
 				db: func() *nutsdb.DB {
 					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
@@ -1431,8 +1431,8 @@ func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
 				t.Errorf("ReliableClient.ConsolidateStatusDb() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
-			if tt.dsrc != nil && tt.dsrc.dbPath != "" {
-				if nfiles := numberOfFiles(tt.dsrc.dbPath); nfiles != tt.wantNumberOfFiles {
+			if tt.dsrc != nil && tt.dsrc.dbOpts.Dir != "" {
+				if nfiles := numberOfFiles(tt.dsrc.dbOpts.Dir); nfiles != tt.wantNumberOfFiles {
 					t.Errorf("ReliableClient.ConsolidateStatusDb() numberOfFiles = %v, want %v", nfiles, tt.wantNumberOfFiles)
 				}
 			}
