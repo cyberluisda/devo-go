@@ -261,7 +261,6 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	r := &ReliableClient{
 		Client:                   cl,
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
-		dbPath:                   dsrcb.dbOpts.Dir,
 		dbOpts:                   dsrcb.dbOpts,
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
@@ -293,7 +292,6 @@ type ReliableClient struct {
 	*Client
 	clientBuilder            *ClientBuilder
 	db                       *nutsdb.DB
-	dbPath                   string
 	dbOpts                   nutsdb.Options
 	dbMtx                    sync.Mutex
 	bufferSize               uint
