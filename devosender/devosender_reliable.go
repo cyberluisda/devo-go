@@ -1462,6 +1462,9 @@ func (dsrc *ReliableClient) findAllRecordsID() ([]string, error) {
 // findAllRecordsID returns a slice with []byte serialized representation of all
 // IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsIDRaw() ([][]byte, error) {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	var r [][]byte
 	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
 		var err error
