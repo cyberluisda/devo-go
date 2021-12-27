@@ -1217,6 +1217,8 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) error {
 	oldID := r.AsyncIDs[len(r.AsyncIDs)-1] // Only for debug purpose
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		return updateRecordInTx(tx, r, newID, dsrc.eventTTLSeconds)
 	})
