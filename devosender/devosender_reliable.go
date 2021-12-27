@@ -879,6 +879,8 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 	dsrc.dbInitCleanedup = true // Assuming db is cleaned by default
 	dsrc.dbMtx.Lock()           // Lock status database
 
+	dsrc.appLogger.Log(applogger.DEBUG, "Status db init clean up process started")
+
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if we have elements using count
 		c, err := cont(tx, statsBucket, countKey, false)
@@ -889,10 +891,24 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 			return nil
 		}
 
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			dsrc.appLogger.Logf(
+				applogger.DEBUG,
+				"%d events found associated to %s in status db", c,
+				fmt.Sprintf("%s.%s", statsBucket, countKey),
+			)
+		}
+
 		// Look for all records and move to no-conn-
 		oldIds, err := findAllRecordsIDRawInTx(tx)
 		if err != nil {
 			return err
+		}
+
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			dsrc.appLogger.Logf(
+				applogger.DEBUG,
+				"Marking %d events in status db as no-conn as step of db init clean up process", len(oldIds))
 		}
 
 		newIDs := make(map[string]interface{}, len(oldIds))
