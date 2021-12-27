@@ -737,14 +737,12 @@ func (dsrc *ReliableClient) ConsolidateStatusDb() error {
 		return nil
 	}
 
-	// TODO Using transaction to allow thread-safe, but maybe dbMtx will be required
-	// dsrc.dbMtx.Lock()
-	// defer dsrc.dbMtx.UnLock()
-	tx, _ := dsrc.db.Begin(true) // Ignore error
-	// We will ever accept transaction because it is used only for blocking-point reasons
-	defer tx.Commit()
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 
+	dsrc.appLogger.Log(applogger.INFO, "Starting status db files consolidation")
 	err := dsrc.db.Merge()
+
 	if err != nil {
 		return fmt.Errorf("While consolidate db (Merge): %w", err)
 	}
@@ -1060,7 +1058,6 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 		time.Sleep(dsrc.consolidateDaemon.initDelay)
 
 		for !dsrc.consolidateDaemon.stop {
-			// FIXME db mutex??
 			err := dsrc.ConsolidateStatusDb()
 			if err != nil {
 				dsrc.appLogger.Logf(
