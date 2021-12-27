@@ -1151,6 +1151,8 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 	id := r.AsyncIDs[len(r.AsyncIDs)-1]
 	idAsBytes := []byte(id)
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		totalEvents, err := cont(tx, statsBucket, countKey, false)
 		if err != nil {
