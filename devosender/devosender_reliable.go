@@ -527,6 +527,8 @@ func (dsrc *ReliableClient) Close() error {
 		errors = append(errors, fmt.Errorf("Error when reset session stats: %w", err))
 	}
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err = dsrc.db.Close()
 	if err != nil {
 		errors = append(errors, fmt.Errorf("Error when close db: %w", err))
