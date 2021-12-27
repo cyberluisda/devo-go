@@ -734,7 +734,7 @@ func (dsrc *ReliableClient) ConsolidateStatusDb() error {
 		return errors.New("Number of files threshold must be defined")
 	}
 
-	numberOfFiles := numberOfFiles(dsrc.dbPath)
+	numberOfFiles := numberOfFiles(dsrc.dbOpts.Dir)
 	if numberOfFiles < int(dsrc.consolidateDbNumFiles) {
 		return nil
 	}
@@ -760,7 +760,7 @@ func (dsrc *ReliableClient) String() string {
 			dsrc.db.KeyCount,
 			dsrc.db.ListIdx,
 			dsrc.consolidateDbNumFiles,
-			numberOfFiles(dsrc.dbPath),
+			numberOfFiles(dsrc.dbOpts.Dir),
 		)
 	}
 	return fmt.Sprintf(
