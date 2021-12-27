@@ -1322,6 +1322,8 @@ func (dsrc *ReliableClient) deleteRecords(IDs ...string) error {
 
 // deleteRecords deletes one reliableClientRecord from status ID updating counters at same time
 func (dsrc *ReliableClient) deleteRecordRaw(idsAsBytes []byte) error {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		return deleteRecordRawInTx(tx, idsAsBytes)
 	})
