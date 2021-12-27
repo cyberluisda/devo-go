@@ -695,6 +695,9 @@ func (dsrc *ReliableClient) Stats() ReliableClientStats {
 // ResetSessionStats remove stats values from status. Stats values considerd at
 // session scope are: 'update', 'deleted', 'dropped' and 'evicted' counters
 func (dsrc *ReliableClient) ResetSessionStats() error {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	// session stas are: updated, deleted, dropped and evicted:
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		for _, key := range [4][]byte{updatedKey, finishedKey, droppedKey, evictedKey} {
