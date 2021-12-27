@@ -649,6 +649,9 @@ type ReliableClientStats struct {
 // DbDataEntries and DbKeysSize will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment variable
 // is set with "yes" value
 func (dsrc *ReliableClient) Stats() ReliableClientStats {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	r := ReliableClientStats{}
 	dsrc.db.View(func(tx *nutsdb.Tx) error {
 		v, _ := cont(tx, statsBucket, countKey, false)
