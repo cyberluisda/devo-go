@@ -1498,6 +1498,9 @@ func (dsrc *ReliableClient) getRecord(id string) (*reliableClientRecord, error) 
 // getRecordRaw returns the reliableClientRecord in the status identified by serialized
 // representation of the id
 func (dsrc *ReliableClient) getRecordRaw(idAsBytes []byte) (*reliableClientRecord, error) {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	var r *reliableClientRecord
 	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
 		var err error
