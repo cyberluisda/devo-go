@@ -880,6 +880,8 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 
 	dsrc.dbInitCleanedup = true // Assuming db is cleaned by default
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if we have elements using count
 		c, err := cont(tx, statsBucket, countKey, false)
