@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -1941,6 +1942,53 @@ func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
 	if got != want {
 		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, want %v", got, want)
 	}
+}
+
+func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
+	// applogger to check errors
+	var buf bytes.Buffer
+	al := &applogger.WriterAppLogger{
+		Writer: &buf,
+		Level:  applogger.DEBUG,
+	}
+	// status db with events to create files
+	dbOpts := nutsdb.DefaultOptions
+	dbOpts.SegmentSize = 64
+	data := make(map[string][]byte, 12)
+	val := []byte("1234567890123456") // 16 bytes lente
+	for i := 0; i < 12; i++ {
+		data[fmt.Sprintf("%d", i)] = val
+	}
+	path, db := newDbWithOpts("test", data, dbOpts)
+	dbOpts.Dir = path
+
+	// Crate client with appLogger
+	rc := &ReliableClient{
+		consolidateDaemon: reliableClientDaemon{
+			daemonOpts: daemonOpts{
+				waitBtwChecks: time.Millisecond * 100,
+			},
+		},
+		appLogger:             al,
+		db:                    db,
+		dbOpts:                dbOpts,
+		consolidateDbNumFiles: 2,
+	}
+
+	// starts daemon execution
+	rc.consolidateDbDaemon()
+
+	// wait for consolidation call stop daemon
+	time.Sleep(time.Millisecond * 200)
+
+	// Checks that message is expected
+	got := buf.String()
+	wantPrefix := "INFO Starting status db files consolidation\nDEBUG Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon"
+	if !strings.HasPrefix(got, wantPrefix) {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
+	}
+
+	os.RemoveAll(path)
 }
 
 func TestReliableClient_consolidateDbDaemon(t *testing.T) {
