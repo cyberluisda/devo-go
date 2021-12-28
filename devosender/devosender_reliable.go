@@ -1097,11 +1097,11 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 		// Init delay
 		daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, true)
 
-		dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon working: %+v", dsrc.retryDaemon)
+		dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon working: %+v", dsrc.consolidateDaemon)
 
 		for !dsrc.consolidateDaemon.stop {
 
-			dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon shot: %+v", dsrc.consolidateDbDaemon)
+			dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon shot: %+v", dsrc.consolidateDaemon)
 
 			// W-A memory leak : recreate DB
 			nmbrFiles := numberOfFiles(dsrc.dbOpts.Dir)
