@@ -1031,7 +1031,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.reconnDaemon.initDelay)
+		daemonSleep(&(dsrc.reconnDaemon), DefaultDaemonMicroWait, true)
 
 		for !dsrc.reconnDaemon.stop {
 			dsrc.clientMtx.Lock()
@@ -1057,7 +1057,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 				}
 			}
 			dsrc.clientMtx.Unlock()
-			time.Sleep(dsrc.reconnDaemon.waitBtwChecks)
+			daemonSleep(&(dsrc.reconnDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
