@@ -823,19 +823,19 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	// Pending events daemon
 	err = dsrc.startRetryEventsDaemon()
 	if err != nil {
-		return err
+		return fmt.Errorf("While starts retry event daemon: %w", err)
 	}
 
 	// Client reconnection
 	err = dsrc.clientReconnectionDaemon()
 	if err != nil {
-		return err
+		return fmt.Errorf("While starts client reconnection daemon: %w", err)
 	}
 
 	// Consolidate status db
 	err = dsrc.consolidateDbDaemon()
 	if err != nil {
-		return err
+		return fmt.Errorf("While starts consolidate status db daemon: %w", err)
 	}
 
 	return nil
