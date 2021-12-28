@@ -582,6 +582,8 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 		dbOpts                   nutsdb.Options
 		retryDaemonOpts          daemonOpts
 		clientReconnOpts         daemonOpts
+		consolidateDbDaemonOpts  daemonOpts
+		consolidateDbNumFiles    uint8
 		daemonStopTimeout        time.Duration
 		bufferEventsSize         uint
 		eventTimeToLive          uint32
@@ -629,8 +631,22 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 			"Get client without conn",
 			fields{
 				// Copied directly from NewReliableClientBuilder
-				dbOpts:    nutsdbOptionsWithDir("/tmp/test-builder-build"),
-				appLogger: &applogger.NoLogAppLogger{},
+				dbOpts:                nutsdbOptionsWithDir("/tmp/test-builder-build"),
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2,
+
+				retryDaemonOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
+				clientReconnOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
+				consolidateDbDaemonOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
 
 				clientBuilder: &ClientBuilder{
 					entrypoint: "udp://localhost:1234",
@@ -641,6 +657,26 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 					entryPoint: "udp://localhost:1234",
 				},
 				dbOpts: nutsdbOptionsWithDir("/tmp/test-builder-build"),
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				dbInitCleanedup:       true,
+				consolidateDbNumFiles: 2,
 			},
 			false,
 		},
@@ -652,6 +688,8 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				dbOpts:                   tt.fields.dbOpts,
 				retryDaemonOpts:          tt.fields.retryDaemonOpts,
 				clientReconnOpts:         tt.fields.clientReconnOpts,
+				consolidateDbDaemonOpts:  tt.fields.consolidateDbDaemonOpts,
+				consolidateDbNumFiles:    tt.fields.consolidateDbNumFiles,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				bufferEventsSize:         tt.fields.bufferEventsSize,
 				eventTimeToLive:          tt.fields.eventTimeToLive,
