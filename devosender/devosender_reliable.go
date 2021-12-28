@@ -1159,6 +1159,43 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 	return nil
 }
 
+// daemonSleep is a helper tool that extends simple time.Sleep. This func sleeps a total
+// dbOpts.waitBtwChecks time, but check in microSleep intervals if dbOpts.stop is true
+// (stopping on this case) and return this value at the end.
+// if initdDelay is true sleep time used will be dOpts.initDelay instead of
+// dOpts.waitBtwChecks
+func daemonSleep(dOpts *reliableClientDaemon, microSleep time.Duration, initDelay bool) bool {
+	sleep := dOpts.waitBtwChecks
+	if initDelay {
+		sleep = dOpts.initDelay
+	}
+
+	// No sleep time
+	if sleep <= 0 {
+		return dOpts.stop
+	}
+
+	// sleep time is less than microSleep or microSleep is not enough
+	if sleep <= microSleep || microSleep <= 0 {
+		time.Sleep(sleep)
+		return dOpts.stop
+	}
+
+	// Sleep in micro sleeps checkin dOpts.stop
+	for sleep > 0 && !dOpts.stop {
+		if sleep < microSleep {
+			// Remaining time
+			time.Sleep(sleep)
+		} else {
+			// Other iteration
+			time.Sleep(microSleep)
+		}
+		sleep -= microSleep
+	}
+
+	return dOpts.stop
+}
+
 // resendRecord send the event based on record status.
 func (dsrc *ReliableClient) resendRecord(r *reliableClientRecord) error {
 	var newID string
