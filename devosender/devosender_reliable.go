@@ -1003,8 +1003,13 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 		// Init delay
 		daemonSleep(&(dsrc.retryDaemon), DefaultDaemonMicroWait, true)
 
+		dsrc.appLogger.Logf(applogger.DEBUG, "startRetryEventsDaemon working: %+v", dsrc.retryDaemon)
+
 		// Daemon loop
 		for !dsrc.retryDaemon.stop {
+
+			dsrc.appLogger.Logf(applogger.DEBUG, "startRetryEventsDaemon shot: %+v", dsrc.retryDaemon)
+
 			err := dsrc.Flush()
 			if err != nil {
 				dsrc.appLogger.Logf(
