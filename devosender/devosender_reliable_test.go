@@ -1911,6 +1911,37 @@ func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
 	}
 }
 
+func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
+	// applogger to check errors
+	var buf bytes.Buffer
+	al := &applogger.WriterAppLogger{
+		Writer: &buf,
+		Level:  applogger.DEBUG,
+	}
+	// Crate client with appLogger
+	rc := &ReliableClient{
+		consolidateDaemon: reliableClientDaemon{
+			daemonOpts: daemonOpts{
+				waitBtwChecks: time.Millisecond * 50,
+			},
+		},
+		appLogger: al,
+	}
+
+	// starts daemon execution
+	rc.consolidateDbDaemon()
+
+	// wait and stop daemon
+	time.Sleep(time.Millisecond * 50)
+	rc.consolidateDaemon.stop = true
+
+	// Checks that message is expected
+	got := buf.String()
+	want := "ERROR Error While consolidate status db in consolidateDbDaemon: Status db is nil\n"
+	if got != want {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, want %v", got, want)
+	}
+}
 
 func TestReliableClient_consolidateDbDaemon(t *testing.T) {
 	tests := []struct {
