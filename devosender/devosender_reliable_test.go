@@ -1509,7 +1509,7 @@ func TestReliableClient_String(t *testing.T) {
 			},
 			"Client: {entryPoint: 'udp://example.com:80', syslogHostname: '', defaultTag: '', " +
 				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, " +
-				"tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', " +
+				"tcp: {<nil>} -> <nil>, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', " +
 				"maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: " +
 				"'0001-01-01 00:00:00 +0000 UTC'}, db: {KeyCount: 0, ListIdx: map[], " +
 				"consolidationDbNumFilesThreshold: 4, dbFiles: 0}, bufferSize: 123, " +
