@@ -986,6 +986,8 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		return fmt.Errorf("While consolidate db after initial cleanup on status db: %w", err)
 	}
 
+	dsrc.appLogger.Log(applogger.DEBUG, "initialize DB finished without errors")
+
 	return nil
 }
 
