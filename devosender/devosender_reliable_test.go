@@ -2055,6 +2055,7 @@ func TestReliableClient_consolidateDbDaemon(t *testing.T) {
 		{
 			"Daemon stopped",
 			&ReliableClient{
+				appLogger: &applogger.NoLogAppLogger{},
 				consolidateDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
 						waitBtwChecks: time.Second,
