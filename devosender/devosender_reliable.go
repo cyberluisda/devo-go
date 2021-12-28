@@ -1040,7 +1040,12 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 		// Init delay
 		daemonSleep(&(dsrc.reconnDaemon), DefaultDaemonMicroWait, true)
 
+		dsrc.appLogger.Logf(applogger.DEBUG, "clientReconnectionDaemon working: %+v", dsrc.retryDaemon)
+
 		for !dsrc.reconnDaemon.stop {
+
+			dsrc.appLogger.Logf(applogger.DEBUG, "clientReconnectionDaemon shot: %+v", dsrc.reconnDaemon)
+
 			dsrc.clientMtx.Lock()
 			if !dsrc.IsStandBy() {
 				recreate := false
