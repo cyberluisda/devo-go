@@ -1890,6 +1890,27 @@ func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T)
 	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
 }
 
+func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.clientReconnectionDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.clientReconnectionDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestReliableClient_resendRecord(t *testing.T) {
 	type args struct {
 		r *reliableClientRecord
