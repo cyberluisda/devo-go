@@ -3733,9 +3733,13 @@ func Test_numberOfFiles(t *testing.T) {
 }
 
 func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
+	return newDbWithOpts(initValBucket, initVals, nutsdb.DefaultOptions)
+}
+
+func newDbWithOpts(initValBucket string, initVals map[string][]byte, opts nutsdb.Options) (string, *nutsdb.DB) {
 	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 
-	opts := nutsdbOptionsWithDir(path)
+	opts.Dir = path
 	db, err := nutsdb.Open(opts)
 	if err != nil {
 		panic(err)
