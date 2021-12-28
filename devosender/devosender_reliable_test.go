@@ -1803,6 +1803,27 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
 }
 
+func TestReliableClient_startRetryEventsDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.startRetryEventsDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.startRetryEventsDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T) {
 	// Open new server
 	tcm := &tcpMockRelay{}
