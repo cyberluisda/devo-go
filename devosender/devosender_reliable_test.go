@@ -3618,6 +3618,78 @@ func Test_nutsdbIsNotFoundError(t *testing.T) {
 	}
 }
 
+func Test_numberOfFiles(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			"No existing path",
+			args{"/this_path_should_not_exist"},
+			0,
+		},
+		{
+			"Empty path",
+			args{
+				func() string {
+					// Create path
+					r := "/tmp/test-devosender_reliable-numberOfFiles"
+					os.RemoveAll(r)
+					err := os.Mkdir(r, 0600)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+			},
+			0,
+		},
+		{
+			"Path with file",
+			args{
+				func() string {
+					// Create path
+					r := "/tmp/test-devosender_reliable-numberOfFiles-files"
+					os.RemoveAll(r)
+					err := os.Mkdir(r, 0700)
+					if err != nil {
+						panic(err)
+					}
+
+					// Create directory and file
+					err = os.Mkdir(r+"/otherdir", 0600)
+					if err != nil {
+						panic(err)
+					}
+
+					f, err := os.Create(r + "/file.txt")
+					if err != nil {
+						panic(err)
+					}
+					f.Close()
+
+					return r
+				}(),
+			},
+			2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := numberOfFiles(tt.args.path); got != tt.want {
+				t.Errorf("numberOfFiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/test-devosender_reliable-numberOfFiles")
+	os.RemoveAll("/tmp/test-devosender_reliable-numberOfFiles-files")
+}
+
 func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
 	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 
