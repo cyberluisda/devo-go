@@ -1064,6 +1064,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	return nil
 }
 
+const consolidationDmnConsolidateWarnLimit = time.Second * 10
 // consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
 // periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
 func (dsrc *ReliableClient) consolidateDbDaemon() error {
@@ -1075,7 +1076,23 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 		time.Sleep(dsrc.consolidateDaemon.initDelay)
 
 		for !dsrc.consolidateDaemon.stop {
+			beginTime := time.Now() // For warning if spended time is high
 			err := dsrc.ConsolidateStatusDb()
+			endTime := time.Now()
+
+			thresold := beginTime.Add(consolidationDmnConsolidateWarnLimit)
+			// Spend time warning
+			if thresold.Before(endTime) {
+				dsrc.appLogger.Logf(
+					applogger.WARNING,
+					"Spent time by ConsolidateStatus (begin: %s, end: %s, threshold: %v) was greater than warning limit: %s",
+					beginTime.Format(time.RFC3339Nano),
+					endTime.Format(time.RFC3339Nano),
+					thresold,
+					consolidationDmnConsolidateWarnLimit,
+				)
+			}
+
 			if err != nil {
 				dsrc.appLogger.Logf(
 					applogger.ERROR,
