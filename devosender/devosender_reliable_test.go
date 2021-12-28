@@ -1708,6 +1708,8 @@ func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
 		panic(err)
 	}
 
+	time.Sleep(time.Millisecond * 100) // Enough time to dbInitCleanup
+
 	dsrc.db.Close() // Force error when daemon close database
 
 	t.Logf("Send term signal")
