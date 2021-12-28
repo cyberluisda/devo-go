@@ -1080,7 +1080,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.consolidateDaemon.initDelay)
+		daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, true)
 
 		for !dsrc.consolidateDaemon.stop {
 
@@ -1149,7 +1149,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 					)
 				}
 			}
-			time.Sleep(dsrc.consolidateDaemon.waitBtwChecks)
+			daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
