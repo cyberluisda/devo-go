@@ -1064,7 +1064,11 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	return nil
 }
 
-const consolidationDmnConsolidateWarnLimit = time.Second * 10
+const (
+	consolidationDmnConsolidateWarnLimit = time.Second * 10
+	consolidationDmnNewDbClientWarnLimit = time.Second
+)
+
 // consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
 // periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
 func (dsrc *ReliableClient) consolidateDbDaemon() error {
@@ -1076,6 +1080,11 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 		time.Sleep(dsrc.consolidateDaemon.initDelay)
 
 		for !dsrc.consolidateDaemon.stop {
+
+			// W-A memory leak : recreate DB
+			nmbrFiles := numberOfFiles(dsrc.dbOpts.Dir)
+			shouldRecreateStatusDb := dsrc.consolidateDbNumFiles > 0 && nmbrFiles > 0 && nmbrFiles >= int(dsrc.consolidateDbNumFiles)
+
 			beginTime := time.Now() // For warning if spended time is high
 			err := dsrc.ConsolidateStatusDb()
 			endTime := time.Now()
@@ -1098,6 +1107,44 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 					applogger.ERROR,
 					"Error While consolidate status db in consolidateDbDaemon: %v", err,
 				)
+			} else if shouldRecreateStatusDb { // W-A memory leak : recreate DB
+				dsrc.appLogger.Log(
+					applogger.DEBUG,
+					"Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon",
+				)
+
+				beginTime = time.Now() // For warning if spended time is high
+				dsrc.dbMtx.Lock()      // synchronize status db
+
+				err = dsrc.db.Close()
+				if err != nil {
+					dsrc.appLogger.Logf(
+						applogger.ERROR,
+						"Error While close database to recreate new one in consolidateDbDaemon: %v", err,
+					)
+				}
+
+				dsrc.db, err = nutsdb.Open(dsrc.dbOpts)
+				if err != nil {
+					panic(fmt.Sprintf("Error while open new status db connection (recreate) in consolidateDbDaemon: %v", err))
+				}
+
+				dsrc.dbMtx.Unlock() // End synchronize
+				endTime = time.Now()
+
+				thresold = beginTime.Add(consolidationDmnConsolidateWarnLimit)
+				// Spend time warning
+				if thresold.Before(endTime) {
+					dsrc.appLogger.Logf(
+						applogger.WARNING,
+						"Spent time by recreate status-db client (begin: %s, end: %s, threshold: %v) was "+
+							"greater than warning limit: %s",
+						beginTime.Format(time.RFC3339Nano),
+						endTime.Format(time.RFC3339Nano),
+						thresold,
+						consolidationDmnConsolidateWarnLimit,
+					)
+				}
 			}
 			time.Sleep(dsrc.consolidateDaemon.waitBtwChecks)
 		}
