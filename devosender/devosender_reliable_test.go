@@ -1586,10 +1586,12 @@ func TestReliableClient_String(t *testing.T) {
 
 func TestReliableClient_daemonsSartup(t *testing.T) {
 	type fields struct {
-		db           *nutsdb.DB
-		retryDaemon  reliableClientDaemon
-		reconnDaemon reliableClientDaemon
-		appLogger    applogger.SimpleAppLogger
+		db                    *nutsdb.DB
+		retryDaemon           reliableClientDaemon
+		reconnDaemon          reliableClientDaemon
+		consolidateDaemon     reliableClientDaemon
+		appLogger             applogger.SimpleAppLogger
+		consolidateDbNumFiles uint8
 	}
 	tests := []struct {
 		name    string
@@ -1599,14 +1601,16 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: status db nil",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
 			},
 			true,
 		},
 		{
 			"Error: db intialization",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
@@ -1626,7 +1630,8 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: Retry events daemon",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
@@ -1673,10 +1678,12 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				db:           tt.fields.db,
-				retryDaemon:  tt.fields.retryDaemon,
-				reconnDaemon: tt.fields.retryDaemon,
-				appLogger:    tt.fields.appLogger,
+				db:                    tt.fields.db,
+				retryDaemon:           tt.fields.retryDaemon,
+				reconnDaemon:          tt.fields.retryDaemon,
+				consolidateDaemon:     tt.fields.consolidateDaemon,
+				appLogger:             tt.fields.appLogger,
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
 			}
 			if err := dsrc.daemonsSartup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.daemonsSartup() error = %v, wantErr %v", err, tt.wantErr)
