@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"os/signal"
 	"runtime"
 	"runtime/pprof"
 	"time"
@@ -170,9 +171,21 @@ func main() {
 		log.Println("Starting to send", *msgPerSecond, "messages per second without limit")
 	}
 
+	// Capture termination and stop generate events: canceled = true
+	canceled := false
+	go func() {
+		sigchan := make(chan os.Signal)
+		signal.Notify(sigchan, os.Interrupt)
+		<-sigchan // wait until signal received
+
+		// Stop
+		canceled = true
+		log.Println("Stop signal recieved cancel process started!")
+	}()
+
 	// main bucle
 	var totalMsgs uint
-	for *seconds != 0 {
+	for *seconds != 0 && !canceled {
 
 		for i := uint(0); i < *msgPerSecond; i++ {
 			payload := randomChars(*msgBodySize)
@@ -201,6 +214,11 @@ func main() {
 		if *seconds > 0 {
 			*seconds = *seconds - 1
 		}
+	}
+
+	if canceled {
+		log.Println("Canceled!")
+		os.Exit(1)
 	}
 
 	log.Println("#Events send with error until now", rc.AsyncErrorsNumber())
