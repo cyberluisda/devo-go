@@ -863,7 +863,7 @@ func (dsc *Client) String() string {
 
 	return fmt.Sprintf(
 		"entryPoint: '%s', syslogHostname: '%s', defaultTag: '%s', connAddr: '%s', "+
-			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v, connectionUsedTimestamp: '%s', "+
+			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v -> %+v, connectionUsedTimestamp: '%s', "+
 			"maxTimeConnActive: '%v', #asyncItems: %d, lastSendCallTimestamp: '%s'",
 		dsc.entryPoint,
 		dsc.syslogHostname,
@@ -873,6 +873,7 @@ func (dsc *Client) String() string {
 		dsc.tls,
 		dsc.AsyncErrorsNumber(),
 		dsc.tcp,
+		dsc.tcp.tcpDialer,
 		connUsedTimestamp,
 		dsc.maxTimeConnActive,
 		dsc.AsyncsNumber(),
