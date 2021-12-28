@@ -1911,6 +1911,40 @@ func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
 	}
 }
 
+
+func TestReliableClient_consolidateDbDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+		{
+			"Daemon stopped",
+			&ReliableClient{
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Second,
+					},
+					stop: true,
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.consolidateDbDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.consolidateDbDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestReliableClient_resendRecord(t *testing.T) {
 	type args struct {
 		r *reliableClientRecord
