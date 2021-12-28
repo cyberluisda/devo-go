@@ -2303,15 +2303,11 @@ func TestReliableClient_newRecord(t *testing.T) {
 					panic(err)
 				}
 
-				r, err := NewReliableClientBuilder().
+				r, _ := NewReliableClientBuilder().
 					DbPath("/tmp/tests-reliable-newRecord").
 					ClientBuilder(
 						NewClientBuilder().EntryPoint("udp://localhost:13000")).
 					Build()
-
-				if err != nil {
-					panic(err)
-				}
 
 				return r
 			}(),
