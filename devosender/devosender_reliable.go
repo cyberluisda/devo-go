@@ -287,7 +287,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Daemons startup
 	err = r.daemonsSartup()
 	if err != nil {
-		return nil, fmt.Errorf("While initialize dameons: %w", err)
+		return r, fmt.Errorf("While initialize dameons: %w", err)
 	}
 
 	return r, nil
