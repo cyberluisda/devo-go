@@ -146,9 +146,9 @@ func main() {
 			Level:  applogger.DEBUG,
 		}).
 		BufferEventsSize(*bufferSize).
-		ClientReconnDaemonInitDelay(time.Minute).
+		ClientReconnDaemonInitDelay(time.Second * 15).
 		ConsolidateDbDaemonInitDelay(time.Minute).
-		RetryDaemonInitDelay(time.Minute).
+		RetryDaemonInitDelay(time.Second * 5).
 		ClientReconnDaemonWaitBtwChecks(*reconnectDaemonWait).
 		ConsolidateDbDaemonWaitBtwChecks(*consolidateDaemonWait).
 		RetryDaemonWaitBtwChecks(*retryDaemonWait).
