@@ -999,7 +999,7 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.retryDaemon.initDelay)
+		daemonSleep(&(dsrc.retryDaemon), DefaultDaemonMicroWait, true)
 
 		// Daemon loop
 		for !dsrc.retryDaemon.stop {
@@ -1011,7 +1011,7 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 				)
 			}
 
-			time.Sleep(dsrc.retryDaemon.waitBtwChecks)
+			daemonSleep(&(dsrc.retryDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
