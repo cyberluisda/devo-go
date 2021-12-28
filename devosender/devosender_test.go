@@ -2689,7 +2689,10 @@ func TestClient_String(t *testing.T) {
 		{
 			"Empty",
 			fields{},
-			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'`,
+			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ` +
+				`ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>} -> <nil>, ` +
+				`connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', ` +
+				`#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'`,
 		},
 		{
 			"With values",
@@ -2720,7 +2723,13 @@ func TestClient_String(t *testing.T) {
 				},
 				lastSendCallTimestamp: time.Unix(1978, 1),
 			},
-			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1, lastSendCallTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 1)) + `'`,
+			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: ` +
+				`'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` +
+				testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` +
+				fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>} -> <nil>, ` +
+				`connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) +
+				`', maxTimeConnActive: '1s', #asyncItems: 1, lastSendCallTimestamp: '` +
+				fmt.Sprintf("%v", time.Unix(1978, 1)) + `'`,
 		},
 	}
 	for _, tt := range tests {
