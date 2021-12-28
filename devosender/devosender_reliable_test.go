@@ -1964,9 +1964,9 @@ func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
 	var buf bytes.Buffer
 	al := &applogger.WriterAppLogger{
 		Writer: &buf,
-		Level:  applogger.DEBUG,
+		Level:  applogger.INFO,
 	}
-	// Crate client with appLogger
+	// Create client with appLogger
 	rc := &ReliableClient{
 		consolidateDaemon: reliableClientDaemon{
 			daemonOpts: daemonOpts{
@@ -1985,9 +1985,9 @@ func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
 
 	// Checks that message is expected
 	got := buf.String()
-	want := "ERROR Error While consolidate status db in consolidateDbDaemon: Status db is nil\n"
-	if got != want {
-		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, want %v", got, want)
+	wantPrefix := "ERROR Error While consolidate status db in consolidateDbDaemon: Status db is nil\n"
+	if !strings.HasPrefix(got, wantPrefix) {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
 }
 
@@ -2030,7 +2030,10 @@ func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
 
 	// Checks that message is expected
 	got := buf.String()
-	wantPrefix := "INFO Starting status db files consolidation\nDEBUG Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon"
+	wantPrefix := "DEBUG consolidateDbDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"DEBUG consolidateDbDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"INFO Starting status db files consolidation\n" +
+		"DEBUG Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon"
 	if !strings.HasPrefix(got, wantPrefix) {
 		t.Errorf("ReliableClient.clientReconnectionDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
