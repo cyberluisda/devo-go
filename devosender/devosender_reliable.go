@@ -795,7 +795,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	// Old saved state cleanup
 	err := dsrc.dbInitCleanup()
 	if err != nil {
-		return err
+		return fmt.Errorf("While dbInitCleanup: %w", err)
 	}
 
 	// Capture termination and close client
