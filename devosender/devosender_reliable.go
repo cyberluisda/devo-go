@@ -48,6 +48,9 @@ const (
 	// DefaultDaemonInitDelay is the default delay time that daemons must wait before
 	// start to work
 	DefaultDaemonInitDelay = time.Millisecond * 500
+	// DefaultDaemonMicroWait is the default micro delay to check in the midle of daemon
+	// sleep time if daemon was marked to be stopped, then interrup sleep operation
+	DefaultDaemonMicroWait = time.Millisecond * 200
 	// DefaultBufferEventsSize is the default size of the total events buffer managed
 	// by Reliable client to save events
 	DefaultBufferEventsSize uint = 5000000
