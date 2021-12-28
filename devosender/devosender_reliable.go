@@ -718,7 +718,7 @@ func (dsrc *ReliableClient) ResetSessionStats() error {
 }
 
 // ConsolidateStatusDb does an internal db status consolidation if the number
-// of status db files is grater than max db files thresold
+// of status db files is grater than max db files threshold
 func (dsrc *ReliableClient) ConsolidateStatusDb() error {
 	if dsrc == nil {
 		return ErrNilPointerReceiver
