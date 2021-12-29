@@ -1084,7 +1084,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 
 const (
 	consolidationDmnConsolidateWarnLimit = time.Second * 10
-	consolidationDmnNewDbClientWarnLimit = time.Second
+	consolidationDmnNewDbClientWarnLimit = time.Second * 2
 )
 
 // consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
