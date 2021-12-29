@@ -891,17 +891,44 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		// Check if we have elements using count
 		c, err := cont(tx, statsBucket, countKey, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("While load %s.%s counter: %w", statsBucket, string(countKey), err)
 		}
 		if c == 0 {
+			// Ensure keys in order is clean
+			// ctrl keys_in_order
+			c, err = tx.LSize(ctrlBucket, keysInOrderKey)
+			if err != nil {
+				// Empty db
+				if err.Error() == "err bucket" {
+					return nil
+				}
+				if nutsdbIsNotFoundError(err) {
+					return nil
+				}
+				return fmt.Errorf("While load size of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+			}
+
+			if c > 0 {
+				dsrc.appLogger.Logf(
+					applogger.INFO,
+					"%s.%s with 0 value but %s.%s get %d elements. Truncating this control key",
+					statsBucket, string(countKey), ctrlBucket, string(keysInOrderKey), c)
+
+				err = tx.LTrim(ctrlBucket, keysInOrderKey, 0, 0)
+				//err = tx.Delete(ctrlBucket, keysInOrderKey)
+				if err != nil {
+					return fmt.Errorf("While delete unconsistent %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+				}
+			}
+
 			return nil
 		}
 
 		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
 			dsrc.appLogger.Logf(
 				applogger.DEBUG,
-				"%d events found associated to %s in status db", c,
-				fmt.Sprintf("%s.%s", statsBucket, countKey),
+				"%d events found associated to %s.%s in status db",
+				c, statsBucket, countKey,
 			)
 		}
 
@@ -918,11 +945,18 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		}
 
 		newIDs := make(map[string]interface{}, len(oldIds))
+
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			for _, v := range oldIds {
+				dsrc.appLogger.Logf(applogger.DEBUG, "Fixing ID %s and updating it", string(v))
+			}
+		}
+
 		for _, id := range oldIds {
 			idAsStr := string(id)
 			record, err := getRecordRawInTx(tx, id)
 			if err != nil {
-				return err
+				return fmt.Errorf("While load record using %s ID: %w", idAsStr, err)
 			}
 
 			if isNoConnIDBytes(id) {
@@ -931,49 +965,96 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 				newID := toNoConnID(idAsStr)
 				err = updateRecordInTx(tx, record, newID, dsrc.eventTTLSeconds)
 				if err != nil {
-					return err
+					if IsOldIDNotFoundErr(err) {
+						// We will force to be added bellow
+						dsrc.appLogger.Logf(
+							applogger.INFO,
+							"Record with old ID %s without value in %s.%s. Marked to be reindexed at the begining with new %s id",
+							idAsStr, ctrlBucket, string(keysInOrderKey), newID)
+						newIDs[newID] = nil
+					} else {
+						return fmt.Errorf("While update record with old ID %s, new ID %s: %w", idAsStr, newID, err)
+					}
 				}
-				newIDs[newID] = nil
 			}
 		}
 
-		// Purging orphan references
-
+		/*
+			Purging orphan references from keysInOrder
+		*/
 		// ctrl keys_in_order
 		n, err := tx.LSize(ctrlBucket, keysInOrderKey)
 		if err != nil {
 			return err
 		}
-		keys, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+		keysInOrder, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
 		if err != nil {
 			return err
 		}
-
+		keysInOrderMap := make(map[string]interface{}, len(keysInOrder))
 		toRemove := make([][]byte, 0)
-		for _, k := range keys {
+
+		for _, k := range keysInOrder {
 			keyStr := string(k)
+			keysInOrderMap[keyStr] = nil
 			if _, ok := newIDs[keyStr]; !ok {
 				toRemove = append(toRemove, k)
 				_, err = tx.LRem(ctrlBucket, keysInOrderKey, 0, k)
+				if err != nil {
+					dsrc.appLogger.Logf(
+						applogger.ERROR,
+						"Error while remove orphan key %s from %s.%s: %v",
+						keyStr, ctrlBucket, string(keysInOrderKey), err)
+
+				}
 			}
 		}
 
 		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
 			for _, v := range toRemove {
-				dsrc.appLogger.Logf(applogger.DEBUG, "ID %s removed from status just when initialize DB", string(v))
+				dsrc.appLogger.Logf(
+					applogger.DEBUG,
+					"Orphan ID %s reference removed from %s.%s just when initialize DB",
+					string(v), ctrlBucket, string(keysInOrderKey))
 			}
 		}
 
 		// ctrl keys removed here
 		err = tx.SRem(ctrlBucket, keysKey, toRemove...)
 		if err != nil {
-			return err
+			return fmt.Errorf("While remove orphan keys from %s.%s: %w", ctrlBucket, string(keysKey), err)
 		}
-
 		// update evicted
 		err = inc(tx, statsBucket, evictedKey, len(toRemove), false)
+		if err != nil {
+			return fmt.Errorf(
+				"While increase %s.%s counter with %d : %w",
+				statsBucket, string(evictedKey), len(toRemove), err)
+		}
 
-		return err
+		/*
+			Fix missing keys in keysInOrder
+		*/
+		for k := range newIDs {
+			if _, ok := keysInOrderMap[k]; !ok {
+				if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+					dsrc.appLogger.Logf(
+						applogger.DEBUG,
+						"Record with ID %s without value in %s.%s. Forcing to reindex at the begining",
+						k, ctrlBucket, string(keysInOrderKey))
+				}
+
+				err = tx.LPush(ctrlBucket, keysInOrderKey, []byte(k))
+
+				if err != nil {
+					return fmt.Errorf(
+						"While injecting ID %s at the head of %s.%s: %w",
+						k, ctrlBucket, string(keysInOrderKey), err)
+				}
+			}
+		}
+
+		return nil
 	})
 
 	dsrc.dbMtx.Unlock() // We should unlock status database, because ConsolidateStatusDb will lock by itself
