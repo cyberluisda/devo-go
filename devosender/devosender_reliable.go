@@ -511,14 +511,14 @@ func (dsrc *ReliableClient) Flush() error {
 func (dsrc *ReliableClient) Close() error {
 	errors := make([]error, 0)
 
-	err := dsrc.daemonsShutdown()
-	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
-	}
-
-	err = dsrc.Flush()
+	err := dsrc.Flush()
 	if err != nil {
 		errors = append(errors, fmt.Errorf("Error when flush: %w", err))
+	}
+
+	err = dsrc.daemonsShutdown()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
 	}
 
 	if dsrc.Client != nil {
