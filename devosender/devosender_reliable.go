@@ -1437,7 +1437,7 @@ func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl 
 	}
 
 	if !found {
-		return fmt.Errorf("Error old id %s did not find in %s.%s", oldID, ctrlBucket, string(keysInOrderKey))
+		return fmt.Errorf("Old id %s did not find in %s.%s", oldID, ctrlBucket, string(keysInOrderKey))
 	}
 
 	// Counters and stats
