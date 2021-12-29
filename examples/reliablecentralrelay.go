@@ -166,6 +166,8 @@ func main() {
 		log.Fatalf("Error while build client: %v", err)
 	}
 
+	log.Printf("Client stats: %+v\n", rc.Stats())
+
 	if *seconds > 0 {
 		log.Println("Starting to send", uint(*seconds)*(*msgPerSecond), "messages during", *seconds, "seconds to", *tag, "Devo tag")
 	} else {
