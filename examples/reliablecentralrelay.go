@@ -226,15 +226,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println("#Events send with error until now", rc.AsyncErrorsNumber())
+	log.Println("#Events send with error until now", rc.AsyncErrorsNumber(), "TOTAL msgs generated", totalMsgs)
 	if rc.AsyncErrorsNumber() > 0 {
 		idsWithError := rc.AsyncErrorsIds()
-		_, err := rc.AsyncError(idsWithError[0])
-		log.Println("First error", err)
+		if rc.AsyncErrorsNumber() <= 20 {
+			for _, id := range idsWithError {
+				_, err := rc.AsyncError(id)
+				log.Println("ID", id, "ERR", err)
+			}
+		} else {
+			_, err := rc.AsyncError(idsWithError[0])
+			log.Println("First error", err)
 
-		_, err = rc.AsyncError(idsWithError[len(idsWithError)-1])
-		log.Println("Last error", err)
+			_, err = rc.AsyncError(idsWithError[len(idsWithError)-1])
+			log.Println("Last error", err)
+		}
 	}
+
+	log.Printf("Client stats: %+v\n", rc.Stats())
 
 	if *heapProfile {
 		log.Println("Heap profile dump before clossing client")
