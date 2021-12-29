@@ -1807,3 +1807,11 @@ func numberOfFiles(path string) int {
 	files, _ := ioutil.ReadDir(path)
 	return len(files)
 }
+
+var oldIDNotFoundPattern *regexp.Regexp = regexp.MustCompile(`^Old id [-\w]+ did not find in \w+\.\w+$`)
+
+// IsOldIDNotFoundErr returns true if type of e is Old ID error
+func IsOldIDNotFoundErr(e error) bool {
+	eStr := fmt.Sprintf("%v", e)
+	return oldIDNotFoundPattern.MatchString(eStr)
+}
