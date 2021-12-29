@@ -73,6 +73,7 @@ func main() {
 	consolidateDaemonWait := flag.Duration("consol-duration-checks", time.Minute, "Time to wait between two consecutive times to checks and consolidate status db if needed")
 	tcpTimeout := flag.Duration("tcp-timeout", time.Second*2, "Timeout to open tcp connection")
 	bufferSize := flag.Uint("buffer", devosender.DefaultBufferEventsSize, "Internal status buffer size")
+	displayOrigID := flag.Bool("display-orig-msg-id", false, "If true display the first ID for each mesage generated")
 	cpuProfile := flag.Bool(
 		"cpu-profile",
 		false,
@@ -189,11 +190,13 @@ func main() {
 
 		for i := uint(0); i < *msgPerSecond; i++ {
 			payload := randomChars(*msgBodySize)
-			rc.SendAsync(payload)
-			if err != nil {
-				log.Println("ERROR:", err)
+			id := rc.SendAsync(payload)
+
+			if *displayOrigID {
+				log.Println("New msg generated with id", id)
 			}
 		}
+
 		totalMsgs += *msgPerSecond
 		if totalMsgs%1000 == 0 {
 			log.Println("msgs send until now", totalMsgs)
