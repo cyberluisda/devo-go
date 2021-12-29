@@ -1154,7 +1154,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 				dsrc.dbMtx.Unlock() // End synchronize
 				endTime = time.Now()
 
-				thresold = beginTime.Add(consolidationDmnConsolidateWarnLimit)
+				thresold = beginTime.Add(consolidationDmnNewDbClientWarnLimit)
 				// Spend time warning
 				if thresold.Before(endTime) {
 					dsrc.appLogger.Logf(
@@ -1164,7 +1164,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 						beginTime.Format(time.RFC3339Nano),
 						endTime.Format(time.RFC3339Nano),
 						thresold,
-						consolidationDmnConsolidateWarnLimit,
+						consolidationDmnNewDbClientWarnLimit,
 					)
 				}
 			}
