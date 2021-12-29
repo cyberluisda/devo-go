@@ -74,6 +74,7 @@ func main() {
 	tcpTimeout := flag.Duration("tcp-timeout", time.Second*2, "Timeout to open tcp connection")
 	bufferSize := flag.Uint("buffer", devosender.DefaultBufferEventsSize, "Internal status buffer size")
 	displayOrigID := flag.Bool("display-orig-msg-id", false, "If true display the first ID for each mesage generated")
+	flushBfClose := flag.Bool("flush-before-close", false, "If true make a double flush when close client")
 	cpuProfile := flag.Bool(
 		"cpu-profile",
 		false,
@@ -251,6 +252,14 @@ func main() {
 		if err != nil {
 			log.Printf("Error while dump heap prefile, events %d: %v",
 				totalMsgs, err)
+		}
+	}
+
+	if *flushBfClose {
+		log.Println("Flushing client")
+		err = rc.Flush()
+		if err != nil {
+			log.Fatalf("Error while flushing client: %v", err)
 		}
 	}
 
