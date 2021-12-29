@@ -1602,7 +1602,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 			"Error: status db nil",
 			fields{
 				appLogger:             &applogger.NoLogAppLogger{},
-				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 			},
 			true,
 		},
@@ -1610,7 +1610,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 			"Error: db intialization",
 			fields{
 				appLogger:             &applogger.NoLogAppLogger{},
-				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
@@ -1631,7 +1631,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 			"Error: Retry events daemon",
 			fields{
 				appLogger:             &applogger.NoLogAppLogger{},
-				consolidateDbNumFiles: 2, //ConsolidateStatusDb should works
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
@@ -1652,7 +1652,8 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: Client reconnection daemon",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
