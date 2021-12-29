@@ -1667,7 +1667,8 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 				// retryEvents daemon should work
 				retryDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
-						waitBtwChecks: 0 * time.Second}},
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
 				// Force error
 				reconnDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
