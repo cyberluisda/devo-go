@@ -1676,13 +1676,45 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 			},
 			true,
 		},
+		{
+			"Error: consolidate db daemon",
+			fields{
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
+				db: func() *nutsdb.DB {
+					// Ensure db stauts is clean
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-clientReconn")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				// retryEvents daemon should work
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
+				// reconn daemon should work
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
+				// Force error
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: -2 * time.Second}},
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
 				db:                    tt.fields.db,
 				retryDaemon:           tt.fields.retryDaemon,
-				reconnDaemon:          tt.fields.retryDaemon,
+				reconnDaemon:          tt.fields.reconnDaemon,
 				consolidateDaemon:     tt.fields.consolidateDaemon,
 				appLogger:             tt.fields.appLogger,
 				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
