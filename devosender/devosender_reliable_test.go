@@ -1972,6 +1972,59 @@ func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T)
 	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
 }
 
+func TestReliableClient_clientReconnectionDaemon__recreate_error(t *testing.T) {
+	// Open new server
+	tcm := &tcpMockRelay{}
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start tcp mockrelay: %v", err)
+		return
+	}
+	defer tcm.Stop()
+
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error")
+
+	var appLogBuf bytes.Buffer
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("NO_VALID_PROTOCOL://localhost")).
+		EnableStandByModeTimeout(time.Millisecond * 50).
+		RetryDaemonInitDelay(time.Minute).         // Prevent retry daemon runs during tests
+		ConsolidateDbDaemonInitDelay(time.Minute). // Prevent retry daemon runs during tests
+		ClientReconnDaemonWaitBtwChecks(time.Millisecond * 50).
+		ClientReconnDaemonInitDelay(time.Millisecond * 50).
+		AppLogger(&applogger.WriterAppLogger{
+			Writer: &appLogBuf,
+			Level:  applogger.ERROR,
+		}).
+		Build()
+	if err != nil {
+		t.Errorf("Error while create reliable client: %v", err)
+		return
+	}
+
+	// Wait enought time to get reconn daemon shoot twice
+	time.Sleep(time.Millisecond * 120)
+
+	got := appLogBuf.String()
+	want := `ERROR Error While create new client in Reconnection daemon: Error when create ` +
+		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n" +
+		`ERROR Error While create new client in Reconnection daemon: Error when create ` +
+		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n"
+	if got != want {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() log = %v, want %v", got, want)
+	}
+
+	// Cleant tmp
+	rc.Close()
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error")
+}
+
 func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
 	tests := []struct {
 		name    string
