@@ -3979,6 +3979,45 @@ func Test_numberOfFiles(t *testing.T) {
 	os.RemoveAll("/tmp/test-devosender_reliable-numberOfFiles-files")
 }
 
+func TestIsOldIDNotFoundErr(t *testing.T) {
+	type args struct {
+		e error
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"Nil error",
+			args{nil},
+			false,
+		},
+		{
+			"No match error",
+			args{errors.New("Other error")},
+			false,
+		},
+		{
+			"Match error",
+			args{errors.New("Old id 1jdwir-9820832-dslljfd-10920834 did not find in tarari_bucket.tarari_Key")},
+			true,
+		},
+		{
+			"Unsupported key name",
+			args{errors.New("Old id 1jdwir-9820832-dslljfd-10920834 did not find in tarari_bucket.tarari-Key")},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsOldIDNotFoundErr(tt.args.e); got != tt.want {
+				t.Errorf("IsOldIDNotFoundErr() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
 	return newDbWithOpts(initValBucket, initVals, nutsdb.DefaultOptions)
 }
