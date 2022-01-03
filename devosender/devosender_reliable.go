@@ -915,9 +915,13 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 					statsBucket, string(countKey), ctrlBucket, string(keysInOrderKey), c)
 
 				err = tx.LTrim(ctrlBucket, keysInOrderKey, 0, 0)
-				//err = tx.Delete(ctrlBucket, keysInOrderKey)
 				if err != nil {
 					return fmt.Errorf("While delete unconsistent %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+				}
+				// Remove remaining element
+				_, err = tx.LPop(ctrlBucket, keysInOrderKey)
+				if err != nil {
+					return fmt.Errorf("While remove last lement of unconsistent %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
 				}
 			}
 
