@@ -1866,6 +1866,36 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Truncate keys in order",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+
+					// Open new database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Add new entry to keys in order that should be truncated
+					id := newNoConnID()
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						return tx.RPush(ctrlBucket, keysInOrderKey, []byte(id))
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
