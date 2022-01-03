@@ -939,7 +939,7 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		// Look for all records and move to no-conn-
 		oldIds, err := findAllRecordsIDRawInTx(tx)
 		if err != nil {
-			return err
+			return fmt.Errorf("While get all records ids: %w", err)
 		}
 
 		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
@@ -989,7 +989,7 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		// ctrl keys_in_order
 		n, err := tx.LSize(ctrlBucket, keysInOrderKey)
 		if err != nil {
-			return err
+			return fmt.Errorf("While get size of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
 		}
 		keysInOrder, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
 		if err != nil {
