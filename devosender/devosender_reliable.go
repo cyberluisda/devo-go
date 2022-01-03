@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/signal"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -24,12 +26,14 @@ type ReliableClientBuilder struct {
 	dbOpts                   nutsdb.Options
 	retryDaemonOpts          daemonOpts
 	clientReconnOpts         daemonOpts
+	consolidateDbDaemonOpts  daemonOpts
 	daemonStopTimeout        time.Duration
 	bufferEventsSize         uint
 	eventTimeToLive          uint32
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
+	consolidateDbNumFiles    uint8
 }
 
 type daemonOpts struct {
@@ -44,6 +48,9 @@ const (
 	// DefaultDaemonInitDelay is the default delay time that daemons must wait before
 	// start to work
 	DefaultDaemonInitDelay = time.Millisecond * 500
+	// DefaultDaemonMicroWait is the default micro delay to check in the midle of daemon
+	// sleep time if daemon was marked to be stopped, then interrup sleep operation
+	DefaultDaemonMicroWait = time.Millisecond * 200
 	// DefaultBufferEventsSize is the default size of the total events buffer managed
 	// by Reliable client to save events
 	DefaultBufferEventsSize uint = 5000000
@@ -60,6 +67,12 @@ const (
 	// messages managed by client when Flush func is called. If timeout is reached
 	// then error will be send
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
+	// DefaultConsolidateDbNumFiles is default threshold value used to really consolidate
+	// statud db (Merge) when ReliableClient.ConsolidateStatusDb is called
+	DefaultConsolidateDbNumFiles uint8 = 4
+	// DefaultConsolidateDbDaemonWaitBtwChecks is the default time that consolidate db daemon must wait
+	// between run checks or do any action
+	DefaultConsolidateDbDaemonWaitBtwChecks = time.Minute
 )
 
 // NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
@@ -68,6 +81,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 	r := &ReliableClientBuilder{
 		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		consolidateDbDaemonOpts:  daemonOpts{DefaultConsolidateDbDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
 		bufferEventsSize:         DefaultBufferEventsSize,
 		eventTimeToLive:          DefaultEventTimeToLive,
@@ -75,6 +89,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 		dbOpts:                   nutsdb.DefaultOptions,
 		flushTimeout:             DefaultFlushAsyncTimeout,
 		appLogger:                &applogger.NoLogAppLogger{},
+		consolidateDbNumFiles:    DefaultConsolidateDbNumFiles,
 	}
 
 	return r
@@ -83,6 +98,27 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 // DbPath sets the Database status path in the filesystem
 func (dsrcb *ReliableClientBuilder) DbPath(path string) *ReliableClientBuilder {
 	dsrcb.dbOpts.Dir = path
+	return dsrcb
+}
+
+// DbSegmentSize sets the Database satus file segment size: Maximum size for each status persisted file
+func (dsrcb *ReliableClientBuilder) DbSegmentSize(size int64) *ReliableClientBuilder {
+	dsrcb.dbOpts.SegmentSize = size
+	return dsrcb
+}
+
+// DbEntryIdxMode sets the Database file entry mode. See https://pkg.go.dev/github.com/xujiajun/nutsdb@v0.6.0#section-readme
+// for more info
+func (dsrcb *ReliableClientBuilder) DbEntryIdxMode(mode nutsdb.EntryIdxMode) *ReliableClientBuilder {
+	dsrcb.dbOpts.EntryIdxMode = mode
+	return dsrcb
+}
+
+// DbRWMode sets the Database read-write mode. The mode value is set to StartFileLoadingMode option too.
+// See https://pkg.go.dev/github.com/xujiajun/nutsdb@v0.6.0#section-readme for more info
+func (dsrcb *ReliableClientBuilder) DbRWMode(mode nutsdb.RWMode) *ReliableClientBuilder {
+	dsrcb.dbOpts.RWMode = mode
+	dsrcb.dbOpts.StartFileLoadingMode = mode
 	return dsrcb
 }
 
@@ -104,6 +140,15 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 	return dsrcb
 }
 
+// ConsolidateDbDaemonWaitBtwChecks sets the interval time waited by daemon between checks for consolidate status db.
+// Value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.consolidateDbDaemonOpts.waitBtwChecks = d
+	}
+	return dsrcb
+}
+
 // RetryDaemonInitDelay sets the initial time delay when retry send events daemon is started
 // value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) RetryDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
@@ -118,6 +163,15 @@ func (dsrcb *ReliableClientBuilder) RetryDaemonInitDelay(d time.Duration) *Relia
 func (dsrcb *ReliableClientBuilder) ClientReconnDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
 		dsrcb.clientReconnOpts.initDelay = d
+	}
+	return dsrcb
+}
+
+// ConsolidateDbDaemonInitDelay sets the initial time delay to wait while consolidate status db daemon is starting.
+// Value is set only if d value is greater than 0
+func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
+	if d > 0 {
+		dsrcb.consolidateDbDaemonOpts.initDelay = d
 	}
 	return dsrcb
 }
@@ -180,6 +234,15 @@ func (dsrcb *ReliableClientBuilder) AppLogger(lg applogger.SimpleAppLogger) *Rel
 	return dsrcb
 }
 
+// ConsolidateDbNumFiles is the max number of files used by status db to really do a consolidation
+// (Merge) when ReliableClient.ConsolidateStatusDb is called
+func (dsrcb *ReliableClientBuilder) ConsolidateDbNumFiles(i uint8) *ReliableClientBuilder {
+	if i >= 2 {
+		dsrcb.consolidateDbNumFiles = i
+	}
+	return dsrcb
+}
+
 // Build builds the ReliableClient based in current parameters.
 func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Check required config
@@ -201,17 +264,18 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	r := &ReliableClient{
 		Client:                   cl,
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
+		dbOpts:                   dsrcb.dbOpts,
 		bufferSize:               dsrcb.bufferEventsSize,
 		eventTTLSeconds:          dsrcb.eventTimeToLive,
-		retryWait:                dsrcb.retryDaemonOpts.waitBtwChecks,
-		retryInitDelay:           dsrcb.retryDaemonOpts.initDelay,
-		reconnWait:               dsrcb.clientReconnOpts.waitBtwChecks,
-		reconnInitDelay:          dsrcb.clientReconnOpts.initDelay,
+		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
+		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
+		consolidateDaemon:        reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
 		enableStandByModeTimeout: dsrcb.enableStandByModeTimeout,
 		appLogger:                dsrcb.appLogger,
+		consolidateDbNumFiles:    dsrcb.consolidateDbNumFiles,
 	}
 
 	// Status DB
@@ -221,7 +285,10 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	}
 
 	// Daemons startup
-	r.daemonsSartup()
+	err = r.daemonsSartup()
+	if err != nil {
+		return r, fmt.Errorf("While initialize dameons: %w", err)
+	}
 
 	return r, nil
 }
@@ -231,14 +298,13 @@ type ReliableClient struct {
 	*Client
 	clientBuilder            *ClientBuilder
 	db                       *nutsdb.DB
+	dbOpts                   nutsdb.Options
+	dbMtx                    sync.Mutex
 	bufferSize               uint
 	eventTTLSeconds          uint32
-	retryWait                time.Duration
-	reconnWait               time.Duration
-	retryStop                bool
-	reconnStop               bool
-	retryInitDelay           time.Duration
-	reconnInitDelay          time.Duration
+	retryDaemon              reliableClientDaemon
+	reconnDaemon             reliableClientDaemon
+	consolidateDaemon        reliableClientDaemon
 	daemonStopTimeout        time.Duration
 	clientMtx                sync.Mutex
 	standByMode              bool
@@ -247,6 +313,21 @@ type ReliableClient struct {
 	daemonStopped            chan bool
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
+	consolidateDbNumFiles    uint8
+}
+
+type reliableClientDaemon struct {
+	daemonOpts
+	stop bool
+}
+
+func (rcd reliableClientDaemon) String() string {
+	return fmt.Sprintf(
+		"{ waitBtwChecks: %v, initDelay: %v, stop: %v}",
+		rcd.waitBtwChecks,
+		rcd.initDelay,
+		rcd.stop,
+	)
 }
 
 // SendAsync sends Async message in same way like Client.SendAsync but saving the message
@@ -356,8 +437,7 @@ func (dsrc *ReliableClient) Flush() error {
 				// Check if Id is not pending
 				if !dsrc.IsAsyncActive(id) {
 					// Load errors and check on it
-					errorsMap := dsrc.AsyncErrors()
-					if err, ok := errorsMap[id]; ok {
+					if ok, err := dsrc.AsyncError(id); ok {
 						// We have found error, retrying
 						idsToBeResend[id] = err
 
@@ -431,14 +511,14 @@ func (dsrc *ReliableClient) Flush() error {
 func (dsrc *ReliableClient) Close() error {
 	errors := make([]error, 0)
 
-	err := dsrc.daemonsShutdown()
-	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
-	}
-
-	err = dsrc.Flush()
+	err := dsrc.Flush()
 	if err != nil {
 		errors = append(errors, fmt.Errorf("Error when flush: %w", err))
+	}
+
+	err = dsrc.daemonsShutdown()
+	if err != nil {
+		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
 	}
 
 	if dsrc.Client != nil {
@@ -453,6 +533,8 @@ func (dsrc *ReliableClient) Close() error {
 		errors = append(errors, fmt.Errorf("Error when reset session stats: %w", err))
 	}
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err = dsrc.db.Close()
 	if err != nil {
 		errors = append(errors, fmt.Errorf("Error when close db: %w", err))
@@ -538,15 +620,44 @@ func (dsrc *ReliableClient) IsConnWorking() (bool, error) {
 
 // ReliableClientStats represents the stats that can be queried
 type ReliableClientStats struct {
-	Count    int
-	Updated  int
+	// Number of events in buffer
+	Count int
+	// UPdaTotal events that are in buffer and daemon was tried to re-send
+	Updated int
+	// Finished is the total number of events that were processed (out of buffer)
 	Finished int
-	Dropped  int
-	Evicted  int
+	// Dropped is the total number of events that were removed from buffer without send because
+	// limit of the buffer size was reached
+	Dropped int
+	// Evicted is the total number of events that were removed from buffer because they were expired
+	// before stablish connection
+	Evicted int
+
+	// DBDbKeyCount is the total keys that were at least one time saved in the internal db status.
+	// Save one event on internal status db implies use more than one key
+	DbKeyCount int
+	// DbKeysInOrderSize is the number of events that are currently saved in status on internal ordereded index.
+	// Each event has asociated one internal key that is saved in keysInOrder status zone.
+	DbKeysInOrderSize int
+	// DbMaxFileID is the file number(id) used by status db
+	DbMaxFileID int64
+	// DbDataEntries is the number of payload event entries saved on the status db, or -1 if this metric was
+	// nost solved. Resolution of this metric seriously affects the performance. For this reason Stats func
+	// will only resolve it if value of DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment varaiblable is "yes"
+	DbDataEntries int
+	// DbKeysSize is the number of events that are currently saved in status on internal unordered index.
+	// Each event has asociated one internal key that is saved in keysInOrder status zone.
+	// This value will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA == "yes" for performance reasons
+	DbKeysSize int
 }
 
 // Stats returns the curren stats (session + persisted). Erros when load stas are ignored
+// DbDataEntries and DbKeysSize will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment variable
+// is set with "yes" value
 func (dsrc *ReliableClient) Stats() ReliableClientStats {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	r := ReliableClientStats{}
 	dsrc.db.View(func(tx *nutsdb.Tx) error {
 		v, _ := cont(tx, statsBucket, countKey, false)
@@ -564,8 +675,25 @@ func (dsrc *ReliableClient) Stats() ReliableClientStats {
 		v, _ = cont(tx, statsBucket, evictedKey, false)
 		r.Evicted = v
 
+		v, _ = tx.LSize(ctrlBucket, keysInOrderKey)
+		r.DbKeysInOrderSize = v
+
+		if ev, ok := os.LookupEnv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA"); ok && strings.ToLower(ev) == "yes" {
+			col, _ := tx.GetAll(dataBucket)
+			r.DbDataEntries = len(col)
+
+			allKeys, _ := tx.SMembers(ctrlBucket, keysKey)
+			r.DbKeysSize = len(allKeys)
+		} else {
+			// Not filled by default
+			r.DbDataEntries = -1
+			r.DbKeysSize = -1
+		}
+
 		return nil
 	})
+
+	r.DbMaxFileID = dsrc.db.MaxFileID
 
 	return r
 }
@@ -573,6 +701,9 @@ func (dsrc *ReliableClient) Stats() ReliableClientStats {
 // ResetSessionStats remove stats values from status. Stats values considerd at
 // session scope are: 'update', 'deleted', 'dropped' and 'evicted' counters
 func (dsrc *ReliableClient) ResetSessionStats() error {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	// session stas are: updated, deleted, dropped and evicted:
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		for _, key := range [4][]byte{updatedKey, finishedKey, droppedKey, evictedKey} {
@@ -592,26 +723,62 @@ func (dsrc *ReliableClient) ResetSessionStats() error {
 	return nil
 }
 
+// ConsolidateStatusDb does an internal db status consolidation if the number
+// of status db files is grater than max db files threshold
+func (dsrc *ReliableClient) ConsolidateStatusDb() error {
+	if dsrc == nil {
+		return ErrNilPointerReceiver
+	}
+
+	if dsrc.db == nil {
+		return errors.New("Status db is nil")
+	}
+
+	if dsrc.consolidateDbNumFiles == 0 {
+		return errors.New("Number of files threshold must be defined")
+	}
+
+	numberOfFiles := numberOfFiles(dsrc.dbOpts.Dir)
+	if numberOfFiles < int(dsrc.consolidateDbNumFiles) {
+		return nil
+	}
+
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
+	dsrc.appLogger.Log(applogger.INFO, "Starting status db files consolidation")
+	err := dsrc.db.Merge()
+
+	if err != nil {
+		return fmt.Errorf("While consolidate db (Merge): %w", err)
+	}
+
+	return nil
+}
+
 func (dsrc *ReliableClient) String() string {
 	db := "<nil>"
 	if dsrc.db != nil {
-		db = fmt.Sprintf("{KeyCount: %d, ListIdx: %v}", dsrc.db.KeyCount, dsrc.db.ListIdx)
+		db = fmt.Sprintf(
+			"{KeyCount: %d, ListIdx: %v, consolidationDbNumFilesThreshold: %d, dbFiles: %d}",
+			dsrc.db.KeyCount,
+			dsrc.db.ListIdx,
+			dsrc.consolidateDbNumFiles,
+			numberOfFiles(dsrc.dbOpts.Dir),
+		)
 	}
 	return fmt.Sprintf(
-		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryWait: %v, "+
-			"reconnWait: %v, retryStop: %v, reconnStop: %v, retryInitDelay: %v, reconnInitDelay: %v, "+
-			"daemonStopTimeout: %v, standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
+		"Client: {%s}, db: %s, bufferSize: %d, eventTTLSeconds: %d, retryDaemon: %v, "+
+			"reconnDaemon: %v, consolidateDbDaemon: %v, daemonStopTimeout: %v, "+
+			"standByMode: %v, enableStandByModeTimeout: %v, dbInitCleanedup: %v, "+
 			"daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
 		db,
 		dsrc.bufferSize,
 		dsrc.eventTTLSeconds,
-		dsrc.retryWait,
-		dsrc.reconnWait,
-		dsrc.retryStop,
-		dsrc.reconnStop,
-		dsrc.retryInitDelay,
-		dsrc.reconnInitDelay,
+		dsrc.retryDaemon,
+		dsrc.reconnDaemon,
+		dsrc.consolidateDaemon,
 		dsrc.daemonStopTimeout,
 		dsrc.standByMode,
 		dsrc.enableStandByModeTimeout,
@@ -631,7 +798,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	// Old saved state cleanup
 	err := dsrc.dbInitCleanup()
 	if err != nil {
-		return err
+		return fmt.Errorf("While dbInitCleanup: %w", err)
 	}
 
 	// Capture termination and close client
@@ -656,13 +823,19 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	// Pending events daemon
 	err = dsrc.startRetryEventsDaemon()
 	if err != nil {
-		return err
+		return fmt.Errorf("While starts retry event daemon: %w", err)
 	}
 
 	// Client reconnection
 	err = dsrc.clientReconnectionDaemon()
 	if err != nil {
-		return err
+		return fmt.Errorf("While starts client reconnection daemon: %w", err)
+	}
+
+	// Consolidate status db
+	err = dsrc.consolidateDbDaemon()
+	if err != nil {
+		return fmt.Errorf("While starts consolidate status db daemon: %w", err)
 	}
 
 	return nil
@@ -671,13 +844,14 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 // daemonsShutdown tries to stop daemons in gracefull mode, grace period to wait for
 // each daemon stopped is set in dsrc.daemonStopTimeout
 func (dsrc *ReliableClient) daemonsShutdown() error {
-	dsrc.retryStop = true
-	dsrc.reconnStop = true
+	dsrc.retryDaemon.stop = true
+	dsrc.reconnDaemon.stop = true
+	dsrc.consolidateDaemon.stop = true
 
 	errors := make([]error, 0)
 
-	// two daemons
-	for i := 0; i < 2; i++ {
+	// three daemons
+	for i := 0; i < 3; i++ {
 		select {
 		case <-time.After(dsrc.daemonStopTimeout):
 			errors = append(errors, fmt.Errorf("Timeout when wait for daemon number: %d", i))
@@ -707,28 +881,86 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 	if dsrc.dbInitCleanedup {
 		return nil
 	}
+
+	dsrc.dbInitCleanedup = true // Assuming db is cleaned by default
+	dsrc.dbMtx.Lock()           // Lock status database
+
+	dsrc.appLogger.Log(applogger.DEBUG, "Status db init clean up process started")
+
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if we have elements using count
 		c, err := cont(tx, statsBucket, countKey, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("While load %s.%s counter: %w", statsBucket, string(countKey), err)
 		}
 		if c == 0 {
+			// Ensure keys in order is clean
+			// ctrl keys_in_order
+			c, err = tx.LSize(ctrlBucket, keysInOrderKey)
+			if err != nil {
+				// Empty db
+				if err.Error() == "err bucket" {
+					return nil
+				}
+				if nutsdbIsNotFoundError(err) {
+					return nil
+				}
+				return fmt.Errorf("While load size of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+			}
+
+			if c > 0 {
+				dsrc.appLogger.Logf(
+					applogger.INFO,
+					"%s.%s with 0 value but %s.%s get %d elements. Truncating this control key",
+					statsBucket, string(countKey), ctrlBucket, string(keysInOrderKey), c)
+
+				err = tx.LTrim(ctrlBucket, keysInOrderKey, 0, 0)
+				if err != nil {
+					return fmt.Errorf("While delete unconsistent %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+				}
+				// Remove remaining element
+				_, err = tx.LPop(ctrlBucket, keysInOrderKey)
+				if err != nil {
+					return fmt.Errorf("While remove last lement of unconsistent %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+				}
+			}
+
 			return nil
+		}
+
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			dsrc.appLogger.Logf(
+				applogger.DEBUG,
+				"%d events found associated to %s.%s in status db",
+				c, statsBucket, countKey,
+			)
 		}
 
 		// Look for all records and move to no-conn-
 		oldIds, err := findAllRecordsIDRawInTx(tx)
 		if err != nil {
-			return err
+			return fmt.Errorf("While get all records ids: %w", err)
+		}
+
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			dsrc.appLogger.Logf(
+				applogger.DEBUG,
+				"Marking %d events in status db as no-conn as step of db init clean up process", len(oldIds))
 		}
 
 		newIDs := make(map[string]interface{}, len(oldIds))
+
+		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+			for _, v := range oldIds {
+				dsrc.appLogger.Logf(applogger.DEBUG, "Fixing ID %s and updating it", string(v))
+			}
+		}
+
 		for _, id := range oldIds {
 			idAsStr := string(id)
 			record, err := getRecordRawInTx(tx, id)
 			if err != nil {
-				return err
+				return fmt.Errorf("While load record using %s ID: %w", idAsStr, err)
 			}
 
 			if isNoConnIDBytes(id) {
@@ -737,71 +969,138 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 				newID := toNoConnID(idAsStr)
 				err = updateRecordInTx(tx, record, newID, dsrc.eventTTLSeconds)
 				if err != nil {
-					return err
+					if IsOldIDNotFoundErr(err) {
+						// We will force to be added bellow
+						dsrc.appLogger.Logf(
+							applogger.INFO,
+							"Record with old ID %s without value in %s.%s. Marked to be reindexed at the begining with new %s id",
+							idAsStr, ctrlBucket, string(keysInOrderKey), newID)
+						newIDs[newID] = nil
+					} else {
+						return fmt.Errorf("While update record with old ID %s, new ID %s: %w", idAsStr, newID, err)
+					}
 				}
-				newIDs[newID] = nil
 			}
 		}
 
-		// Purging orphan references
-
+		/*
+			Purging orphan references from keysInOrder
+		*/
 		// ctrl keys_in_order
 		n, err := tx.LSize(ctrlBucket, keysInOrderKey)
 		if err != nil {
-			return err
+			return fmt.Errorf("While get size of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
 		}
-		keys, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
-		if err != nil {
-			return err
+		var keysInOrder [][]byte
+		if n > 0 {
+			keysInOrder, err = tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+			if err != nil {
+				return fmt.Errorf("While get all values of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+			}
 		}
 
+		keysInOrderMap := make(map[string]interface{}, len(keysInOrder))
 		toRemove := make([][]byte, 0)
-		for _, k := range keys {
+		for _, k := range keysInOrder {
 			keyStr := string(k)
+			keysInOrderMap[keyStr] = nil
 			if _, ok := newIDs[keyStr]; !ok {
 				toRemove = append(toRemove, k)
 				_, err = tx.LRem(ctrlBucket, keysInOrderKey, 0, k)
+				if err != nil {
+					dsrc.appLogger.Logf(
+						applogger.ERROR,
+						"Error while remove orphan key %s from %s.%s: %v",
+						keyStr, ctrlBucket, string(keysInOrderKey), err)
+
+				}
 			}
 		}
 
 		if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
 			for _, v := range toRemove {
-				dsrc.appLogger.Logf(applogger.DEBUG, "ID %s removed from status just when initialize DB", string(v))
+				dsrc.appLogger.Logf(
+					applogger.DEBUG,
+					"Orphan ID %s reference removed from %s.%s just when initialize DB",
+					string(v), ctrlBucket, string(keysInOrderKey))
 			}
 		}
 
 		// ctrl keys removed here
 		err = tx.SRem(ctrlBucket, keysKey, toRemove...)
 		if err != nil {
-			return err
+			return fmt.Errorf("While remove orphan keys from %s.%s: %w", ctrlBucket, string(keysKey), err)
 		}
-
 		// update evicted
 		err = inc(tx, statsBucket, evictedKey, len(toRemove), false)
+		if err != nil {
+			return fmt.Errorf(
+				"While increase %s.%s counter with %d : %w",
+				statsBucket, string(evictedKey), len(toRemove), err)
+		}
 
-		return err
+		/*
+			Fix missing keys in keysInOrder
+		*/
+		for k := range newIDs {
+			if _, ok := keysInOrderMap[k]; !ok {
+				if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+					dsrc.appLogger.Logf(
+						applogger.DEBUG,
+						"Record with ID %s without value in %s.%s. Forcing to reindex at the begining",
+						k, ctrlBucket, string(keysInOrderKey))
+				}
+
+				err = tx.LPush(ctrlBucket, keysInOrderKey, []byte(k))
+
+				if err != nil {
+					return fmt.Errorf(
+						"While injecting ID %s at the head of %s.%s: %w",
+						k, ctrlBucket, string(keysInOrderKey), err)
+				}
+			}
+		}
+
+		return nil
 	})
 
+	dsrc.dbMtx.Unlock() // We should unlock status database, because ConsolidateStatusDb will lock by itself
+
 	if err != nil {
-		err = fmt.Errorf("Error when make initial cleanup on status db: %w", err)
-		dsrc.dbInitCleanedup = true
+		dsrc.dbInitCleanedup = false
+		return fmt.Errorf("While make initial cleanup on status db: %w", err)
 	}
-	return err
+
+	err = dsrc.ConsolidateStatusDb()
+	if err != nil {
+		dsrc.dbInitCleanedup = false
+		return fmt.Errorf("While consolidate db after initial cleanup on status db: %w", err)
+	}
+
+	dsrc.appLogger.Log(applogger.DEBUG, "initialize DB finished without errors")
+
+	return nil
 }
 
 // startRetryEventsDaemon runs in background the retry send events daemon. This daemon checks
 // every dsr.retryWait time  the pending events and update status or resend it if error
 // was saved by inner client. This actions are delegated to call Flush func
 func (dsrc *ReliableClient) startRetryEventsDaemon() error {
-	if dsrc.retryWait <= 0 {
-		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s", dsrc.retryWait)
+	if dsrc.retryDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s",
+			dsrc.retryDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.retryInitDelay)
+		daemonSleep(&(dsrc.retryDaemon), DefaultDaemonMicroWait, true)
+
+		dsrc.appLogger.Logf(applogger.DEBUG, "startRetryEventsDaemon working: %+v", dsrc.retryDaemon)
 
 		// Daemon loop
-		for !dsrc.retryStop {
+		for !dsrc.retryDaemon.stop {
+
+			dsrc.appLogger.Logf(applogger.DEBUG, "startRetryEventsDaemon shot: %+v", dsrc.retryDaemon)
+
 			err := dsrc.Flush()
 			if err != nil {
 				dsrc.appLogger.Logf(
@@ -810,7 +1109,7 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 				)
 			}
 
-			time.Sleep(dsrc.retryWait)
+			daemonSleep(&(dsrc.retryDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
@@ -822,18 +1121,22 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 }
 
 // clientReconnectionDaemon runs in background the reconnect  daemon. This daemon create new connection
-// if ReliableClient is not in stand by mode and inner Client is nill.
-// TODO Do other check if configured (for example Send Sync test message configured table) and recreate
-// inner Client if it is failing
+// if ReliableClient is not in stand by mode and inner Client is nill or IsConnWorking returns false without
+// ErrPayloadNoDefined.
 func (dsrc *ReliableClient) clientReconnectionDaemon() error {
-	if dsrc.reconnWait <= 0 {
-		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnWait)
+	if dsrc.reconnDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
-		time.Sleep(dsrc.reconnInitDelay)
+		daemonSleep(&(dsrc.reconnDaemon), DefaultDaemonMicroWait, true)
 
-		for !dsrc.reconnStop {
+		dsrc.appLogger.Logf(applogger.DEBUG, "clientReconnectionDaemon working: %+v", dsrc.reconnDaemon)
+
+		for !dsrc.reconnDaemon.stop {
+
+			dsrc.appLogger.Logf(applogger.DEBUG, "clientReconnectionDaemon shot: %+v", dsrc.reconnDaemon)
+
 			dsrc.clientMtx.Lock()
 			if !dsrc.IsStandBy() {
 				recreate := false
@@ -857,7 +1160,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 				}
 			}
 			dsrc.clientMtx.Unlock()
-			time.Sleep(dsrc.reconnWait)
+			daemonSleep(&(dsrc.reconnDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
@@ -865,6 +1168,139 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	}()
 
 	return nil
+}
+
+const (
+	consolidationDmnConsolidateWarnLimit = time.Second * 10
+	consolidationDmnNewDbClientWarnLimit = time.Second * 2
+)
+
+// consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
+// periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
+func (dsrc *ReliableClient) consolidateDbDaemon() error {
+	if dsrc.consolidateDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.consolidateDaemon.waitBtwChecks)
+	}
+	go func() {
+		// Init delay
+		daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, true)
+
+		dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon working: %+v", dsrc.consolidateDaemon)
+
+		for !dsrc.consolidateDaemon.stop {
+
+			dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon shot: %+v", dsrc.consolidateDaemon)
+
+			// W-A memory leak : recreate DB
+			nmbrFiles := numberOfFiles(dsrc.dbOpts.Dir)
+			shouldRecreateStatusDb := dsrc.consolidateDbNumFiles > 0 && nmbrFiles > 0 && nmbrFiles >= int(dsrc.consolidateDbNumFiles)
+
+			beginTime := time.Now() // For warning if spended time is high
+			err := dsrc.ConsolidateStatusDb()
+			endTime := time.Now()
+
+			thresold := beginTime.Add(consolidationDmnConsolidateWarnLimit)
+			// Spend time warning
+			if thresold.Before(endTime) {
+				dsrc.appLogger.Logf(
+					applogger.WARNING,
+					"Spent time by ConsolidateStatus (begin: %s, end: %s, threshold: %v) was greater than warning limit: %s",
+					beginTime.Format(time.RFC3339Nano),
+					endTime.Format(time.RFC3339Nano),
+					thresold,
+					consolidationDmnConsolidateWarnLimit,
+				)
+			}
+
+			if err != nil {
+				dsrc.appLogger.Logf(
+					applogger.ERROR,
+					"Error While consolidate status db in consolidateDbDaemon: %v", err,
+				)
+			} else if shouldRecreateStatusDb { // W-A memory leak : recreate DB
+				dsrc.appLogger.Log(
+					applogger.DEBUG,
+					"Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon",
+				)
+
+				beginTime = time.Now() // For warning if spended time is high
+				dsrc.dbMtx.Lock()      // synchronize status db
+
+				err = dsrc.db.Close()
+				if err != nil {
+					dsrc.appLogger.Logf(
+						applogger.ERROR,
+						"Error While close database to recreate new one in consolidateDbDaemon: %v", err,
+					)
+				}
+
+				dsrc.db, err = nutsdb.Open(dsrc.dbOpts)
+				if err != nil {
+					panic(fmt.Sprintf("Error while open new status db connection (recreate) in consolidateDbDaemon: %v", err))
+				}
+
+				dsrc.dbMtx.Unlock() // End synchronize
+				endTime = time.Now()
+
+				thresold = beginTime.Add(consolidationDmnNewDbClientWarnLimit)
+				// Spend time warning
+				if thresold.Before(endTime) {
+					dsrc.appLogger.Logf(
+						applogger.WARNING,
+						"Spent time by recreate status-db client (begin: %s, end: %s, threshold: %v) was "+
+							"greater than warning limit: %s",
+						beginTime.Format(time.RFC3339Nano),
+						endTime.Format(time.RFC3339Nano),
+						thresold,
+						consolidationDmnNewDbClientWarnLimit,
+					)
+				}
+			}
+			daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, false)
+		}
+
+		// Closed signal
+		dsrc.daemonStopped <- true
+	}()
+
+	return nil
+}
+
+// daemonSleep is a helper tool that extends simple time.Sleep. This func sleeps a total
+// dbOpts.waitBtwChecks time, but check in microSleep intervals if dbOpts.stop is true
+// (stopping on this case) and return this value at the end.
+// if initdDelay is true sleep time used will be dOpts.initDelay instead of
+// dOpts.waitBtwChecks
+func daemonSleep(dOpts *reliableClientDaemon, microSleep time.Duration, initDelay bool) bool {
+	sleep := dOpts.waitBtwChecks
+	if initDelay {
+		sleep = dOpts.initDelay
+	}
+
+	// No sleep time
+	if sleep <= 0 {
+		return dOpts.stop
+	}
+
+	// sleep time is less than microSleep or microSleep is not enough
+	if sleep <= microSleep || microSleep <= 0 {
+		time.Sleep(sleep)
+		return dOpts.stop
+	}
+
+	// Sleep in micro sleeps checkin dOpts.stop
+	for sleep > 0 && !dOpts.stop {
+		if sleep < microSleep {
+			// Remaining time
+			time.Sleep(sleep)
+		} else {
+			// Other iteration
+			time.Sleep(microSleep)
+		}
+		sleep -= microSleep
+	}
+
+	return dOpts.stop
 }
 
 // resendRecord send the event based on record status.
@@ -940,6 +1376,8 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 	id := r.AsyncIDs[len(r.AsyncIDs)-1]
 	idAsBytes := []byte(id)
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		totalEvents, err := cont(tx, statsBucket, countKey, false)
 		if err != nil {
@@ -986,6 +1424,10 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 			err = inc(tx, statsBucket, countKey, 1, false)
 		}
 
+		// easy GC
+		bs = nil
+		idAsBytes = nil
+
 		return err
 	})
 
@@ -1000,6 +1442,8 @@ func (dsrc *ReliableClient) newRecord(r *reliableClientRecord) error {
 func (dsrc *ReliableClient) updateRecord(r *reliableClientRecord, newID string) error {
 	oldID := r.AsyncIDs[len(r.AsyncIDs)-1] // Only for debug purpose
 
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		return updateRecordInTx(tx, r, newID, dsrc.eventTTLSeconds)
 	})
@@ -1062,26 +1506,28 @@ func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl 
 		return err
 	}
 
-	// Load all keys in memory.
-	ls, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
-	if err != nil {
-		return err
-	}
-
 	found := false
-	for idx, vs := range ls {
-		if bytes.Equal(vs, oldIDAsBytes) {
-			err := tx.LSet(ctrlBucket, keysInOrderKey, idx, newIDAsBytes)
-			if err != nil {
-				return err
+	if n > 0 {
+		// Load all keys in memory.
+		ls, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+		if err != nil {
+			return err
+		}
+
+		for idx, vs := range ls {
+			if bytes.Equal(vs, oldIDAsBytes) {
+				err := tx.LSet(ctrlBucket, keysInOrderKey, idx, newIDAsBytes)
+				if err != nil {
+					return err
+				}
+				found = true
+				break
 			}
-			found = true
-			break
 		}
 	}
 
 	if !found {
-		return fmt.Errorf("Error old id %s did not find in %s.%s", oldID, ctrlBucket, string(keysInOrderKey))
+		return fmt.Errorf("Old id %s did not find in %s.%s", oldID, ctrlBucket, string(keysInOrderKey))
 	}
 
 	// Counters and stats
@@ -1103,6 +1549,8 @@ func (dsrc *ReliableClient) deleteRecords(IDs ...string) error {
 
 // deleteRecords deletes one reliableClientRecord from status ID updating counters at same time
 func (dsrc *ReliableClient) deleteRecordRaw(idsAsBytes []byte) error {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		return deleteRecordRawInTx(tx, idsAsBytes)
 	})
@@ -1172,7 +1620,8 @@ func deleteRecordRawInTx(tx *nutsdb.Tx, idAsBytes []byte) error {
 
 // dropRecords drops one or more older records and update the stat counters too.
 func (dsrc *ReliableClient) dropRecords(n int) error {
-
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
 	err := dsrc.db.Update(func(tx *nutsdb.Tx) error {
 		return dropRecordsInTx(tx, n)
 	})
@@ -1240,6 +1689,9 @@ func (dsrc *ReliableClient) findAllRecordsID() ([]string, error) {
 // findAllRecordsID returns a slice with []byte serialized representation of all
 // IDs saved in the status db
 func (dsrc *ReliableClient) findAllRecordsIDRaw() ([][]byte, error) {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	var r [][]byte
 	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
 		var err error
@@ -1273,6 +1725,9 @@ func (dsrc *ReliableClient) getRecord(id string) (*reliableClientRecord, error) 
 // getRecordRaw returns the reliableClientRecord in the status identified by serialized
 // representation of the id
 func (dsrc *ReliableClient) getRecordRaw(idAsBytes []byte) (*reliableClientRecord, error) {
+	dsrc.dbMtx.Lock()
+	defer dsrc.dbMtx.Unlock()
+
 	var r *reliableClientRecord
 	err := dsrc.db.View(func(tx *nutsdb.Tx) error {
 		var err error
@@ -1436,4 +1891,17 @@ func nutsdbIsNotFoundError(err error) bool {
 
 	errStr := fmt.Sprint(err)
 	return reNotFoundError.MatchString(errStr)
+}
+
+func numberOfFiles(path string) int {
+	files, _ := ioutil.ReadDir(path)
+	return len(files)
+}
+
+var oldIDNotFoundPattern *regexp.Regexp = regexp.MustCompile(`^Old id [-\w]+ did not find in \w+\.\w+$`)
+
+// IsOldIDNotFoundErr returns true if type of e is Old ID error
+func IsOldIDNotFoundErr(e error) bool {
+	eStr := fmt.Sprintf("%v", e)
+	return oldIDNotFoundPattern.MatchString(eStr)
 }

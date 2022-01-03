@@ -604,6 +604,52 @@ func (dsc *Client) AsyncErrors() map[string]error {
 	return dsc.asyncErrors
 }
 
+// AsyncErrorsIds returns the request IDs with error registered.
+// This method is different from AsyncErrors because is thread safe at
+// cost of performance.
+func (dsc *Client) AsyncErrorsIds() []string {
+	if dsc == nil {
+		return nil
+	}
+
+	dsc.asyncErrorsMutext.Lock()
+	defer dsc.asyncErrorsMutext.Unlock()
+
+	numIds := len(dsc.asyncErrors)
+	if numIds == 0 {
+		return nil
+	}
+	r := make([]string, numIds)
+	i := 0
+	for id := range dsc.asyncErrors {
+		r[i] = id
+		i++
+	}
+
+	return r
+}
+
+// AsyncError return true and last error detected fo ID if error was captured or false, nil in other case
+// One special case is when dsc Pointer is nil, that this method returns (false, ErrNilPointerReceiver)
+// AsyncError is thread-safe mode
+func (dsc *Client) AsyncError(id string) (bool, error) {
+	if dsc == nil {
+		return false, ErrNilPointerReceiver
+	}
+
+	dsc.asyncErrorsMutext.Lock()
+	defer dsc.asyncErrorsMutext.Unlock()
+
+	var r error
+	var ok bool
+	r, ok = dsc.asyncErrors[id]
+	if !ok {
+		return false, nil
+	}
+
+	return true, r
+}
+
 // AsyncErrorsNumber return then number of errors from async calls collected until now
 func (dsc *Client) AsyncErrorsNumber() int {
 	if dsc == nil {
@@ -817,7 +863,7 @@ func (dsc *Client) String() string {
 
 	return fmt.Sprintf(
 		"entryPoint: '%s', syslogHostname: '%s', defaultTag: '%s', connAddr: '%s', "+
-			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v, connectionUsedTimestamp: '%s', "+
+			"ReplaceSequences: %v, tls: %v, #asyncErrors: %d, tcp: %v -> %+v, connectionUsedTimestamp: '%s', "+
 			"maxTimeConnActive: '%v', #asyncItems: %d, lastSendCallTimestamp: '%s'",
 		dsc.entryPoint,
 		dsc.syslogHostname,
@@ -827,6 +873,7 @@ func (dsc *Client) String() string {
 		dsc.tls,
 		dsc.AsyncErrorsNumber(),
 		dsc.tcp,
+		dsc.tcp.tcpDialer,
 		connUsedTimestamp,
 		dsc.maxTimeConnActive,
 		dsc.AsyncsNumber(),

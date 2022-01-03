@@ -11,13 +11,145 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	uuid "github.com/satori/go.uuid"
 	"github.com/xujiajun/nutsdb"
 )
+
+func TestReliableClientBuilder_DbSegmentSize(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		size int64
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{128},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					SegmentSize: 128,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbSegmentSize(tt.args.size); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbSegmentSize() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReliableClientBuilder_DbEntryIdxMode(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		mode nutsdb.EntryIdxMode
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Default value",
+			fields{nutsdb.Options{}},
+			args{},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					EntryIdxMode: nutsdb.HintKeyValAndRAMIdxMode,
+				},
+			},
+		},
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{nutsdb.HintKeyAndRAMIdxMode},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					EntryIdxMode: nutsdb.HintKeyAndRAMIdxMode,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbEntryIdxMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbEntryIdxMode() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReliableClientBuilder_DbRWMode(t *testing.T) {
+	type fields struct {
+		dbOpts nutsdb.Options
+	}
+	type args struct {
+		mode nutsdb.RWMode
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Default value",
+			fields{nutsdb.Options{}},
+			args{},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					RWMode:               nutsdb.FileIO,
+					StartFileLoadingMode: nutsdb.FileIO,
+				},
+			},
+		},
+		{
+			"With value",
+			fields{nutsdb.Options{}},
+			args{nutsdb.MMap},
+			&ReliableClientBuilder{
+				dbOpts: nutsdb.Options{
+					RWMode:               nutsdb.MMap,
+					StartFileLoadingMode: nutsdb.MMap,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				dbOpts: tt.fields.dbOpts,
+			}
+			if got := dsrcb.DbRWMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.DbRWMode() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
@@ -81,6 +213,48 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
+	type fields struct {
+		consolidateDbDaemonOpts daemonOpts
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Zero value",
+			fields{daemonOpts{waitBtwChecks: time.Second}},
+			args{},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Second},
+			},
+		},
+		{
+			"Value greater than 0",
+			fields{daemonOpts{waitBtwChecks: time.Second}},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Minute},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+			}
+			if got := dsrcb.ConsolidateDbDaemonWaitBtwChecks(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonWaitBtwChecks() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 	type fields struct {
 		clientReconnOpts daemonOpts
@@ -138,6 +312,48 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 			}
 			if got := dsrcb.ClientReconnDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReliableClientBuilder.ClientReconnDaemonInitDelay() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
+	type fields struct {
+		consolidateDbDaemonOpts daemonOpts
+	}
+	type args struct {
+		d time.Duration
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Zero value",
+			fields{daemonOpts{initDelay: time.Second}},
+			args{},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Second},
+			},
+		},
+		{
+			"Value greater than 0",
+			fields{daemonOpts{initDelay: time.Second}},
+			args{time.Minute},
+			&ReliableClientBuilder{
+				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Minute},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+			}
+			if got := dsrcb.ConsolidateDbDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonInitDelay() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
@@ -311,12 +527,64 @@ func TestReliableClientBuilder_FlushTimeout(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_ConsolidateDbNumFiles(t *testing.T) {
+	type fields struct {
+		consolidateDbNumFiles uint8
+	}
+	type args struct {
+		i uint8
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Param value less than 2",
+			fields{consolidateDbNumFiles: 23},
+			args{0},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 23,
+			},
+		},
+		{
+			"Param value equals to 2",
+			fields{consolidateDbNumFiles: 24},
+			args{2},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 2,
+			},
+		},
+		{
+			"Param value greater than 2",
+			fields{},
+			args{25},
+			&ReliableClientBuilder{
+				consolidateDbNumFiles: 25,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
+			}
+			if got := dsrcb.ConsolidateDbNumFiles(tt.args.i); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.ConsolidateDbNumFiles() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_Build(t *testing.T) {
 	type fields struct {
 		clientBuilder            *ClientBuilder
 		dbOpts                   nutsdb.Options
 		retryDaemonOpts          daemonOpts
 		clientReconnOpts         daemonOpts
+		consolidateDbDaemonOpts  daemonOpts
+		consolidateDbNumFiles    uint8
 		daemonStopTimeout        time.Duration
 		bufferEventsSize         uint
 		eventTimeToLive          uint32
@@ -364,12 +632,22 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 			"Get client without conn",
 			fields{
 				// Copied directly from NewReliableClientBuilder
-				dbOpts: func() nutsdb.Options {
-					r := nutsdb.DefaultOptions
-					r.Dir = "/tmp/test-builder-build"
-					return r
-				}(),
-				appLogger: &applogger.NoLogAppLogger{},
+				dbOpts:                nutsdbOptionsWithDir("/tmp/test-builder-build"),
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2,
+
+				retryDaemonOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
+				clientReconnOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
+				consolidateDbDaemonOpts: daemonOpts{
+					initDelay:     time.Minute,
+					waitBtwChecks: time.Millisecond * 100,
+				},
 
 				clientBuilder: &ClientBuilder{
 					entrypoint: "udp://localhost:1234",
@@ -379,6 +657,27 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				Client: &Client{
 					entryPoint: "udp://localhost:1234",
 				},
+				dbOpts: nutsdbOptionsWithDir("/tmp/test-builder-build"),
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						initDelay:     time.Minute,
+						waitBtwChecks: time.Millisecond * 100,
+					},
+				},
+				dbInitCleanedup:       true,
+				consolidateDbNumFiles: 2,
 			},
 			false,
 		},
@@ -390,6 +689,8 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				dbOpts:                   tt.fields.dbOpts,
 				retryDaemonOpts:          tt.fields.retryDaemonOpts,
 				clientReconnOpts:         tt.fields.clientReconnOpts,
+				consolidateDbDaemonOpts:  tt.fields.consolidateDbDaemonOpts,
+				consolidateDbNumFiles:    tt.fields.consolidateDbNumFiles,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				bufferEventsSize:         tt.fields.bufferEventsSize,
 				eventTimeToLive:          tt.fields.eventTimeToLive,
@@ -584,12 +885,8 @@ func TestReliableClient_Flush(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
@@ -617,8 +914,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -653,8 +949,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -683,8 +978,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending-errors")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -716,8 +1010,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Flush-pending-errors-no-conn"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Flush-pending-errors-no-conn")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -742,12 +1035,8 @@ func TestReliableClient_Flush(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
@@ -786,12 +1075,8 @@ func TestReliableClient_Close(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
@@ -811,8 +1096,7 @@ func TestReliableClient_Close(t *testing.T) {
 				db: func() *nutsdb.DB {
 					// Clean previous status if exists
 					os.RemoveAll("/tmp/tests-reliable-Close")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-Close"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-Close")
 
 					r, err := nutsdb.Open(opts)
 					if err != nil {
@@ -853,12 +1137,8 @@ func TestReliableClient_Close(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
@@ -1026,6 +1306,185 @@ func TestReliableClient__check_closed_conn(t *testing.T) {
 	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_IsStandBy_closedRelayConn")
 }
 
+func TestReliableClient_ConsolidateStatusDb(t *testing.T) {
+	tests := []struct {
+		name              string
+		dsrc              *ReliableClient
+		wantErr           bool
+		wantNumberOfFiles int
+	}{
+		{
+			"Nil ReliableClient error",
+			nil,
+			true,
+			0,
+		},
+		{
+			"Nil stuts db error",
+			&ReliableClient{},
+			true,
+			0,
+		},
+		{
+			"Threshold not enought error",
+			&ReliableClient{
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
+
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+			},
+			true,
+			0,
+		},
+		{
+			"Consolidation error",
+			&ReliableClient{
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"),
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write one event to get at least one file
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						err := tx.Put("tmp", []byte("key-1"), val, 0)
+						if err != nil {
+							return fmt.Errorf("While write test key %s: %w", "key-1", err)
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 1,
+			},
+			true,
+			1,
+		},
+		{
+			"Consolidation not needed",
+			&ReliableClient{
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded"),
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write one event to get at least one file
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						err := tx.Put("tmp", []byte("key-1"), val, 0)
+						if err != nil {
+							return fmt.Errorf("While write test key %s: %w", "key-1", err)
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 2,
+			},
+			false,
+			1,
+		},
+		{
+			"Consolidation",
+			&ReliableClient{
+				dbOpts:    nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done"),
+				appLogger: &applogger.NoLogAppLogger{},
+				db: func() *nutsdb.DB {
+					os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
+
+					opts := nutsdbOptionsWithDir("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
+					opts.SegmentSize = 128 // Very small size
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Write keys gt than 128 bytes to ensure we have more than two files
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						val := bytes.Repeat([]byte("0"), 68)
+						for i := 1; i <= 20; i++ {
+							key := fmt.Sprintf("key-%d", i)
+							err := tx.Put("tmp", []byte(key), val, 0)
+							if err != nil {
+								return fmt.Errorf("While write test key %s: %w", key, err)
+							}
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					// Delete keys to get "recoverable" space on files
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						for i := 1; i <= 20; i++ {
+							key := fmt.Sprintf("key-%d", i)
+							err := tx.Delete("tmp", []byte(key))
+							if err != nil {
+								return fmt.Errorf("While delete test key %s: %w", key, err)
+							}
+						}
+						return nil
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				consolidateDbNumFiles: 2,
+			},
+			false,
+			0,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.ConsolidateStatusDb(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.ConsolidateStatusDb() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.dsrc != nil && tt.dsrc.dbOpts.Dir != "" {
+				if nfiles := numberOfFiles(tt.dsrc.dbOpts.Dir); nfiles != tt.wantNumberOfFiles {
+					t.Errorf("ReliableClient.ConsolidateStatusDb() numberOfFiles = %v, want %v", nfiles, tt.wantNumberOfFiles)
+				}
+			}
+		})
+	}
+
+	//Clen tmp
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb")
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_noNeeded")
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_ConsolidateStatusDb_done")
+}
+
 func TestReliableClient_String(t *testing.T) {
 	type fields struct {
 		Client                   *Client
@@ -1033,18 +1492,15 @@ func TestReliableClient_String(t *testing.T) {
 		db                       *nutsdb.DB
 		bufferSize               uint
 		eventTTLSeconds          uint32
-		retryWait                time.Duration
-		reconnWait               time.Duration
-		retryStop                bool
-		reconnStop               bool
-		retryInitDelay           time.Duration
-		reconnInitDelay          time.Duration
+		retryDaemon              reliableClientDaemon
+		reconnDaemon             reliableClientDaemon
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
 		dbInitCleanedup          bool
 		daemonStopped            chan bool
 		flushTimeout             time.Duration
+		consolidateDbNumFiles    uint8
 	}
 	tests := []struct {
 		name   string
@@ -1054,10 +1510,12 @@ func TestReliableClient_String(t *testing.T) {
 		{
 			"Empty",
 			fields{},
-			"Client: {<nil>}, db: <nil>, bufferSize: 0, eventTTLSeconds: 0, retryWait: 0s, " +
-				"reconnWait: 0s, retryStop: false, reconnStop: false, retryInitDelay: 0s, " +
-				"reconnInitDelay: 0s, daemonStopTimeout: 0s, standByMode: false, enableStandByModeTimeout: 0s, " +
-				"dbInitCleanedup: false, daemonStopped: <nil>, flushTimeout: 0s",
+			"Client: {<nil>}, db: <nil>, bufferSize: 0, eventTTLSeconds: 0, retryDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, reconnDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, consolidateDbDaemon: " +
+				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, daemonStopTimeout: 0s, " +
+				"standByMode: false, enableStandByModeTimeout: 0s, dbInitCleanedup: false, " +
+				"daemonStopped: <nil>, flushTimeout: 0s",
 		},
 		{
 			"With some values",
@@ -1065,29 +1523,41 @@ func TestReliableClient_String(t *testing.T) {
 				Client: &Client{
 					entryPoint: "udp://example.com:80",
 				},
-				db:                       &nutsdb.DB{},
-				bufferSize:               123,
-				eventTTLSeconds:          20,
-				retryWait:                time.Minute,
-				reconnWait:               time.Second * 10,
-				retryStop:                true,
-				reconnStop:               true,
-				retryInitDelay:           time.Second * 2,
-				reconnInitDelay:          time.Second,
+				db:              &nutsdb.DB{},
+				bufferSize:      123,
+				eventTTLSeconds: 20,
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Minute,
+						initDelay:     time.Second * 2,
+					},
+					stop: true,
+				},
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Second * 10,
+						initDelay:     time.Second,
+					},
+					stop: true,
+				},
 				daemonStopTimeout:        time.Second * 5,
 				standByMode:              true,
 				enableStandByModeTimeout: time.Second * 3,
 				dbInitCleanedup:          true,
 				flushTimeout:             time.Minute * 2,
+				consolidateDbNumFiles:    4,
 			},
 			"Client: {entryPoint: 'udp://example.com:80', syslogHostname: '', defaultTag: '', " +
-				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, " +
-				"connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', " +
-				"#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'}, db: {KeyCount: 0, ListIdx: map[]}, " +
-				"bufferSize: 123, eventTTLSeconds: 20, retryWait: 1m0s, reconnWait: 10s, retryStop: true, " +
-				"reconnStop: true, retryInitDelay: 2s, reconnInitDelay: 1s, daemonStopTimeout: 5s, " +
-				"standByMode: true, enableStandByModeTimeout: 3s, dbInitCleanedup: true, " +
-				"daemonStopped: <nil>, flushTimeout: 2m0s",
+				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, " +
+				"tcp: {<nil>} -> <nil>, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', " +
+				"maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: " +
+				"'0001-01-01 00:00:00 +0000 UTC'}, db: {KeyCount: 0, ListIdx: map[], " +
+				"consolidationDbNumFilesThreshold: 4, dbFiles: 0}, bufferSize: 123, " +
+				"eventTTLSeconds: 20, retryDaemon: { waitBtwChecks: 1m0s, initDelay: 2s, " +
+				"stop: true}, reconnDaemon: { waitBtwChecks: 10s, initDelay: 1s, stop: true}, " +
+				"consolidateDbDaemon: { waitBtwChecks: 0s, initDelay: 0s, stop: false}, " +
+				"daemonStopTimeout: 5s, standByMode: true, enableStandByModeTimeout: 3s, " +
+				"dbInitCleanedup: true, daemonStopped: <nil>, flushTimeout: 2m0s",
 		},
 	}
 	for _, tt := range tests {
@@ -1098,18 +1568,15 @@ func TestReliableClient_String(t *testing.T) {
 				db:                       tt.fields.db,
 				bufferSize:               tt.fields.bufferSize,
 				eventTTLSeconds:          tt.fields.eventTTLSeconds,
-				retryWait:                tt.fields.retryWait,
-				reconnWait:               tt.fields.reconnWait,
-				retryStop:                tt.fields.retryStop,
-				reconnStop:               tt.fields.reconnStop,
-				retryInitDelay:           tt.fields.retryInitDelay,
-				reconnInitDelay:          tt.fields.reconnInitDelay,
+				retryDaemon:              tt.fields.retryDaemon,
+				reconnDaemon:             tt.fields.reconnDaemon,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				standByMode:              tt.fields.standByMode,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
 				dbInitCleanedup:          tt.fields.dbInitCleanedup,
 				daemonStopped:            tt.fields.daemonStopped,
 				flushTimeout:             tt.fields.flushTimeout,
+				consolidateDbNumFiles:    tt.fields.consolidateDbNumFiles,
 			}
 			if got := dsrc.String(); got != tt.want {
 				t.Errorf("ReliableClient.String() = %v, want %v", got, tt.want)
@@ -1120,10 +1587,12 @@ func TestReliableClient_String(t *testing.T) {
 
 func TestReliableClient_daemonsSartup(t *testing.T) {
 	type fields struct {
-		db         *nutsdb.DB
-		retryWait  time.Duration
-		reconnWait time.Duration
-		appLogger  applogger.SimpleAppLogger
+		db                    *nutsdb.DB
+		retryDaemon           reliableClientDaemon
+		reconnDaemon          reliableClientDaemon
+		consolidateDaemon     reliableClientDaemon
+		appLogger             applogger.SimpleAppLogger
+		consolidateDbNumFiles uint8
 	}
 	tests := []struct {
 		name    string
@@ -1133,19 +1602,20 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: status db nil",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 			},
 			true,
 		},
 		{
 			"Error: db intialization",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1161,12 +1631,12 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: Retry events daemon",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup-retryEvents"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-retryEvents")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1174,29 +1644,68 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 					return r
 				}(),
 				// Force error
-				retryWait: 0 * time.Second,
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 0 * time.Second}},
 			},
 			true,
 		},
 		{
 			"Error: Client reconnection daemon",
 			fields{
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
 				db: func() *nutsdb.DB {
 					// Ensure db stauts is clean
 					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-daemonsSartup-clientReconn"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-clientReconn")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
 					}
 					return r
 				}(),
-				// retryeEvents daemon should work
-				retryWait: time.Second,
+				// retryEvents daemon should work
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
 				// Force error
-				reconnWait: -1 * time.Second,
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: -1 * time.Second}},
+			},
+			true,
+		},
+		{
+			"Error: consolidate db daemon",
+			fields{
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
+				db: func() *nutsdb.DB {
+					// Ensure db stauts is clean
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-daemonsSartup-clientReconn")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				// retryEvents daemon should work
+				retryDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
+				// reconn daemon should work
+				reconnDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: 1 * time.Second,
+						initDelay:     time.Minute}},
+				// Force error
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: -2 * time.Second}},
 			},
 			true,
 		},
@@ -1204,10 +1713,12 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				db:         tt.fields.db,
-				retryWait:  tt.fields.retryWait,
-				reconnWait: tt.fields.reconnWait,
-				appLogger:  tt.fields.appLogger,
+				db:                    tt.fields.db,
+				retryDaemon:           tt.fields.retryDaemon,
+				reconnDaemon:          tt.fields.reconnDaemon,
+				consolidateDaemon:     tt.fields.consolidateDaemon,
+				appLogger:             tt.fields.appLogger,
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
 			}
 			if err := dsrc.daemonsSartup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.daemonsSartup() error = %v, wantErr %v", err, tt.wantErr)
@@ -1232,6 +1743,8 @@ func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
 		panic(err)
 	}
 
+	time.Sleep(time.Millisecond * 100) // Enough time to dbInitCleanup
+
 	dsrc.db.Close() // Force error when daemon close database
 
 	t.Logf("Send term signal")
@@ -1242,9 +1755,10 @@ func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
 
 func TestReliableClient_dbInitCleanup(t *testing.T) {
 	type fields struct {
-		db              *nutsdb.DB
-		dbInitCleanedup bool
-		appLogger       applogger.SimpleAppLogger
+		db                    *nutsdb.DB
+		dbInitCleanedup       bool
+		appLogger             applogger.SimpleAppLogger
+		consolidateDbNumFiles uint8
 	}
 	tests := []struct {
 		name    string
@@ -1252,7 +1766,7 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Prviously initiated",
+			"Previously initiated",
 			fields{
 				dbInitCleanedup: true,
 			},
@@ -1285,15 +1799,15 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					rClient.Close()
 
 					// Open new database
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-dbInitCleanup"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
 					}
 					return r
 				}(),
-				appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.NoLogAppLogger{},
+				consolidateDbNumFiles: 1,
 			},
 			false,
 		},
@@ -1328,8 +1842,7 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					rClient.Close()
 
 					// Open new database
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-dbInitCleanup-conndata"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-conndata")
 					r, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1349,17 +1862,138 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					return r
 				}(),
 				// appLogger: &applogger.NoLogAppLogger{},
-				appLogger: &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
 			},
 			false,
+		},
+		{
+			"Truncate keys in order",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+
+					// Open new database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Add new entry to keys in order that should be truncated
+					id := newNoConnID()
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						return tx.RPush(ctrlBucket, keysInOrderKey, []byte(id))
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
+			},
+			false,
+		},
+		{
+			"Missing in keys in order",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+
+					// Using internal funcs of temporal reliable client with current db state for easy setup
+					rClient, err := NewReliableClientBuilder().
+						DbPath("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder").
+						ClientBuilder(
+							NewClientBuilder().EntryPoint("udp://localhost:13000")).
+						// prevent consolidate db and resend events db during test
+						ConsolidateDbDaemonInitDelay(time.Minute).
+						RetryDaemonInitDelay(time.Minute).
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Stand by mode to prevent flush events
+					err = rClient.StandBy()
+					if err != nil {
+						panic(err)
+					}
+
+					// Add raw record to simulate "no-conn" id
+					err = rClient.newRecord(&reliableClientRecord{
+						AsyncIDs:  []string{uuid.NewV4().String()},
+						Msg:       "the msg",
+						Tag:       "tag.2",
+						Timestamp: time.Now().Add(time.Minute), // to prevent expiration
+					})
+					if err != nil {
+						panic(err)
+					}
+					// We leave client opened to prevent record marked as no-close
+
+					// Open new database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Truncate keysInOrder to force missing id
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						err := tx.LTrim(ctrlBucket, keysInOrderKey, 0, 0)
+						if err != nil {
+							return err
+						}
+						_, err = tx.LPop(ctrlBucket, keysInOrderKey)
+						return err
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				// appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
+			},
+			false,
+		},
+		{
+			"Consolidate db error",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-consolidateError")
+
+
+					// Open database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-consolidateError")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				// appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 0,
+			},
+			true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				db:              tt.fields.db,
-				dbInitCleanedup: tt.fields.dbInitCleanedup,
-				appLogger:       tt.fields.appLogger,
+				db:                    tt.fields.db,
+				dbInitCleanedup:       tt.fields.dbInitCleanedup,
+				appLogger:             tt.fields.appLogger,
+				consolidateDbNumFiles: tt.fields.consolidateDbNumFiles,
 			}
 			if err := dsrc.dbInitCleanup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.dbInitCleanup() error = %+v, wantErr %+v", err, tt.wantErr)
@@ -1369,6 +2003,30 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup")
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-consolidateError")
+}
+
+func TestReliableClient_startRetryEventsDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.startRetryEventsDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.startRetryEventsDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T) {
@@ -1435,6 +2093,196 @@ func TestReliableClient_clientReconnectionDaemon__server_restarted(t *testing.T)
 	tcm.Stop()
 	rc.Close()
 	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon")
+}
+
+func TestReliableClient_clientReconnectionDaemon__recreate_error(t *testing.T) {
+	// Open new server
+	tcm := &tcpMockRelay{}
+	err := tcm.Start()
+	if err != nil {
+		t.Errorf("Error while start tcp mockrelay: %v", err)
+		return
+	}
+	defer tcm.Stop()
+
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error")
+
+	var appLogBuf bytes.Buffer
+
+	rc, err := NewReliableClientBuilder().
+		DbPath("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error").
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("NO_VALID_PROTOCOL://localhost")).
+		EnableStandByModeTimeout(time.Millisecond * 50).
+		RetryDaemonInitDelay(time.Minute).         // Prevent retry daemon runs during tests
+		ConsolidateDbDaemonInitDelay(time.Minute). // Prevent retry daemon runs during tests
+		ClientReconnDaemonWaitBtwChecks(time.Millisecond * 50).
+		ClientReconnDaemonInitDelay(time.Millisecond * 50).
+		AppLogger(&applogger.WriterAppLogger{
+			Writer: &appLogBuf,
+			Level:  applogger.ERROR,
+		}).
+		Build()
+	if err != nil {
+		t.Errorf("Error while create reliable client: %v", err)
+		return
+	}
+
+	// Wait enought time to get reconn daemon shoot twice
+	time.Sleep(time.Millisecond * 120)
+
+	got := appLogBuf.String()
+	want := `ERROR Error While create new client in Reconnection daemon: Error when create ` +
+		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n" +
+		`ERROR Error While create new client in Reconnection daemon: Error when create ` +
+		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n"
+	if got != want {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() log = %v, want %v", got, want)
+	}
+
+	// Cleant tmp
+	rc.Close()
+	os.RemoveAll("/tmp/devosedner-tests-ReliableClient_clientReconnectionDaemon_recreate_error")
+}
+
+func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.clientReconnectionDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.clientReconnectionDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
+	// applogger to check errors
+	var buf bytes.Buffer
+	al := &applogger.WriterAppLogger{
+		Writer: &buf,
+		Level:  applogger.INFO,
+	}
+	// Create client with appLogger
+	rc := &ReliableClient{
+		consolidateDaemon: reliableClientDaemon{
+			daemonOpts: daemonOpts{
+				waitBtwChecks: time.Millisecond * 50,
+			},
+		},
+		appLogger: al,
+	}
+
+	// starts daemon execution
+	rc.consolidateDbDaemon()
+
+	// wait and stop daemon
+	time.Sleep(time.Millisecond * 50)
+	rc.consolidateDaemon.stop = true
+
+	// Checks that message is expected
+	got := buf.String()
+	wantPrefix := "ERROR Error While consolidate status db in consolidateDbDaemon: Status db is nil\n"
+	if !strings.HasPrefix(got, wantPrefix) {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, wantPrefix %v", got, wantPrefix)
+	}
+}
+
+func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
+	// applogger to check errors
+	var buf bytes.Buffer
+	al := &applogger.WriterAppLogger{
+		Writer: &buf,
+		Level:  applogger.DEBUG,
+	}
+	// status db with events to create files
+	dbOpts := nutsdb.DefaultOptions
+	dbOpts.SegmentSize = 64
+	data := make(map[string][]byte, 12)
+	val := []byte("1234567890123456") // 16 bytes lente
+	for i := 0; i < 12; i++ {
+		data[fmt.Sprintf("%d", i)] = val
+	}
+	path, db := newDbWithOpts("test", data, dbOpts)
+	dbOpts.Dir = path
+
+	// Crate client with appLogger
+	rc := &ReliableClient{
+		consolidateDaemon: reliableClientDaemon{
+			daemonOpts: daemonOpts{
+				waitBtwChecks: time.Millisecond * 100,
+			},
+		},
+		appLogger:             al,
+		db:                    db,
+		dbOpts:                dbOpts,
+		consolidateDbNumFiles: 2,
+	}
+
+	// starts daemon execution
+	rc.consolidateDbDaemon()
+
+	// wait for consolidation call stop daemon
+	time.Sleep(time.Millisecond * 200)
+
+	// Checks that message is expected
+	got := buf.String()
+	wantPrefix := "DEBUG consolidateDbDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"DEBUG consolidateDbDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"INFO Starting status db files consolidation\n" +
+		"DEBUG Recreating db as nutsdb memory leak Work-Arround in consolidateDbDaemon"
+	if !strings.HasPrefix(got, wantPrefix) {
+		t.Errorf("ReliableClient.clientReconnectionDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
+	}
+
+	os.RemoveAll(path)
+}
+
+func TestReliableClient_consolidateDbDaemon(t *testing.T) {
+	tests := []struct {
+		name    string
+		dsrc    *ReliableClient
+		wantErr bool
+	}{
+		{
+			"waitBtwChecks error",
+			&ReliableClient{},
+			true,
+		},
+		{
+			"Daemon stopped",
+			&ReliableClient{
+				appLogger: &applogger.NoLogAppLogger{},
+				consolidateDaemon: reliableClientDaemon{
+					daemonOpts: daemonOpts{
+						waitBtwChecks: time.Second,
+					},
+					stop: true,
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.dsrc.consolidateDbDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.consolidateDbDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
 
 func TestReliableClient_resendRecord(t *testing.T) {
@@ -1650,8 +2498,7 @@ func TestReliableClient_newRecord(t *testing.T) {
 				os.RemoveAll("/tmp/tests-reliable-newRecord")
 
 				// Create new counter with an invalid type to force error
-				opts := nutsdb.DefaultOptions
-				opts.Dir = "/tmp/tests-reliable-newRecord"
+				opts := nutsdbOptionsWithDir("/tmp/tests-reliable-newRecord")
 				db, err := nutsdb.Open(opts)
 
 				err = db.Update(func(tx *nutsdb.Tx) error {
@@ -1666,15 +2513,11 @@ func TestReliableClient_newRecord(t *testing.T) {
 					panic(err)
 				}
 
-				r, err := NewReliableClientBuilder().
+				r, _ := NewReliableClientBuilder().
 					DbPath("/tmp/tests-reliable-newRecord").
 					ClientBuilder(
 						NewClientBuilder().EntryPoint("udp://localhost:13000")).
 					Build()
-
-				if err != nil {
-					panic(err)
-				}
 
 				return r
 			}(),
@@ -1716,8 +2559,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1744,8 +2586,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-tx-closed")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-tx-closed"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx-tx-closed")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1773,8 +2614,7 @@ func Test_updateRecordInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-updateRecordInTx-recordNotFound"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-updateRecordInTx-recordNotFound")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -1847,8 +2687,7 @@ func Test_deleteRecordRawInTx(t *testing.T) {
 				tx: func() *nutsdb.Tx {
 					os.RemoveAll("/tmp/tests-reliable-deleteRecordRawInTx")
 
-					opts := nutsdb.DefaultOptions
-					opts.Dir = "/tmp/tests-reliable-deleteRecordRawInTx"
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-deleteRecordRawInTx")
 					db, err := nutsdb.Open(opts)
 					if err != nil {
 						panic(err)
@@ -3191,10 +4030,124 @@ func Test_nutsdbIsNotFoundError(t *testing.T) {
 	}
 }
 
+func Test_numberOfFiles(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		args args
+		want int
+	}{
+		{
+			"No existing path",
+			args{"/this_path_should_not_exist"},
+			0,
+		},
+		{
+			"Empty path",
+			args{
+				func() string {
+					// Create path
+					r := "/tmp/test-devosender_reliable-numberOfFiles"
+					os.RemoveAll(r)
+					err := os.Mkdir(r, 0600)
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+			},
+			0,
+		},
+		{
+			"Path with file",
+			args{
+				func() string {
+					// Create path
+					r := "/tmp/test-devosender_reliable-numberOfFiles-files"
+					os.RemoveAll(r)
+					err := os.Mkdir(r, 0700)
+					if err != nil {
+						panic(err)
+					}
+
+					// Create directory and file
+					err = os.Mkdir(r+"/otherdir", 0600)
+					if err != nil {
+						panic(err)
+					}
+
+					f, err := os.Create(r + "/file.txt")
+					if err != nil {
+						panic(err)
+					}
+					f.Close()
+
+					return r
+				}(),
+			},
+			2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := numberOfFiles(tt.args.path); got != tt.want {
+				t.Errorf("numberOfFiles() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	os.RemoveAll("/tmp/test-devosender_reliable-numberOfFiles")
+	os.RemoveAll("/tmp/test-devosender_reliable-numberOfFiles-files")
+}
+
+func TestIsOldIDNotFoundErr(t *testing.T) {
+	type args struct {
+		e error
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"Nil error",
+			args{nil},
+			false,
+		},
+		{
+			"No match error",
+			args{errors.New("Other error")},
+			false,
+		},
+		{
+			"Match error",
+			args{errors.New("Old id 1jdwir-9820832-dslljfd-10920834 did not find in tarari_bucket.tarari_Key")},
+			true,
+		},
+		{
+			"Unsupported key name",
+			args{errors.New("Old id 1jdwir-9820832-dslljfd-10920834 did not find in tarari_bucket.tarari-Key")},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsOldIDNotFoundErr(tt.args.e); got != tt.want {
+				t.Errorf("IsOldIDNotFoundErr() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func newDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
+	return newDbWithOpts(initValBucket, initVals, nutsdb.DefaultOptions)
+}
+
+func newDbWithOpts(initValBucket string, initVals map[string][]byte, opts nutsdb.Options) (string, *nutsdb.DB) {
 	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 
-	opts := nutsdb.DefaultOptions
 	opts.Dir = path
 	db, err := nutsdb.Open(opts)
 	if err != nil {
@@ -3349,4 +4302,10 @@ func (tmr *tcpMockRelay) handleConnection(c net.Conn) {
 			tmr.Lines = append(tmr.Lines, string(bs))
 		}
 	}
+}
+
+func nutsdbOptionsWithDir(d string) nutsdb.Options {
+	r := nutsdb.DefaultOptions
+	r.Dir = d
+	return r
 }

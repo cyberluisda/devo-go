@@ -272,6 +272,117 @@ func TestClient_AsyncErrors(t *testing.T) {
 	}
 }
 
+func TestClient_AsyncErrorsIds(t *testing.T) {
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name string
+		dsc  *Client
+		want []string
+	}{
+		{
+			"Nil",
+			nil,
+			nil,
+		},
+		{
+			"Nil error list",
+			&Client{},
+			nil,
+		},
+		{
+			"Empty error list",
+			&Client{
+				asyncErrors: map[string]error{},
+			},
+			nil,
+		},
+		{
+			"IDs with errors",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+					"ID-2": errors.New("test error 2"),
+					"ID-3": errors.New("test error 3"),
+				},
+			},
+			[]string{"ID-1", "ID-2", "ID-3"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.dsc.AsyncErrorsIds()
+			sort.Strings(got)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.AsyncErrorsIds() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_AsyncError(t *testing.T) {
+	type args struct {
+		id string
+	}
+	tests := []struct {
+		name    string
+		dsc     *Client
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			"Nil",
+			nil,
+			args{"any id"},
+			false,
+			true,
+		},
+		{
+			"Empty error list",
+			&Client{},
+			args{"any id"},
+			false,
+			false,
+		},
+		{
+			"Id does not found",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+				},
+			},
+			args{"any id"},
+			false,
+			false,
+		},
+		{
+			"ID found",
+			&Client{
+				asyncErrors: map[string]error{
+					"ID-1": errors.New("test error"),
+				},
+			},
+			args{"ID-1"},
+			true,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.dsc.AsyncError(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.AsyncError() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Client.AsyncError() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClient_AsyncErrorsNumber_nil(t *testing.T) {
 	var dsc *Client
 	want := 0
@@ -2578,7 +2689,10 @@ func TestClient_String(t *testing.T) {
 		{
 			"Empty",
 			fields{},
-			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>}, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'`,
+			`entryPoint: '', syslogHostname: '', defaultTag: '', connAddr: '<nil>', ` +
+				`ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, tcp: {<nil>} -> <nil>, ` +
+				`connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', maxTimeConnActive: '0s', ` +
+				`#asyncItems: 0, lastSendCallTimestamp: '0001-01-01 00:00:00 +0000 UTC'`,
 		},
 		{
 			"With values",
@@ -2609,7 +2723,13 @@ func TestClient_String(t *testing.T) {
 				},
 				lastSendCallTimestamp: time.Unix(1978, 1),
 			},
-			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: 'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` + testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` + fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>}, connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) + `', maxTimeConnActive: '1s', #asyncItems: 1, lastSendCallTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 1)) + `'`,
+			`entryPoint: 'The entryPoint', syslogHostname: 'The syslogHostname', defaultTag: ` +
+				`'The defaultTag', connAddr: '` + testConn.LocalAddr().String() + ` -> ` +
+				testConn.RemoteAddr().String() + `', ReplaceSequences: map[a:b], tls: ` +
+				fmt.Sprintf("%v", testTlsSetup) + `, #asyncErrors: 1, tcp: {<nil>} -> <nil>, ` +
+				`connectionUsedTimestamp: '` + fmt.Sprintf("%v", time.Unix(1978, 0)) +
+				`', maxTimeConnActive: '1s', #asyncItems: 1, lastSendCallTimestamp: '` +
+				fmt.Sprintf("%v", time.Unix(1978, 1)) + `'`,
 		},
 	}
 	for _, tt := range tests {
