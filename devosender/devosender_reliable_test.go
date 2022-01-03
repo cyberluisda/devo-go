@@ -2003,6 +2003,9 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup")
 	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-conndata")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-truncKeysInOrder")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+	os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-consolidateError")
 }
 
 func TestReliableClient_startRetryEventsDaemon(t *testing.T) {
