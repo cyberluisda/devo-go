@@ -991,13 +991,16 @@ func (dsrc *ReliableClient) dbInitCleanup() error {
 		if err != nil {
 			return fmt.Errorf("While get size of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
 		}
-		keysInOrder, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
-		if err != nil {
-			return err
+		var keysInOrder [][]byte
+		if n > 0 {
+			keysInOrder, err = tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+			if err != nil {
+				return fmt.Errorf("While get all values of %s.%s: %w", ctrlBucket, string(keysInOrderKey), err)
+			}
 		}
+
 		keysInOrderMap := make(map[string]interface{}, len(keysInOrder))
 		toRemove := make([][]byte, 0)
-
 		for _, k := range keysInOrder {
 			keyStr := string(k)
 			keysInOrderMap[keyStr] = nil
