@@ -1506,21 +1506,23 @@ func updateRecordInTx(tx *nutsdb.Tx, r *reliableClientRecord, newID string, ttl 
 		return err
 	}
 
-	// Load all keys in memory.
-	ls, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
-	if err != nil {
-		return err
-	}
-
 	found := false
-	for idx, vs := range ls {
-		if bytes.Equal(vs, oldIDAsBytes) {
-			err := tx.LSet(ctrlBucket, keysInOrderKey, idx, newIDAsBytes)
-			if err != nil {
-				return err
+	if n > 0 {
+		// Load all keys in memory.
+		ls, err := tx.LRange(ctrlBucket, keysInOrderKey, 0, n-1)
+		if err != nil {
+			return err
+		}
+
+		for idx, vs := range ls {
+			if bytes.Equal(vs, oldIDAsBytes) {
+				err := tx.LSet(ctrlBucket, keysInOrderKey, idx, newIDAsBytes)
+				if err != nil {
+					return err
+				}
+				found = true
+				break
 			}
-			found = true
-			break
 		}
 	}
 
