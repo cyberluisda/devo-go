@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	uuid "github.com/satori/go.uuid"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -1891,6 +1892,72 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 
 					return r
 				}(),
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 1,
+			},
+			false,
+		},
+		{
+			"Missing in keys in order",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+
+					// Using internal funcs of temporal reliable client with current db state for easy setup
+					rClient, err := NewReliableClientBuilder().
+						DbPath("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder").
+						ClientBuilder(
+							NewClientBuilder().EntryPoint("udp://localhost:13000")).
+						// prevent consolidate db and resend events db during test
+						ConsolidateDbDaemonInitDelay(time.Minute).
+						RetryDaemonInitDelay(time.Minute).
+						Build()
+					if err != nil {
+						panic(err)
+					}
+
+					// Stand by mode to prevent flush events
+					err = rClient.StandBy()
+					if err != nil {
+						panic(err)
+					}
+
+					// Add raw record to simulate "no-conn" id
+					err = rClient.newRecord(&reliableClientRecord{
+						AsyncIDs:  []string{uuid.NewV4().String()},
+						Msg:       "the msg",
+						Tag:       "tag.2",
+						Timestamp: time.Now().Add(time.Minute), // to prevent expiration
+					})
+					if err != nil {
+						panic(err)
+					}
+					// We leave client opened to prevent record marked as no-close
+
+					// Open new database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-missingKeysInOrder")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					// Truncate keysInOrder to force missing id
+					err = r.Update(func(tx *nutsdb.Tx) error {
+						err := tx.LTrim(ctrlBucket, keysInOrderKey, 0, 0)
+						if err != nil {
+							return err
+						}
+						_, err = tx.LPop(ctrlBucket, keysInOrderKey)
+						return err
+					})
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				// appLogger: &applogger.NoLogAppLogger{},
 				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
 				consolidateDbNumFiles: 1,
 			},
