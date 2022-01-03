@@ -1963,6 +1963,29 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Consolidate db error",
+			fields{
+				db: func() *nutsdb.DB {
+					// Ensure previous execution data is cleaned
+					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-consolidateError")
+
+
+					// Open database
+					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-consolidateError")
+					r, err := nutsdb.Open(opts)
+					if err != nil {
+						panic(err)
+					}
+
+					return r
+				}(),
+				// appLogger: &applogger.NoLogAppLogger{},
+				appLogger:             &applogger.WriterAppLogger{Writer: os.Stdout, Level: applogger.DEBUG},
+				consolidateDbNumFiles: 0,
+			},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
