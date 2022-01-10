@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"io/ioutil"
 	"sync"
 
 	"github.com/xujiajun/nutsdb"
@@ -165,5 +166,19 @@ type NutsDBStatus struct {
 	bufferSize                         uint
 	filesToConsolidateDb               int
 	recreateDbClientAfterConsolidation bool
+}
+
+
+// NumberOfFiles return the number of files, really non directories elements, in
+// a directory path without entering in sub-directories
+func NumberOfFiles(path string) int {
+	files, _ := ioutil.ReadDir(path)
+	r := 0
+	for _, f := range files {
+		if !f.IsDir() {
+			r++
+		}
+	}
+	return r
 }
 
