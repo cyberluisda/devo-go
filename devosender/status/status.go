@@ -170,6 +170,38 @@ type NutsDBStatus struct {
 }
 
 
+// IsNotFoundErr check and return if error parameter is one of the "Not found"
+// recognized errors returned by nutsdb operations.
+func IsNotFoundErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if err == nutsdb.ErrBucketNotFound {
+		return true
+	}
+	if err == nutsdb.ErrBucketEmpty {
+		return true
+	}
+	if err == nutsdb.ErrNotFoundKey {
+		return true
+	}
+	if err == nutsdb.ErrKeyNotFound {
+		return true
+	}
+	errStr := err.Error()
+	if errStr == "err bucket" {
+		return true
+	}
+	if errStr == "key not exits" {
+		return true
+	}
+	if errStr == "item not exits" {
+		return true
+	}
+
+	return reNotFoundError.MatchString(errStr)
+}
+
 // NumberOfFiles return the number of files, really non directories elements, in
 // a directory path without entering in sub-directories
 func NumberOfFiles(path string) int {
