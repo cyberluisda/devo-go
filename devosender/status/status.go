@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+	"time"
 
 	"github.com/xujiajun/nutsdb"
 )
@@ -182,3 +183,31 @@ func NumberOfFiles(path string) int {
 	return r
 }
 
+// SorteableStringTime represent a slice of string, time.Time tuples that can be
+// sorted by time.Time value using sort.Sort() method
+type SorteableStringTime struct {
+	Values     []string
+	Timestamps []time.Time
+}
+
+// Add add new (string, time) tuple
+func (sst *SorteableStringTime) Add(v string, t time.Time) {
+	sst.Values = append(sst.Values, v)
+	sst.Timestamps = append(sst.Timestamps, t)
+}
+
+// Len is part of by sort.Interface
+func (sst *SorteableStringTime) Len() int {
+	return len(sst.Values)
+}
+
+// Less is part of by sort.Interface
+func (sst *SorteableStringTime) Less(i, j int) bool {
+	return sst.Timestamps[i].Before(sst.Timestamps[j])
+}
+
+// Swap is part of by sort.Interface
+func (sst *SorteableStringTime) Swap(i, j int) {
+	sst.Values[i], sst.Values[j] = sst.Values[j], sst.Values[i]
+	sst.Timestamps[i], sst.Timestamps[j] = sst.Timestamps[j], sst.Timestamps[i]
+}
