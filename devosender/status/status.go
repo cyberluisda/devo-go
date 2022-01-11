@@ -169,6 +169,7 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
 
 // IsNotFoundErr check and return if error parameter is one of the "Not found"
 // recognized errors returned by nutsdb operations.
