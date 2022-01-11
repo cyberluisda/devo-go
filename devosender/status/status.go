@@ -219,6 +219,16 @@ func (ns *NutsDBStatus) HouseKeeping() error {
 	return nil
 }
 
+// Close is the implementation of Status.Close,
+func (ns *NutsDBStatus) Close() error {
+	if ns.db == nil {
+		return nil
+	}
+
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+	return ns.db.Close()
+}
 
 // Initialize is the Intialize implementation of Status interface for NutsDBStatus.
 // Checks and ensure that required buckets and keys exists, and try to fix problems on
