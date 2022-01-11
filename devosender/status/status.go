@@ -188,6 +188,71 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
+	if idx == nil {
+		return fmt.Errorf("idx is nil")
+	}
+
+	// Fix index issues
+	entries, err := tx.GetAll(dataBucket)
+	if IsNotFoundErr(err) || len(entries) == 0 {
+		// We should set empty idx
+		idx.reset(0)
+		err := saveOrderIdxInTx(tx, idx)
+		if err != nil {
+			return fmt.Errorf("While save empty index after checks that %s bucket is empty: %w", dataBucket, err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("While load instances to do initial index check: %w", err)
+	} else {
+		fixRequired := false
+
+		// Should I rebuild index?
+		if len(idx.Order) != len(entries) {
+			fixRequired = true
+		}
+		if len(idx.Refs) != len(entries) {
+			fixRequired = true
+		}
+
+		if fixRequired {
+			// Loop over all entries to get id and timestamp. This will be used by order
+			idsTs := &SorteableStringTime{}
+
+			for _, entry := range entries {
+				er := &EventRecord{}
+				err = msgpack.Unmarshal(entry.Value, er)
+				if err != nil {
+					return fmt.Errorf("While unmarshall record from raw %v: %w", entry.Value, err)
+				}
+
+				ID := er.EffectiveID()
+				if ID == "" {
+					return fmt.Errorf("Loaded record , %+v, without any value in ASyncIds", er)
+				}
+				idsTs.Add(ID, er.Timestamp)
+			}
+
+			// Sort IDs to be added to new idx
+			sort.Sort(idsTs)
+
+			// Reset and build index with idsTs data
+			idx.reset(idsTs.Len())
+			for i, k := range idsTs.Values {
+				idx.Order[i] = k
+				idx.Refs[k] = k
+			}
+
+			// Save new verison of idx
+			err = saveOrderIdxInTx(tx, idx)
+			if err != nil {
+				return fmt.Errorf("While save rebuilt index: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
 
 func getDataRecordInTx(tx *nutsdb.Tx, ID []byte) (*EventRecord, error) {
 	raw, err := tx.Get(dataBucket, ID)
