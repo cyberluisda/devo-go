@@ -444,6 +444,25 @@ func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opt
 	return path, db
 }
 
+func toolTestAssertKeyVal(db *nutsdb.DB, bucket string, key []byte, val []byte) bool {
+	r := true
+	err := db.View(func(tx *nutsdb.Tx) error {
+		v, err := tx.Get(bucket, key)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(val, v.Value) {
+			return errors.New("val and v are not equal")
+		}
+		return nil
+	})
+	if err != nil {
+		r = false
+	}
+
+	return r
+}
+
 func toolTestExistKey(db *nutsdb.DB, bucket string, key []byte) bool {
 	r := true
 	err := db.View(func(tx *nutsdb.Tx) error {
