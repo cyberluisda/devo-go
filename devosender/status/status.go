@@ -192,6 +192,58 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+var (
+	// ErrRecordEvicted is the error returned when EventRecord was expired
+	ErrRecordEvicted error = errors.New("EventRecord evicted")
+	// ErrRecordNotFoundInIdx is the error returned when EventRecord was not found in the index
+	ErrRecordNotFoundInIdx error = errors.New("EventRecord not found in index")
+)
+
+// FinishRecord is the Status.FinishRecord implementation for NutsDBStatus: Mark
+// as record as finished and remove it from status
+func (ns *NutsDBStatus) FinishRecord(ID string) error {
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	notFound := false
+	err := ns.db.Update(func(tx *nutsdb.Tx) error {
+		idx, err := getOrderIdxInTx(tx)
+		if err != nil {
+			return fmt.Errorf("While load index: %w", err)
+		}
+
+		// Check if record exists.
+		pos := idx.indexOf(ID)
+		notFound = pos == -1
+
+		// Ensure is deleted from data
+		err = deleteDataRecordInTx(tx, []byte(ID))
+		if err != nil {
+			return fmt.Errorf("While ensure record is removed from data")
+		}
+		if notFound {
+			return nil
+		}
+
+		err = removeFromIdxInTx(tx, idx, pos, finishedKey)
+		if err != nil {
+			return fmt.Errorf("While remove form index: %w", err)
+		}
+
+		err = inc(tx, statsBucket, countKey, -1, true)
+		if err != nil {
+			return fmt.Errorf("While decrement %s.%s counter: %w", statsBucket, string(countKey), err)
+		}
+
+		return nil
+	})
+
+	if err == nil && notFound {
+		err = ErrRecordNotFoundInIdx
+	}
+	return err
+}
+
 // AllIDs is the Status.AllIDs implementation for NutsDBStatus: Return all ids based
 // on index information only
 func (ns *NutsDBStatus) AllIDs() ([]string, error) {
