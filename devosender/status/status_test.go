@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cyberluisda/devo-go/devosender"
+	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -82,6 +84,67 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 			sst.Swap(tt.args.i, tt.args.j)
 			if !reflect.DeepEqual(sst, tt.want) {
 				t.Errorf("SorteableStringTime.Swap() = %+v, want %+v", sst, tt.want)
+			}
+		})
+	}
+}
+
+func TestEventRecord_Serialize(t *testing.T) {
+	tests := []struct {
+		name    string
+		er      *EventRecord
+		want    []byte
+		wantErr bool
+	}{
+		{
+			"Nil",
+			nil,
+			[]byte{192},
+			false,
+		},
+		{
+			"Empty",
+			&EventRecord{},
+			func() []byte {
+				r, _ := msgpack.Marshal(&EventRecord{})
+				return r
+			}(),
+			false,
+		},
+		{
+			"Full",
+			&EventRecord{
+				AsyncIDs:   []string{"id-1", "id-2"},
+				Timestamp:  time.Time{}.Add(time.Second),
+				Tag:        "test.keep.free",
+				Msg:        "the event content",
+				Compressor: &devosender.Compressor{Algorithm: devosender.CompressorGzip},
+				LastError:  errors.New("Test error"),
+			},
+			func() []byte {
+				er := &EventRecord{
+					AsyncIDs:   []string{"id-1", "id-2"},
+					Timestamp:  time.Time{}.Add(time.Second),
+					Tag:        "test.keep.free",
+					Msg:        "the event content",
+					Compressor: &devosender.Compressor{Algorithm: devosender.CompressorGzip},
+					LastError:  errors.New("Test error"),
+				}
+				r, _ := msgpack.Marshal(er)
+				return r
+			}(),
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.er.Serialize()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("EventRecord.Serialize() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("EventRecord.Serialize() = %v, want %v", got, tt.want)
 			}
 		})
 	}
