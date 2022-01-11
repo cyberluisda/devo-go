@@ -93,6 +93,115 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_cont(t *testing.T) {
+	type args struct {
+		bucket          string
+		key             []byte
+		errorIfNotFound bool
+	}
+	tests := []struct {
+		name         string
+		existingKeys map[string][]byte
+		closedTx     bool
+		args         args
+		want         int
+		wantErr      bool
+	}{
+		{
+			"Key does not exist ignored",
+			make(map[string][]byte, 0),
+			false,
+			args{
+				"test",
+				[]byte("new_key"),
+				false,
+			},
+			0,
+			false,
+		},
+		{
+			"Key does not exist error",
+			make(map[string][]byte, 0),
+			false,
+			args{
+				"test",
+				[]byte("new_key"),
+				true,
+			},
+			0,
+			true,
+		},
+		{
+			"Key exists",
+			map[string][]byte{
+				"test-key": []byte("22"),
+			},
+			false,
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+			},
+			22,
+			false,
+		},
+		{
+			"Key exists other format",
+			map[string][]byte{
+				"test-key": []byte("tarari que te vi"),
+			},
+			false,
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+			},
+			0,
+			true,
+		},
+		{
+			"DB error",
+			make(map[string][]byte, 0),
+			true,
+			args{
+				"test",
+				[]byte("test-key"),
+				true,
+			},
+			0,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		path, db := toolTestNewDb(tt.args.bucket, tt.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := db.View(func(tx *nutsdb.Tx) error {
+				if tt.closedTx {
+					tx.Commit()
+				}
+
+				got, err := cont(tx, tt.args.bucket, tt.args.key, tt.args.errorIfNotFound)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("cont() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				if got != tt.want {
+					t.Errorf("cont() got = %v, want %v", got, tt.want)
+					return errors.New("Test failed")
+				}
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_del(t *testing.T) {
 
 	type args struct {
