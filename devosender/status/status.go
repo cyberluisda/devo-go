@@ -182,6 +182,15 @@ type EventRecord struct {
 	LastError  error
 }
 
+// Serialize transforms EventRecord to byte slice
+func (er *EventRecord) Serialize() ([]byte, error) {
+	r, err := msgpack.Marshal(er)
+	if err != nil {
+		return nil, fmt.Errorf("While serialize record: %w", err)
+	}
+	return r, nil
+}
+
 var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
 
 // IsNotFoundErr check and return if error parameter is one of the "Not found"
