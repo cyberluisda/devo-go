@@ -192,6 +192,47 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+}
+
+// Update is the Status.Update implementation for NutsDBStatus: Update the record with new ID
+func (ns *NutsDBStatus) Update(oldID, newID string) error {
+
+	// Load eventrecord
+	er, _, err := ns.Get(oldID)
+	if err != nil {
+		return err
+	}
+
+	// Now lock db again because I am going to change indexes
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	er.AsyncIDs = append(er.AsyncIDs, newID)
+	err = ns.db.Update(func(tx *nutsdb.Tx) error {
+		idx, err := getOrderIdxInTx(tx)
+		if err != nil {
+			return fmt.Errorf("While load index: %w", err)
+		}
+
+		idx.set(oldID, newID)
+
+		// Save event record
+		err = saveDataRecordInTx(tx, er, ns.eventTTL)
+		if err != nil {
+			return fmt.Errorf("While update IDs references in eventrecord %+v: %w", er, err)
+		}
+
+		err = saveOrderIdxInTx(tx, idx)
+		if err != nil {
+			return fmt.Errorf("While update index: %w", err)
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 var (
 	// ErrRecordEvicted is the error returned when EventRecord was expired
 	ErrRecordEvicted error = errors.New("EventRecord evicted")
