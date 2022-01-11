@@ -307,7 +307,7 @@ func toolTestNewDb(initValBucket string, initVals map[string][]byte) (string, *n
 }
 
 func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opts nutsdb.Options) (string, *nutsdb.DB) {
-	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
+	path := fmt.Sprintf("%s%cdevosender_status-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 
 	opts.Dir = path
 	db, err := nutsdb.Open(opts)
