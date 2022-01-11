@@ -93,6 +93,79 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_orderIdx_remove(t *testing.T) {
+	type args struct {
+		pos int
+	}
+	tests := []struct {
+		name string
+		oi   *orderIdx
+		args args
+		want *orderIdx
+	}{
+		{
+			"Empty",
+			&orderIdx{},
+			args{128},
+			&orderIdx{},
+		},
+		{
+			"Pos less than 0",
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+			args{-1},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+		},
+		{
+			"Pos greater than elements number",
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+			args{23},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+		},
+		{
+			"Deleting",
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-2",
+				},
+			},
+			args{0},
+			&orderIdx{
+				Order: []string{},
+				Refs:  map[string]string{},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.oi.remove(tt.args.pos)
+			if !reflect.DeepEqual(tt.oi, tt.want) {
+				t.Errorf("oriderIdx.remove(): got %v, want %v", tt.oi, tt.want)
+			}
+		})
+	}
+}
+
 func Test_orderIdx_set(t *testing.T) {
 	type args struct {
 		oldID string
