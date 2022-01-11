@@ -192,6 +192,79 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+// New is the New implementation of Status interface for NutsDBStatus.
+// This will create new record in the status db.
+func (ns *NutsDBStatus) New(er *EventRecord) error {
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	if len(er.AsyncIDs) != 1 {
+		return fmt.Errorf("AsyncIDs must be formed by one and only one value")
+	}
+
+	err := ns.db.Update(func(tx *nutsdb.Tx) error {
+		// Check if key exists
+
+		IDStr := er.AsyncIDs[0]
+		ID := []byte(IDStr)
+		_, err := getDataRecordInTx(tx, ID)
+		if !IsNotFoundErr(err) {
+			return fmt.Errorf("Record with %s id is present in status db", er.AsyncIDs[0])
+		}
+
+		if er.Timestamp.Add(time.Duration(ns.eventTTL) * time.Second).Before(time.Now()) {
+			// Event was expired with add as evicted only
+			err := inc(tx, statsBucket, evictedKey, 1, false)
+			if err != nil {
+				err = fmt.Errorf("While increment %s.%s: %w", statsBucket, string(evictedKey), err)
+			}
+			return err
+		}
+
+		// Load order idx
+		idx, err := getOrderIdxInTx(tx)
+		if err != nil {
+			return fmt.Errorf("While load order index: %w", err)
+		}
+
+		// Check if buffer is overflow after add new record
+		shouldIncCount := true
+		if uint(len(idx.Order)) >= ns.bufferSize {
+			shouldIncCount = false
+			err = removeLastRecordInTx(tx, idx, droppedKey)
+			if err != nil {
+				return fmt.Errorf("While drop event because buffer is full: %w", err)
+			}
+		}
+
+		// Create new record
+		err = saveDataRecordInTx(tx, er, ns.eventTTL)
+		if err != nil {
+			return fmt.Errorf("While create new record in status db: %w", err)
+		}
+
+		// Update order IDX and persist
+		idx.add(IDStr)
+		err = saveOrderIdxInTx(tx, idx)
+		if err != nil {
+			return fmt.Errorf("While save index: %w", err)
+		}
+
+		// Update counter if required (if event was drop countKey was not needed to be incremented)
+		if shouldIncCount {
+			err = inc(tx, statsBucket, countKey, 1, false)
+			if err != nil {
+				return fmt.Errorf("While increment %s.%s: %w", statsBucket, string(countKey), err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("While update nutsdb: %w", err)
+	}
+
+	return nil
 }
 
 // Update is the Status.Update implementation for NutsDBStatus: Update the record with new ID
