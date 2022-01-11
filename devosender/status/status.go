@@ -172,6 +172,31 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+// inc increments the integer value of a key. If key exists value should be transformed using
+// strvconv.Atoi(string(value)) before increments the value. If key does not exist it will create
+// with n value unless errorIfNotFound parameter is true. On this case it returns an error.
+// WARNING. inc is not prepare to be called more than one time on same transaction. To solve this
+// problem use set func instead.
+func inc(tx *nutsdb.Tx, bucket string, key []byte, n int, errorIfNotFound bool) error {
+	if n == 0 {
+		return nil
+	}
+
+	ve, err := tx.Get(bucket, key)
+	if IsNotFoundErr(err) {
+		if errorIfNotFound {
+			return err
+		}
+		err = tx.Put(bucket, key, []byte(fmt.Sprint(n)), 0)
+	} else {
+		v, _ := strconv.Atoi(string(ve.Value))
+		v = v + n
+		err = tx.Put(bucket, key, []byte(strconv.Itoa(v)), 0)
+	}
+
+	return err
+}
+
 
 // del remove a key. Usefull alias of tx.Delete when you are working with inc, dec, cont and set
 func del(tx *nutsdb.Tx, bucket string, key []byte) error {
