@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
 
@@ -167,6 +168,18 @@ type NutsDBStatus struct {
 	bufferSize                         uint
 	filesToConsolidateDb               int
 	recreateDbClientAfterConsolidation bool
+}
+
+
+// EventRecord is the record to save and retrieve events in/from status
+// The events are the messages that can be send used the client to Devo
+type EventRecord struct {
+	AsyncIDs   []string
+	Timestamp  time.Time
+	Tag        string
+	Msg        string
+	Compressor *devosender.Compressor
+	LastError  error
 }
 
 var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
