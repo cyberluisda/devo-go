@@ -170,6 +170,31 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+// Stats represent the counter ando other metric values extracted from status db
+// implementation
+type Stats struct {
+	// Number of events in buffer
+	BufferCount int
+	// UPdaTotal events that are in buffer and daemon was tried to re-send
+	Updated int
+	// Finished is the total number of events that were processed (out of buffer)
+	Finished int
+	// Dropped is the total number of events that were removed from buffer without send because
+	// limit of the buffer size was reached
+	Dropped int
+	// Evicted is the total number of events that were removed from buffer because they were expired
+	// before stablish connection
+	Evicted int
+
+	// DbIdxSize is the number of IDs saved in the ordered index
+	DbIdxSize int
+	// DbMaxFileID is the file number(id) used by status db
+	DbMaxFileID int64
+	// DbDataEntries is the number of status records saved on the status db, or -1 if this metric was
+	// not solved. Resolution of this metric seriously affects the performance. For this reason this metric
+	// will only resolve it if value of DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment varaiblable is "yes"
+	DbDataEntries int
+}
 
 // EventRecord is the record to save and retrieve events in/from status
 // The events are the messages that can be send used the client to Devo
