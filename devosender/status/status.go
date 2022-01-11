@@ -191,6 +191,15 @@ func (er *EventRecord) Serialize() ([]byte, error) {
 	return r, nil
 }
 
+// EffectiveID return the last value of ID, that is the updated value of the ID
+// in EventRecord
+func (er *EventRecord) EffectiveID() string {
+	if len(er.AsyncIDs) == 0 {
+		return ""
+	}
+	return er.AsyncIDs[len(er.AsyncIDs)-1]
+}
+
 var reNotFoundError = regexp.MustCompile(`^not found bucket:.*,key:.*$`)
 
 // IsNotFoundErr check and return if error parameter is one of the "Not found"
