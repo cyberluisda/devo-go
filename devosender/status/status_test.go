@@ -93,6 +93,66 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_orderIdx_set(t *testing.T) {
+	type args struct {
+		oldID string
+		newID string
+	}
+	tests := []struct {
+		name string
+		oi   *orderIdx
+		args args
+		want *orderIdx
+	}{
+		{
+			"Empty",
+			&orderIdx{},
+			args{"old-one", "new-one"},
+			&orderIdx{},
+		},
+		{
+			"OldID does not exist",
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+			args{"old-one", "new-one"},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+		},
+		{
+			"Replacing",
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-2",
+				},
+			},
+			args{"id-1", "new-one"},
+			&orderIdx{
+				Order: []string{"new-one"},
+				Refs: map[string]string{
+					"new-one": "id-2",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.oi.set(tt.args.oldID, tt.args.newID)
+			if !reflect.DeepEqual(tt.oi, tt.want) {
+				t.Errorf("oriderIdx.set(): got %v, want %v", tt.oi, tt.want)
+			}
+		})
+	}
+}
+
 func Test_inc(t *testing.T) {
 	type args struct {
 		bucket          string
