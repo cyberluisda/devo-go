@@ -199,6 +199,61 @@ var (
 	ErrRecordNotFoundInIdx error = errors.New("EventRecord not found in index")
 )
 
+// Get is the Status.Get implementation for NutsDBStatus: Returns EventRecord based on ID
+func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	var r *EventRecord
+	var pos int
+	evictedRecord := false
+	err := ns.db.Update(func(tx *nutsdb.Tx) error {
+		idx, err := getOrderIdxInTx(tx)
+		if err != nil {
+			return fmt.Errorf("While load order index: %w", err)
+		}
+
+		// Load position in order idx
+		pos = idx.indexOf(ID)
+		if pos == -1 {
+			return ErrRecordNotFoundInIdx
+		}
+
+		// Get reference in idx
+		origID := idx.Refs[ID]
+
+		// Get register raw
+		r, err = getDataRecordInTx(tx, []byte(origID))
+		if IsNotFoundErr(err) {
+			// Assuming record was expired
+			err = removeFromIdxInTx(tx, idx, pos, evictedKey)
+			if err != nil {
+				return fmt.Errorf("While mark %s as evicted: %w", ID, err)
+			}
+
+			// Decrement buffer counter
+			err = inc(tx, statsBucket, countKey, -1, true)
+			if err != nil {
+				return fmt.Errorf("While decrement buffer counter: %w", err)
+			}
+
+			r = nil
+			pos = -1
+			evictedRecord = true // Instaed of return return ErrRecordEvicted to prevent nutsdb rollback
+		} else if err != nil {
+			return fmt.Errorf("While load record: %w", err)
+		}
+		return nil
+	})
+
+	// Fix RecordEvicted error
+	if evictedRecord && err == nil {
+		err = ErrRecordEvicted
+	}
+
+	return r, pos, err
+}
+
 // FinishRecord is the Status.FinishRecord implementation for NutsDBStatus: Mark
 // as record as finished and remove it from status
 func (ns *NutsDBStatus) FinishRecord(ID string) error {
