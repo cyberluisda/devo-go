@@ -197,6 +197,26 @@ func inc(tx *nutsdb.Tx, bucket string, key []byte, n int, errorIfNotFound bool) 
 	return err
 }
 
+// cont returns the interger value of a key. If key exists value should be transformed using
+// strvconv.Atoi(string(value)). If key does not exist it will return 0 value unless errorIfNotFound
+// parameter is true. On this case it returns an error.
+// WARNING. con is not prepare to be called more than one time in the same transaction. You should
+// solve it loading the value at the begining of the transcation and maintain internally updated.
+func cont(tx *nutsdb.Tx, bucket string, key []byte, errorIfNotFound bool) (int, error) {
+	ve, err := tx.Get(bucket, key)
+	if IsNotFoundErr(err) {
+		if errorIfNotFound {
+			return 0, err
+		}
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	return strconv.Atoi(string(ve.Value))
+}
+
 
 // del remove a key. Usefull alias of tx.Delete when you are working with inc, dec, cont and set
 func del(tx *nutsdb.Tx, bucket string, key []byte) error {
