@@ -189,6 +189,23 @@ type NutsDBStatus struct {
 }
 
 
+func saveDataRecordInTx(tx *nutsdb.Tx, er *EventRecord, ttl uint32) error {
+
+	ID := []byte(er.AsyncIDs[0])
+	ts := uint64(er.Timestamp.Unix())
+	raw, err := er.Serialize()
+	if err != nil {
+		return fmt.Errorf("While create new record in TX: %w", err)
+	}
+
+	err = tx.PutWithTimestamp(dataBucket, ID, raw, ttl, ts)
+	if err != nil {
+		return fmt.Errorf("While save new record in %s.%s in TX: %w", dataBucket, string(ID), err)
+	}
+
+	return nil
+}
+
 func deleteDataRecordInTx(tx *nutsdb.Tx, ID []byte) error {
 	return tx.Delete(dataBucket, ID)
 }
