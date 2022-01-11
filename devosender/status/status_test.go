@@ -1,7 +1,11 @@
 package status
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/rand"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -86,6 +90,59 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 				t.Errorf("SorteableStringTime.Swap() = %+v, want %+v", sst, tt.want)
 			}
 		})
+	}
+}
+
+func Test_del(t *testing.T) {
+
+	type args struct {
+		bucket       string
+		key          []byte
+		existingKeys map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"Key does not exist",
+			args{
+				"test",
+				[]byte("Does not exists"),
+				make(map[string][]byte, 0),
+			},
+			false,
+		},
+		{
+			"Key exists",
+			args{
+				"test",
+				[]byte("test-key"),
+				map[string][]byte{
+					"test-key": []byte("test-value"),
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		path, db := toolTestNewDb(tt.args.bucket, tt.args.existingKeys)
+
+		t.Run(tt.name, func(t *testing.T) {
+			db.Update(func(tx *nutsdb.Tx) error {
+				if err := del(tx, tt.args.bucket, tt.args.key); (err != nil) != tt.wantErr {
+					t.Errorf("del() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				return nil
+			})
+
+			if toolTestExistKey(db, tt.args.bucket, tt.args.key) {
+				t.Errorf("del() key %s exists in db", string(tt.args.key))
+			}
+		})
+
+		toolTestDestroyDb(path, db)
 	}
 }
 
