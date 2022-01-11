@@ -189,6 +189,20 @@ type NutsDBStatus struct {
 }
 
 
+func getDataRecordInTx(tx *nutsdb.Tx, ID []byte) (*EventRecord, error) {
+	raw, err := tx.Get(dataBucket, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	r := &EventRecord{}
+	err = msgpack.Unmarshal(raw.Value, r)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 func saveDataRecordInTx(tx *nutsdb.Tx, er *EventRecord, ttl uint32) error {
 
 	ID := []byte(er.AsyncIDs[0])
