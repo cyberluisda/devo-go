@@ -244,3 +244,63 @@ func Test_IsNotFoundErr(t *testing.T) {
 		})
 	}
 }
+
+func toolTestNewDb(initValBucket string, initVals map[string][]byte) (string, *nutsdb.DB) {
+	return toolTestNewDbWithOpts(initValBucket, initVals, nutsdb.DefaultOptions)
+}
+
+func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opts nutsdb.Options) (string, *nutsdb.DB) {
+	path := fmt.Sprintf("%s%creliable-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
+
+	opts.Dir = path
+	db, err := nutsdb.Open(opts)
+	if err != nil {
+		panic(err)
+	}
+
+	// Add data
+	if initValBucket != "" && len(initVals) > 0 {
+		err := db.Update(func(tx *nutsdb.Tx) error {
+			for k, v := range initVals {
+				err := tx.Put(initValBucket, []byte(k), v, 0)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return path, db
+}
+
+func toolTestExistKey(db *nutsdb.DB, bucket string, key []byte) bool {
+	r := true
+	err := db.View(func(tx *nutsdb.Tx) error {
+		entries, err := tx.GetAll(bucket)
+		if err != nil {
+			return err
+		}
+
+		for _, entry := range entries {
+			if bytes.Equal(entry.Key, key) {
+				return nil
+			}
+		}
+		return errors.New("key not found")
+	})
+	if err != nil {
+		r = false
+	}
+
+	return r
+}
+
+func toolTestDestroyDb(path string, db *nutsdb.DB) {
+	db.Close()
+	os.RemoveAll(path)
+}
