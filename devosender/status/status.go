@@ -173,6 +173,163 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+type orderIdx struct {
+	Order []string
+	Refs  map[string]string
+}
+
+func getOrderIdxInTx(tx *nutsdb.Tx) (*orderIdx, error) {
+	raw, err := tx.Get(idxBucket, idxKey)
+	if err != nil {
+		return nil, fmt.Errorf("While load %s.%s: %w", idxBucket, string(idxKey), err)
+	}
+
+	r, err := unSerialzeOrderIdx(raw.Value)
+	if r.Refs == nil {
+		r.Refs = map[string]string{}
+	}
+	if err != nil {
+		return r, fmt.Errorf("While unserialize value of %s.%s: %w", idxBucket, string(idxKey), err)
+	}
+
+	return r, nil
+}
+
+func saveOrderIdxInTx(tx *nutsdb.Tx, od *orderIdx) error {
+	raw, err := od.serialize()
+	if err != nil {
+		return fmt.Errorf("While serialize orderIdx: %w", err)
+	}
+
+	err = tx.Put(idxBucket, idxKey, raw, 0)
+	if err != nil {
+		return fmt.Errorf("While save value to %s.%s: %w", idxBucket, string(idxKey), err)
+	}
+
+	return nil
+}
+
+func removeFromIdxInTx(tx *nutsdb.Tx, oi *orderIdx, pos int, metricToIncrement []byte) error {
+	if pos < 0 || pos > len(oi.Order)-1 {
+		return fmt.Errorf("Pos is out of bounds")
+	}
+
+	if metricToIncrement != nil {
+		err := inc(tx, statsBucket, metricToIncrement, 1, false)
+		if err != nil {
+			return fmt.Errorf("While increment %s.%s: %w", statsBucket, string(metricToIncrement), err)
+		}
+	}
+	oi.remove(pos)
+
+	err := saveOrderIdxInTx(tx, oi)
+	if err != nil {
+		return fmt.Errorf("While save index: %w", err)
+	}
+	return nil
+}
+
+func removeLastRecordInTx(tx *nutsdb.Tx, oi *orderIdx, metricToIncrement []byte) error {
+	if len(oi.Order) == 0 {
+		return nil
+	}
+
+	// Get last ID
+	ID := oi.Order[len(oi.Order)-1]
+	err := deleteDataRecordInTx(tx, []byte(ID))
+	if err != nil {
+		return fmt.Errorf("While delete data record with id %s: %w", ID, err)
+	}
+
+	err = removeFromIdxInTx(tx, oi, len(oi.Order)-1, metricToIncrement)
+	if err != nil {
+		return fmt.Errorf("While remove references of %s id from index: %w", ID, err)
+	}
+	return nil
+}
+
+func unSerialzeOrderIdx(raw []byte) (*orderIdx, error) {
+	r := orderIdx{}
+	err := msgpack.Unmarshal(raw, &r)
+	return &r, err
+}
+
+func (oi *orderIdx) serialize() ([]byte, error) {
+	v, err := msgpack.Marshal(oi)
+
+	return v, err
+}
+
+func (oi *orderIdx) indexOf(s string) int {
+	r := -1
+	if len(oi.Order) == 0 {
+		return r
+	}
+	for i, v := range oi.Order {
+		if v == s {
+			r = i
+			break
+		}
+	}
+	return r
+}
+
+func (oi *orderIdx) remove(pos int) {
+	if len(oi.Order) == 0 || pos < 0 || pos > len(oi.Order)-1 {
+		return
+	}
+
+	// Delte references
+	ID := oi.Order[pos]
+	toRemove := make([]string, 1)
+	toRemove[0] = ID
+
+	// Inverse references
+	for k, v := range oi.Refs {
+		if v == ID {
+			toRemove = append(toRemove, k)
+		}
+	}
+
+	for _, v := range toRemove {
+		delete(oi.Refs, v)
+	}
+
+	// Remove from order idx
+	tmp := oi.Order[:pos]
+	tmp = append(tmp, oi.Order[pos+1:]...)
+	oi.Order = nil
+	oi.Order = tmp
+}
+
+func (oi *orderIdx) add(ID string) {
+	oi.Order = append(oi.Order, ID)
+	oi.Refs[ID] = ID
+}
+
+func (oi *orderIdx) set(oldID, newID string) {
+	pos := oi.indexOf(oldID)
+	if pos == -1 {
+		return
+	}
+
+	oi.Order[pos] = newID
+	// Pointing newID to original ID
+	oi.Refs[newID] = oi.Refs[oldID]
+	// Removing old reference
+	delete(oi.Refs, oldID)
+}
+
+func (oi *orderIdx) reset(capacity int) {
+	if capacity < 1 {
+		oi.Order = nil
+		oi.Refs = map[string]string{}
+	} else {
+		oi.Order = make([]string, capacity)
+		oi.Refs = make(map[string]string, capacity)
+	}
+}
+
 // inc increments the integer value of a key. If key exists value should be transformed using
 // strvconv.Atoi(string(value)) before increments the value. If key does not exist it will create
 // with n value unless errorIfNotFound parameter is true. On this case it returns an error.
