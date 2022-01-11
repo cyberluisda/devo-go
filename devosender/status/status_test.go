@@ -87,6 +87,37 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func TestEventRecord_EffectiveID(t *testing.T) {
+	tests := []struct {
+		name string
+		er   *EventRecord
+		want string
+	}{
+		{
+			"Nil AsyncIDs",
+			&EventRecord{},
+			"",
+		},
+		{
+			"Empty AsyncIDs",
+			&EventRecord{AsyncIDs: []string{}},
+			"",
+		},
+		{
+			"With AsyncIDs",
+			&EventRecord{AsyncIDs: []string{"id-1", "id-2"}},
+			"id-2",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.er.EffectiveID(); got != tt.want {
+				t.Errorf("EventRecord.EffectiveID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func Test_IsNotFoundErr(t *testing.T) {
 	type args struct {
 		err error
