@@ -188,6 +188,35 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+// HouseKeeping the implementation of Status.HouseKeeping, It runs a set of tasks
+// like consolidate status db, fix and regenerat index if needed, etc.
+func (ns *NutsDBStatus) HouseKeeping() error {
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	// Consolidate nutsdb files
+	merged := false
+	nFiles := NumberOfFiles(ns.dbOpts.Dir)
+	if nFiles >= ns.filesToConsolidateDb {
+		err := ns.db.Merge()
+		if err != nil {
+			return fmt.Errorf("While consolidate (Merge) status files, # files=%d: %w", nFiles, err)
+		}
+		merged = true
+	}
+
+	if ns.recreateDbClientAfterConsolidation && merged {
+		ns.db.Close()
+		var err error
+		ns.db, err = nutsdb.Open(ns.dbOpts)
+		if err != nil {
+			return fmt.Errorf("While recreate db client after consolidate status files: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 	if idx == nil {
 		return fmt.Errorf("idx is nil")
