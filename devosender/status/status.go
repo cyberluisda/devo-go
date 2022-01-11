@@ -192,6 +192,65 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+// AllIDs is the Status.AllIDs implementation for NutsDBStatus: Return all ids based
+// on index information only
+func (ns *NutsDBStatus) AllIDs() ([]string, error) {
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	// Load index
+	var idx *orderIdx
+	err := ns.db.View(func(tx *nutsdb.Tx) error {
+		var err error
+		idx, err = getOrderIdxInTx(tx)
+
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return idx.Order, fmt.Errorf("While load order index: %w", err)
+	}
+
+	// Evicted events
+	err = ns.db.Update(func(tx *nutsdb.Tx) error {
+
+		// Look for expired
+		posToRemove := make([]int, 0)
+		for i, ID := range idx.Order {
+			origID := []byte(idx.Refs[ID])
+			_, err := tx.Get(dataBucket, origID)
+			if IsNotFoundErr(err) {
+				// Assuming was expired
+				posToRemove = append(posToRemove, i)
+			} else if err != nil {
+				return fmt.Errorf("While look for %s.%s: %w", dataBucket, ID, err)
+			}
+		}
+
+		// Clean expired
+		if len(posToRemove) > 0 {
+			for _, pos := range posToRemove {
+				idx.remove(pos)
+			}
+			err := saveOrderIdxInTx(tx, idx)
+			if err != nil {
+				return fmt.Errorf("While update order index after clean expired events: %w", err)
+			}
+
+			err = inc(tx, statsBucket, evictedKey, len(posToRemove), false)
+			if err != nil {
+				return fmt.Errorf("While update evicted stat: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	return idx.Order, err
+}
+
 // FindAll is the Status.FindAll implementation for NutsDBStatus: Return all EventRecords from status
 // Bear in mind that this operation is heavy use resources.
 // Order is not WARRANTIED, Use AllIDs with Get to get all recores in order
