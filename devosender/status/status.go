@@ -188,6 +188,11 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+
+func deleteDataRecordInTx(tx *nutsdb.Tx, ID []byte) error {
+	return tx.Delete(dataBucket, ID)
+}
+
 type orderIdx struct {
 	Order []string
 	Refs  map[string]string
