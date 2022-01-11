@@ -1,6 +1,7 @@
 package status
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -215,6 +216,53 @@ func (ns *NutsDBStatus) HouseKeeping() error {
 		}
 	}
 
+	return nil
+}
+
+
+// Initialize is the Intialize implementation of Status interface for NutsDBStatus.
+// Checks and ensure that required buckets and keys exists, and try to fix problems on
+// internal data structures and references.
+func (ns *NutsDBStatus) Initialize() error {
+	if ns.initialized {
+		return nil
+	}
+
+	// Consolidate database
+	err := ns.HouseKeeping()
+	if err != nil {
+		return fmt.Errorf("While perform initial HouseKeeping: %w", err)
+	}
+
+	ns.dbMtx.Lock()
+	defer ns.dbMtx.Unlock()
+
+	err = ns.db.Update(func(tx *nutsdb.Tx) error {
+		// Load index from status db
+		idx, err := getOrderIdxInTx(tx)
+		if IsNotFoundErr(errors.Unwrap(err)) {
+			idx = &orderIdx{}
+			err := saveOrderIdxInTx(tx, idx)
+			if err != nil {
+				return fmt.Errorf("While save empty index: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("While load index: %w", err)
+		}
+
+		// Reindex if needed
+		err = recreateIdxInTx(tx, idx)
+		if err != nil {
+			return fmt.Errorf("While recreate index: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("While initialize internal db: %w", err)
+	}
+
+	ns.initialized = true
 	return nil
 }
 
