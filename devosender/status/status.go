@@ -172,6 +172,12 @@ type NutsDBStatus struct {
 	recreateDbClientAfterConsolidation bool
 }
 
+
+// del remove a key. Usefull alias of tx.Delete when you are working with inc, dec, cont and set
+func del(tx *nutsdb.Tx, bucket string, key []byte) error {
+	return tx.Delete(bucket, key)
+}
+
 // Stats represent the counter ando other metric values extracted from status db
 // implementation
 type Stats struct {
