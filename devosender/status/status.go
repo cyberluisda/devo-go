@@ -161,6 +161,21 @@ type Status interface {
 	Close() error
 }
 
+const (
+	dataBucket  = "data"
+	idxBucket   = "idx"
+	statsBucket = "stats"
+)
+
+var (
+	idxKey      = []byte("idx")
+	countKey    = []byte("count")
+	updatedKey  = []byte("updated")
+	evictedKey  = []byte("evicted")
+	finishedKey = []byte("finished")
+	droppedKey  = []byte("dropped")
+)
+
 // NutsDBStatus is the nutsdb implementation of Status interface
 type NutsDBStatus struct {
 	db                                 *nutsdb.DB
