@@ -93,6 +93,262 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_removeFirstRecordInTx(t *testing.T) {
+	type args struct {
+		oi                *orderIdx
+		metricToIncrement []byte
+	}
+	type setup struct {
+		closedTx bool
+		initVals map[string]map[string][]byte
+	}
+	tests := []struct {
+		name  string
+		setup setup
+		args  args
+		want  *orderIdx
+		// noWantKeys is a list of bucket, key tuples that should not be present after apply
+		// removeLastRecordInTx. If len() is equal to 0 any check will be done
+		noWantKeys [][]string
+		// noWantKeys is a list of bucket, key tuples that should be present after apply
+		// removeLastRecordInTx. If len() is equal to 0 any check will be done
+		wantKeys [][]string
+		wantErr  bool
+	}{
+		{
+			"Empty index",
+			setup{},
+			args{&orderIdx{}, nil},
+			nil,
+			nil,
+			nil,
+			false,
+		},
+		{
+			"Error delete record",
+			setup{
+				closedTx: true,
+			},
+			args{
+				&orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				nil,
+			},
+			nil,
+			nil,
+			nil,
+			true,
+		},
+		{
+			"Delete the one",
+			setup{
+				closedTx: false,
+				initVals: map[string]map[string][]byte{
+					dataBucket: {
+						"id-1": func() []byte {
+							var er *EventRecord
+							r, _ := er.Serialize()
+							return r
+						}(),
+					},
+				},
+			},
+			args{
+				&orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				nil,
+			},
+			&orderIdx{Order: make([]string, 0), Refs: make(map[string]string, 0)},
+			[][]string{
+				{dataBucket, "id-1"},
+			},
+			nil,
+			false,
+		},
+		{
+			"Delete first",
+			setup{
+				closedTx: false,
+				initVals: map[string]map[string][]byte{
+					dataBucket: {
+						"id-1": func() []byte {
+							var er *EventRecord
+							r, _ := er.Serialize()
+							return r
+						}(),
+						"id-2": func() []byte {
+							var er *EventRecord
+							r, _ := er.Serialize()
+							return r
+						}(),
+					},
+				},
+			},
+			args{
+				&orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+				nil,
+			},
+			&orderIdx{Order: []string{"id-2"}, Refs: map[string]string{"id-2": "id-2"}},
+			[][]string{
+				{dataBucket, "id-1"},
+			},
+			[][]string{
+				{dataBucket, "id-2"},
+			},
+			false,
+		},
+		{
+			"Missing id in data",
+			setup{
+				closedTx: false,
+				initVals: map[string]map[string][]byte{
+					dataBucket: {
+						"id-2": func() []byte {
+							var er *EventRecord
+							r, _ := er.Serialize()
+							return r
+						}(),
+					},
+				},
+			},
+			args{
+				&orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+				nil,
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs:  map[string]string{"id-2": "id-2"},
+			},
+			nil,
+			[][]string{
+				{dataBucket, "id-2"},
+			},
+			false,
+		},
+		{
+			"Missing id with inconsistent index",
+			setup{
+				closedTx: false,
+				initVals: map[string]map[string][]byte{
+					dataBucket: {
+						"id-2": func() []byte {
+							var er *EventRecord
+							r, _ := er.Serialize()
+							return r
+						}(),
+					},
+					idxBucket: {
+						string(idxKey): func() []byte {
+							idx := &orderIdx{
+								Order: []string{"id-2"},
+								Refs:  map[string]string{"id-2": "id-2"},
+							}
+							r, _ := idx.serialize()
+							return r
+						}(),
+					},
+				},
+			},
+			args{
+				&orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				nil,
+			},
+			// Previous state in status is ignored because it was not aligned
+			// with idx passed as parameter
+			&orderIdx{
+				Order: []string{},
+				Refs:  map[string]string{},
+			},
+			nil,
+			[][]string{
+				{dataBucket, "id-2"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+
+		path, db := toolTestNewDb("", nil)
+		toolTestDbInitialData(db, tt.setup.initVals)
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.setup.closedTx {
+					tx.Commit()
+				}
+
+				if err := removeFirstRecordInTx(tx, tt.args.oi, tt.args.metricToIncrement); (err != nil) != tt.wantErr {
+					t.Errorf("removeLastRecordInTx() error = %v, wantErr %v", err, tt.wantErr)
+					return err
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+
+			if tt.want != nil {
+				var idxInDb *orderIdx
+				err = db.View(func(tx *nutsdb.Tx) error {
+					var errTx error
+					idxInDb, errTx = getOrderIdxInTx(tx)
+					return errTx
+				})
+				if err != nil {
+					t.Errorf("removeLastRecordInTx() error when load saved idx to validate value: %v", err)
+					return
+				}
+				if !reflect.DeepEqual(idxInDb, tt.want) {
+					t.Errorf("removeLastRecordInTx() idx saved = %+v, want %+v", idxInDb, tt.want)
+				}
+			}
+
+			if len(tt.noWantKeys) > 0 {
+				for _, vals := range tt.noWantKeys {
+					bucket, key := vals[0], []byte(vals[1])
+					if toolTestExistKey(db, bucket, key) {
+						t.Errorf("removeLastRecordInTx() key %s should not be in bucket %s but still exists", vals[1], bucket)
+					}
+				}
+			}
+
+			if len(tt.wantKeys) > 0 {
+				for _, vals := range tt.wantKeys {
+					bucket, key := vals[0], []byte(vals[1])
+					if !toolTestExistKey(db, bucket, key) {
+						t.Errorf("removeLastRecordInTx() key %s should be present in bucket %s but was not found", vals[1], bucket)
+					}
+				}
+			}
+
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_orderIdx_remove(t *testing.T) {
 	type args struct {
 		pos int
