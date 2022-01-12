@@ -227,11 +227,12 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 			return fmt.Errorf("While load order index: %w", err)
 		}
 
-		// Check if buffer is overflow after add new record
+		// Check if buffer is full after add new record and remove old one in affirmative
+		// case
 		shouldIncCount := true
 		if uint(len(idx.Order)) >= ns.bufferSize {
 			shouldIncCount = false
-			err = removeLastRecordInTx(tx, idx, droppedKey)
+			err = removeFirstRecordInTx(tx, idx, droppedKey)
 			if err != nil {
 				return fmt.Errorf("While drop event because buffer is full: %w", err)
 			}
@@ -843,19 +844,19 @@ func removeFromIdxInTx(tx *nutsdb.Tx, oi *orderIdx, pos int, metricToIncrement [
 	return nil
 }
 
-func removeLastRecordInTx(tx *nutsdb.Tx, oi *orderIdx, metricToIncrement []byte) error {
+func removeFirstRecordInTx(tx *nutsdb.Tx, oi *orderIdx, metricToIncrement []byte) error {
 	if len(oi.Order) == 0 {
 		return nil
 	}
 
-	// Get last ID
-	ID := oi.Order[len(oi.Order)-1]
+	// Get first ID, this implies the most older one
+	ID := oi.Order[0]
 	err := deleteDataRecordInTx(tx, []byte(ID))
 	if err != nil {
 		return fmt.Errorf("While delete data record with id %s: %w", ID, err)
 	}
 
-	err = removeFromIdxInTx(tx, oi, len(oi.Order)-1, metricToIncrement)
+	err = removeFromIdxInTx(tx, oi, 0, metricToIncrement)
 	if err != nil {
 		return fmt.Errorf("While remove references of %s id from index: %w", ID, err)
 	}
