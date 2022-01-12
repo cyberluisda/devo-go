@@ -676,11 +676,30 @@ func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opt
 
 	// Add data
 	if initValBucket != "" && len(initVals) > 0 {
+		toolTestDbInitialData(
+			db,
+			map[string]map[string][]byte{
+				initValBucket: initVals,
+			},
+		)
+	}
+
+	return path, db
+}
+
+// Add data to opened nutsdb.
+// data format is a map which key is the bucket and the value is the second level data map
+// these second data map format is: key is the key to save and value ([]byte) is de value
+// to save in parent bucket
+func toolTestDbInitialData(db *nutsdb.DB, data map[string]map[string][]byte) {
+	if len(data) > 0 {
 		err := db.Update(func(tx *nutsdb.Tx) error {
-			for k, v := range initVals {
-				err := tx.Put(initValBucket, []byte(k), v, 0)
-				if err != nil {
-					return err
+			for bucket, vals := range data {
+				for k, v := range vals {
+					err := tx.Put(bucket, []byte(k), v, 0)
+					if err != nil {
+						return err
+					}
 				}
 			}
 			return nil
@@ -690,8 +709,6 @@ func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opt
 			panic(err)
 		}
 	}
-
-	return path, db
 }
 
 func toolTestAssertKeyVal(db *nutsdb.DB, bucket string, key []byte, val []byte) bool {
