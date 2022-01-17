@@ -93,6 +93,153 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_removeFromIdxInTx(t *testing.T) {
+	type setup struct {
+		initVal  *orderIdx
+		closedTx bool
+	}
+	type args struct {
+		oi                *orderIdx
+		pos               int
+		metricToIncrement []byte
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		args    args
+		want    *orderIdx
+		wantErr bool
+	}{
+		{
+			"Pos less than 0",
+			setup{},
+			args{
+				oi:                nil,
+				pos:               -1,
+				metricToIncrement: nil,
+			},
+			nil,
+			true,
+		},
+		{
+			"Pos out of bounds",
+			setup{},
+			args{
+				oi:                &orderIdx{},
+				pos:               2,
+				metricToIncrement: nil,
+			},
+			nil,
+			true,
+		},
+		{
+			"Error saving metric out of bounds",
+			setup{
+				closedTx: true,
+			},
+			args{
+				oi: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				pos:               0,
+				metricToIncrement: []byte("test-increment-value"),
+			},
+			nil,
+			true,
+		},
+		{
+			"Error saving idx",
+			setup{
+				closedTx: true,
+			},
+			args{
+				oi: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				pos:               0,
+				metricToIncrement: nil,
+			},
+			nil,
+			true,
+		},
+		{
+			"Update idx",
+			setup{
+				initVal: &orderIdx{
+					Order: []string{"id-3"},
+					Refs:  map[string]string{"id-3": "id-3"},
+				},
+			},
+			args{
+				oi: &orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+				pos:               0,
+				metricToIncrement: nil,
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs:  map[string]string{"id-2": "id-2"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		var bucket string
+		initStatusKeyVal := make(map[string][]byte, 1)
+		if tt.setup.initVal != nil {
+			bucket = idxBucket
+			bs, _ := tt.setup.initVal.serialize()
+			initStatusKeyVal[string(idxKey)] = bs
+		}
+		path, db := toolTestNewDb(bucket, initStatusKeyVal)
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.setup.closedTx {
+					tx.Commit()
+				}
+
+				if err := removeFromIdxInTx(tx, tt.args.oi, tt.args.pos, tt.args.metricToIncrement); (err != nil) != tt.wantErr {
+					t.Errorf("removeFromIdxInTx() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+
+			if tt.want != nil {
+				var idxInDb *orderIdx
+				err := db.View(func(tx *nutsdb.Tx) error {
+					var errTx error
+					idxInDb, errTx = getOrderIdxInTx(tx)
+					return errTx
+				})
+				if err != nil {
+					t.Errorf("removeFromIdxInTx() error when load saved idx to validate value: %v", err)
+					return
+				}
+				if !reflect.DeepEqual(idxInDb, tt.want) {
+					t.Errorf("removeFromIdxInTx() idx saved = %+v, want %+v", idxInDb, tt.want)
+				}
+			}
+
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_removeFirstRecordInTx(t *testing.T) {
 	type args struct {
 		oi                *orderIdx
