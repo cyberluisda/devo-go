@@ -961,6 +961,8 @@ func inc(tx *nutsdb.Tx, bucket string, key []byte, n int, errorIfNotFound bool) 
 			return err
 		}
 		err = tx.Put(bucket, key, []byte(fmt.Sprint(n)), 0)
+	} else if err != nil {
+		return err
 	} else {
 		v, _ := strconv.Atoi(string(ve.Value))
 		v = v + n
