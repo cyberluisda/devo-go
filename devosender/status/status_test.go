@@ -93,6 +93,116 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_saveDataRecordInTx(t *testing.T) {
+	now := time.Now()
+	type setup struct {
+		initVal  *EventRecord
+		closedTx bool
+	}
+	type args struct {
+		er  *EventRecord
+		ttl uint32
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		args    args
+		want    *EventRecord
+		wantErr bool
+	}{
+		{
+			"Error save data",
+			setup{
+				closedTx: true,
+			},
+			args{
+				er: &EventRecord{AsyncIDs: []string{"id-1"}},
+			},
+			nil,
+			true,
+		},
+		{
+			"New record",
+			setup{},
+			args{
+				er: &EventRecord{
+					AsyncIDs:  []string{"id-1"},
+					Timestamp: now,
+				},
+			},
+			&EventRecord{
+				AsyncIDs:  []string{"id-1"},
+				Timestamp: now,
+			},
+			false,
+		},
+		{
+			"Replacing record",
+			setup{
+				initVal: &EventRecord{AsyncIDs: []string{"id-1"}},
+			},
+			args{
+				er: &EventRecord{AsyncIDs: []string{"id-1", "id-2"}},
+			},
+			&EventRecord{AsyncIDs: []string{"id-1", "id-2"}},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		var bucket string
+		initStatusKeyVal := make(map[string][]byte, 1)
+		if tt.setup.initVal != nil {
+			bucket = dataBucket
+			bs, _ := tt.setup.initVal.Serialize()
+			initStatusKeyVal[tt.setup.initVal.AsyncIDs[0]] = bs
+		}
+		path, db := toolTestNewDb(bucket, initStatusKeyVal)
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.setup.closedTx {
+					tx.Commit()
+				}
+
+				err := saveDataRecordInTx(tx, tt.args.er, tt.args.ttl)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("saveDataRecordInTx() error = %v, wantErr %v", err, tt.wantErr)
+					return err
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+
+			if tt.want != nil {
+				var got *EventRecord
+				err = db.View(func(tx *nutsdb.Tx) error {
+					ID := tt.want.AsyncIDs[0]
+					var errInView error
+					got, errInView = getDataRecordInTx(tx, []byte(ID))
+					return errInView
+				})
+				if err != nil {
+					t.Errorf("saveDataRecordInTx() while compare data saved error = %v", err)
+				}
+				if !tt.want.Timestamp.Equal(got.Timestamp) {
+					t.Errorf("saveDataRecordInTx() saved er.Timestamp got = %+v, want %+v", got.Timestamp, tt.want.Timestamp)
+				}
+				tt.want.Timestamp = got.Timestamp // fixing reflect.DeepEqual comparation
+				if !reflect.DeepEqual(tt.want, got) {
+					t.Errorf("saveDataRecordInTx() saved er got = %+v, want %+v", got, tt.want)
+				}
+			}
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_getOrderIdxInTx(t *testing.T) {
 	type setup struct {
 		initVal  *orderIdx
