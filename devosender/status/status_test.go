@@ -93,6 +93,94 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_getOrderIdxInTx(t *testing.T) {
+	type setup struct {
+		initVal  *orderIdx
+		closedTx bool
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		want    *orderIdx
+		wantErr bool
+	}{
+		{
+			"Missing idx in db",
+			setup{},
+			nil,
+			true,
+		},
+		{
+			"Error load idx",
+			setup{
+				closedTx: true,
+			},
+			nil,
+			true,
+		},
+		{
+			"Empty idx",
+			setup{
+				initVal: &orderIdx{},
+			},
+			&orderIdx{
+				Refs: map[string]string{},
+			},
+			false,
+		},
+		{
+			"Load idx",
+			setup{
+				initVal: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs:  map[string]string{"id-1": "id-1"},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		var bucket string
+		initStatusKeyVal := make(map[string][]byte, 1)
+		if tt.setup.initVal != nil {
+			bucket = idxBucket
+			bs, _ := tt.setup.initVal.serialize()
+			initStatusKeyVal[string(idxKey)] = bs
+		}
+		path, db := toolTestNewDb(bucket, initStatusKeyVal)
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.setup.closedTx {
+					tx.Commit()
+				}
+
+				got, err := getOrderIdxInTx(tx)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("getOrderIdxInTx() error = %v, wantErr %v", err, tt.wantErr)
+					return err
+				}
+				if !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("getOrderIdxInTx() = %v, want %v", got, tt.want)
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_removeFromIdxInTx(t *testing.T) {
 	type setup struct {
 		initVal  *orderIdx
@@ -234,94 +322,6 @@ func Test_removeFromIdxInTx(t *testing.T) {
 				}
 			}
 
-		})
-
-		toolTestDestroyDb(path, db)
-	}
-}
-
-func Test_getOrderIdxInTx(t *testing.T) {
-	type setup struct {
-		initVal  *orderIdx
-		closedTx bool
-	}
-	tests := []struct {
-		name    string
-		setup   setup
-		want    *orderIdx
-		wantErr bool
-	}{
-		{
-			"Missing idx in db",
-			setup{},
-			nil,
-			true,
-		},
-		{
-			"Error load idx",
-			setup{
-				closedTx: true,
-			},
-			nil,
-			true,
-		},
-		{
-			"Empty idx",
-			setup{
-				initVal: &orderIdx{},
-			},
-			&orderIdx{
-				Refs: map[string]string{},
-			},
-			false,
-		},
-		{
-			"Load idx",
-			setup{
-				initVal: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
-			},
-			&orderIdx{
-				Order: []string{"id-1"},
-				Refs:  map[string]string{"id-1": "id-1"},
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		var bucket string
-		initStatusKeyVal := make(map[string][]byte, 1)
-		if tt.setup.initVal != nil {
-			bucket = idxBucket
-			bs, _ := tt.setup.initVal.serialize()
-			initStatusKeyVal[string(idxKey)] = bs
-		}
-		path, db := toolTestNewDb(bucket, initStatusKeyVal)
-
-		t.Run(tt.name, func(t *testing.T) {
-
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				if tt.setup.closedTx {
-					tx.Commit()
-				}
-
-				got, err := getOrderIdxInTx(tx)
-				if (err != nil) != tt.wantErr {
-					t.Errorf("getOrderIdxInTx() error = %v, wantErr %v", err, tt.wantErr)
-					return err
-				}
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("getOrderIdxInTx() = %v, want %v", got, tt.want)
-				}
-
-				return nil
-			})
-
-			if err != nil {
-				return
-			}
 		})
 
 		toolTestDestroyDb(path, db)
