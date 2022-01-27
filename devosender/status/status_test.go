@@ -15,6 +15,62 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_Close(t *testing.T) {
+	type setup struct {
+		createDb bool
+		closeDb  bool
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		ns      *NutsDBStatus
+		wantErr bool
+	}{
+		{
+			"nil db",
+			setup{},
+			&NutsDBStatus{},
+			false,
+		},
+		{
+			"Close",
+			setup{createDb: true},
+			&NutsDBStatus{},
+			false,
+		},
+		{
+			"Previously closed",
+			setup{createDb: true, closeDb: true},
+			&NutsDBStatus{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		var path string
+		var db *nutsdb.DB
+		if tt.setup.createDb {
+			path, db = toolTestNewDb("", nil)
+			tt.ns.db = db
+			tt.ns.dbOpts = nutsdb.DefaultOptions
+			tt.ns.dbOpts.Dir = path
+
+			if tt.setup.closeDb {
+				db.Close()
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.Close(); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.Close() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+
+		if tt.setup.createDb {
+			toolTestDestroyDb(path, db)
+		}
+	}
+}
+
 func TestNutsDBStatus_Initialize(t *testing.T) {
 	type setup struct {
 		createDb bool
