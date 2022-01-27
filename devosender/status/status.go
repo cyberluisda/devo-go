@@ -911,13 +911,6 @@ func (oi *orderIdx) remove(pos int) {
 	toRemove := make([]string, 1)
 	toRemove[0] = ID
 
-	// Inverse references
-	for k, v := range oi.Refs {
-		if v == ID {
-			toRemove = append(toRemove, k)
-		}
-	}
-
 	for _, v := range toRemove {
 		delete(oi.Refs, v)
 	}
