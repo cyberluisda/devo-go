@@ -728,7 +728,7 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 		if fixRequired {
 			// Loop over all entries to get id and timestamp. This will be used by order
 			idsTs := &SorteableStringTime{}
-
+			keysInStatus := map[string]string{}
 			for _, entry := range entries {
 				er := &EventRecord{}
 				err = msgpack.Unmarshal(entry.Value, er)
@@ -741,6 +741,7 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 					return fmt.Errorf("Loaded record , %+v, without any value in ASyncIds", er)
 				}
 				idsTs.Add(ID, er.Timestamp)
+				keysInStatus[ID] = string(entry.Key)
 			}
 
 			// Sort IDs to be added to new idx
@@ -750,7 +751,7 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 			idx.reset(idsTs.Len())
 			for i, k := range idsTs.Values {
 				idx.Order[i] = k
-				idx.Refs[k] = k
+				idx.Refs[k] = keysInStatus[k]
 			}
 
 			// Save new verison of idx
