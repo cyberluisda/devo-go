@@ -15,6 +15,68 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_Initialize(t *testing.T) {
+	type setup struct {
+		createDb bool
+	}
+	tests := []struct {
+		name           string
+		setup          setup
+		ns             *NutsDBStatus
+		wantErr        bool
+		wantIntialized bool
+	}{
+		{
+			"Previously initialized",
+			setup{},
+			&NutsDBStatus{initialized: true},
+			false,
+			true,
+		},
+		{
+			"House keeping error",
+			setup{},
+			&NutsDBStatus{},
+			true,
+			false,
+		},
+		{
+			"Empty idx",
+			setup{createDb: true},
+			&NutsDBStatus{
+				filesToConsolidateDb: 2,
+			},
+			false,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		var path string
+		var db *nutsdb.DB
+		if tt.setup.createDb {
+			path, db = toolTestNewDb("", nil)
+			tt.ns.db = db
+			tt.ns.dbOpts = nutsdb.DefaultOptions
+			tt.ns.dbOpts.Dir = path
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.Initialize(); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.Initialize() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.ns.initialized != tt.wantIntialized {
+				t.Errorf("NutsDBStatus.Initialize() intiealized got = %v, want %v", tt.ns.initialized, tt.wantIntialized)
+			}
+		})
+
+		if tt.setup.createDb {
+			tt.ns.Close()
+			toolTestDestroyDb(path, db)
+		}
+	}
+}
+
 func Test_recreateIdxInTx(t *testing.T) {
 	type setup struct {
 		initVals []*EventRecord
