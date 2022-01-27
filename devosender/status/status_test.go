@@ -93,6 +93,168 @@ func TestSorteableStringTime_Swap(t *testing.T) {
 	}
 }
 
+func Test_recreateIdxInTx(t *testing.T) {
+	type setup struct {
+		initVals []*EventRecord
+		closedTx bool
+	}
+	type args struct {
+		idx *orderIdx
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		args    args
+		want    *orderIdx
+		wantErr bool
+	}{
+		{
+			"Error idx is nil",
+			setup{},
+			args{},
+			nil,
+			true,
+		},
+		{
+			"Error loading records",
+			setup{closedTx: true},
+			args{idx: &orderIdx{}},
+			nil,
+			true,
+		},
+		{
+			"Reset idx",
+			setup{},
+			args{
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+			},
+			&orderIdx{Refs: make(map[string]string, 0)},
+			false,
+		},
+		{
+			"Error entry without valid EffectiveID",
+			setup{
+				initVals: []*EventRecord{
+					{},
+				},
+			},
+			args{idx: &orderIdx{}},
+			nil,
+			true,
+		},
+		{
+			"Fix orderId with same number of elements",
+			setup{
+				initVals: []*EventRecord{
+					{
+						AsyncIDs: []string{
+							"id-1",
+							"id-2",
+						},
+					},
+				},
+			},
+			args{
+				idx: &orderIdx{
+					Order: []string{"id-4"},
+					Refs: map[string]string{
+						"id-4": "id-4",
+					},
+				},
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs: map[string]string{
+					"id-2": "id-1",
+				},
+			},
+			false,
+		},
+		{
+			"Fix orderId",
+			setup{
+				initVals: []*EventRecord{
+					{
+						AsyncIDs: []string{
+							"id-1",
+							"id-2",
+						},
+					},
+				},
+			},
+			args{
+				idx: &orderIdx{
+					Order: []string{"id-4"},
+					Refs: map[string]string{
+						"id-4": "id-4",
+						"id-5": "id-5",
+					},
+				},
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs: map[string]string{
+					"id-2": "id-1",
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		path, db := toolTestNewDb("", nil)
+		if len(tt.setup.initVals) > 0 {
+			data := map[string]map[string][]byte{
+				dataBucket: make(map[string][]byte, len(tt.setup.initVals)),
+			}
+
+			for _, initVal := range tt.setup.initVals {
+				bs, _ := initVal.Serialize()
+				key := "no-key"
+				if len(initVal.AsyncIDs) > 0 {
+					key = initVal.AsyncIDs[0]
+				}
+				data[dataBucket][key] = bs
+			}
+
+			toolTestDbInitialData(db, data)
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				if tt.setup.closedTx {
+					tx.Commit()
+				}
+
+				err := recreateIdxInTx(tx, tt.args.idx)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("recreateIdxInTx() error = %v, wantErr %v", err, tt.wantErr)
+					return err
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				return
+			}
+
+			if tt.want != nil {
+				if !reflect.DeepEqual(tt.want, tt.args.idx) {
+					t.Errorf("recreateIdxInTx() args.idx got = %+v, want %+v", tt.args.idx, tt.want)
+				}
+			}
+		})
+
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func Test_saveDataRecordInTx(t *testing.T) {
 	now := time.Now()
 	type setup struct {
