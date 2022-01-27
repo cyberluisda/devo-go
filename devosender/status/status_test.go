@@ -15,6 +15,152 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_HouseKeeping(t *testing.T) {
+	type setup struct {
+		createDb     bool
+		opts         *nutsdb.Options
+		noFillNsOpts bool
+		initialData  map[string][]byte
+		deleteData   []string
+	}
+	tests := []struct {
+		name              string
+		setup             setup
+		ns                *NutsDBStatus
+		wantErr           bool
+		wantNumberOfFiles int
+	}{
+		{
+			"status db nil",
+			setup{},
+			&NutsDBStatus{},
+			true,
+			-1,
+		},
+		{
+			"Error mergefiles",
+			setup{createDb: true},
+			&NutsDBStatus{},
+			true,
+			-1,
+		},
+		{
+			"Error merge recreate client",
+			setup{
+				createDb: true,
+				opts: func() *nutsdb.Options {
+					r := nutsdb.DefaultOptions
+					r.SegmentSize = 82 // To force generate more than two files
+					return &r
+				}(),
+				noFillNsOpts: true,
+				initialData: map[string][]byte{
+					"111": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"222": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"333": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+				},
+			},
+			&NutsDBStatus{
+				filesToConsolidateDb:               2,
+				recreateDbClientAfterConsolidation: true,
+			},
+			true,
+			-1,
+		},
+		{
+			"Merge",
+			setup{
+				createDb: true,
+				opts: func() *nutsdb.Options {
+					r := nutsdb.DefaultOptions
+					r.SegmentSize = 82 // To force generate more than two files
+					return &r
+				}(),
+				initialData: map[string][]byte{
+					"111": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"222": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"333": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"444": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"555": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"666": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"777": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"888": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"999": []byte("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"),
+					"000": []byte("11111111111111111111111111111111"),
+				},
+				deleteData: []string{
+					"111",
+					"222",
+					"333",
+					"444",
+					"555",
+					"666",
+					"777",
+					"888",
+					"999",
+				},
+			},
+			&NutsDBStatus{
+				filesToConsolidateDb: 2,
+				dbOpts: nutsdb.Options{
+					Dir: "/tmp/does/not/exits",
+				},
+			},
+			false,
+			1,
+		},
+	}
+	for _, tt := range tests {
+		var path string
+		var db *nutsdb.DB
+		if tt.setup.createDb {
+			if tt.setup.opts == nil {
+				path, db = toolTestNewDb("test", tt.setup.initialData)
+				if !tt.setup.noFillNsOpts {
+					tt.ns.dbOpts = nutsdb.DefaultOptions
+				}
+				tt.ns.dbOpts.Dir = path
+			} else {
+				path, db = toolTestNewDbWithOpts("test", tt.setup.initialData, *tt.setup.opts)
+				if !tt.setup.noFillNsOpts {
+					tt.ns.dbOpts = *tt.setup.opts
+				}
+				tt.ns.dbOpts.Dir = path
+			}
+			tt.ns.db = db
+
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				for _, ID := range tt.setup.deleteData {
+					err := tx.Delete("test", []byte(ID))
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.HouseKeeping(); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.HouseKeeping() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.wantNumberOfFiles >= 0 && tt.wantNumberOfFiles != NumberOfFiles(path) {
+				t.Errorf("NutsDBStatus.HouseKeeping() files got = %v, want %v", NumberOfFiles(path), tt.wantNumberOfFiles)
+			}
+		})
+
+		if tt.setup.createDb {
+			tt.ns.Close()
+			toolTestDestroyDb(path, db)
+		}
+	}
+}
+
 func TestNutsDBStatus_Close(t *testing.T) {
 	type setup struct {
 		createDb bool
