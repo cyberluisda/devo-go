@@ -611,6 +611,10 @@ func (ns *NutsDBStatus) HouseKeeping() error {
 	merged := false
 	nFiles := NumberOfFiles(ns.dbOpts.Dir)
 	if nFiles >= ns.filesToConsolidateDb {
+		if ns.db == nil {
+			return fmt.Errorf("Status db is nil")
+		}
+
 		err := ns.db.Merge()
 		if err != nil {
 			return fmt.Errorf("While consolidate (Merge) status files, # files=%d: %w", nFiles, err)
