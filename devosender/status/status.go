@@ -271,7 +271,7 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 // Update is the Status.Update implementation for NutsDBStatus: Update the record with new ID
 func (ns *NutsDBStatus) Update(oldID, newID string) error {
 
-	// Load eventrecord
+	// Load eventrecord: Evicted record and index is managed and updated by Get)
 	er, _, err := ns.Get(oldID)
 	if err != nil {
 		return err
