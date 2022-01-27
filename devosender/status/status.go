@@ -694,7 +694,7 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 
 	// Fix index issues
 	entries, err := tx.GetAll(dataBucket)
-	if IsNotFoundErr(err) || len(entries) == 0 {
+	if IsNotFoundErr(err) || (len(entries) == 0 && err == nil) {
 		// We should set empty idx
 		idx.reset(0)
 		err := saveOrderIdxInTx(tx, idx)
