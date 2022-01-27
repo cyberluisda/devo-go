@@ -714,6 +714,17 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 			fixRequired = true
 		}
 
+		// Check tha all ids in orderIdx can be found in the status data bucket
+		if !fixRequired {
+			for _, keyInIdxStr := range idx.Order {
+				keyInIdx := []byte(keyInIdxStr)
+				if _, err := tx.Get(dataBucket, keyInIdx); IsNotFoundErr(err) {
+					fixRequired = true
+					break
+				}
+			}
+		}
+
 		if fixRequired {
 			// Loop over all entries to get id and timestamp. This will be used by order
 			idsTs := &SorteableStringTime{}
