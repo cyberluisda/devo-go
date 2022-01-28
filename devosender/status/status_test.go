@@ -15,6 +15,148 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_FinishRecord(t *testing.T) {
+	type setup struct {
+		initialOrderIdx      *orderIdx
+		initialDataBucket    map[string][]byte
+		initialCounCounter   int
+		initialFinishCounter int
+	}
+	type args struct {
+		ID string
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		ns      *NutsDBStatus
+		args    args
+		wantErr bool
+	}{
+		{
+			"Idx not found error",
+			setup{},
+			&NutsDBStatus{},
+			args{"not found"},
+			true,
+		},
+		{
+			"ID not found in index",
+			setup{
+				initialOrderIdx: &orderIdx{},
+			},
+			&NutsDBStatus{},
+			args{"id-1"},
+			true,
+		},
+		{
+			"Error decrement count counter",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+			},
+			&NutsDBStatus{},
+			args{"id-1"},
+			true,
+		},
+		{
+			"ID only in idx",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+				initialCounCounter: 1,
+			},
+			&NutsDBStatus{},
+			args{"id-1"},
+			false,
+		},
+		{
+			"Delete",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+				initialCounCounter: 1,
+				initialDataBucket: map[string][]byte{
+					"id-1": []byte("fake id-1"),
+				},
+			},
+			&NutsDBStatus{},
+			args{"id-1"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if tt.setup.initialOrderIdx != nil {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+		if len(tt.setup.initialDataBucket) > 0 {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				for k, v := range tt.setup.initialDataBucket {
+					err := tx.Put(dataBucket, []byte(k), v, 0)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+		if tt.setup.initialCounCounter > 0 {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return set(tx, statsBucket, countKey, tt.setup.initialCounCounter)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+		if tt.setup.initialFinishCounter > -1 {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return set(tx, statsBucket, finishedKey, tt.setup.initialFinishCounter)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.ns.FinishRecord(tt.args.ID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.FinishRecord() error = %+v, want %+v", err, tt.wantErr)
+
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func TestNutsDBStatus_AllIDs(t *testing.T) {
 	type setup struct {
 		initialOrderIdx   *orderIdx
