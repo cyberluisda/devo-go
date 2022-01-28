@@ -195,6 +195,10 @@ type NutsDBStatus struct {
 // New is the New implementation of Status interface for NutsDBStatus.
 // This will create new record in the status db.
 func (ns *NutsDBStatus) New(er *EventRecord) error {
+	if er == nil {
+		return fmt.Errorf("nil EventRecord")
+	}
+
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
 
