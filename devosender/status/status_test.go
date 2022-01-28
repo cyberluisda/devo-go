@@ -146,20 +146,6 @@ func TestNutsDBStatus_Get(t *testing.T) {
 				panic(err)
 			}
 		}
-		if len(tt.setup.initialDataBucket) > 0 {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				for k, v := range tt.setup.initialDataBucket {
-					err := tx.Put(dataBucket, []byte(k), v, 0)
-					if err != nil {
-						return err
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 		if tt.setup.initialCounCounter > 0 {
 			err := db.Update(func(tx *nutsdb.Tx) error {
 				return set(tx, statsBucket, countKey, tt.setup.initialCounCounter)
@@ -293,20 +279,6 @@ func TestNutsDBStatus_FinishRecord(t *testing.T) {
 				panic(err)
 			}
 		}
-		if len(tt.setup.initialDataBucket) > 0 {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				for k, v := range tt.setup.initialDataBucket {
-					err := tx.Put(dataBucket, []byte(k), v, 0)
-					if err != nil {
-						return err
-					}
-				}
-				return nil
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 		if tt.setup.initialCounCounter > 0 {
 			err := db.Update(func(tx *nutsdb.Tx) error {
 				return set(tx, statsBucket, countKey, tt.setup.initialCounCounter)
@@ -403,20 +375,6 @@ func TestNutsDBStatus_AllIDs(t *testing.T) {
 		if tt.setup.initialOrderIdx != nil {
 			err := db.Update(func(tx *nutsdb.Tx) error {
 				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
-		if len(tt.setup.initialDataBucket) > 0 {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				for k, v := range tt.setup.initialDataBucket {
-					err := tx.Put(dataBucket, []byte(k), v, 0)
-					if err != nil {
-						return err
-					}
-				}
-				return nil
 			})
 			if err != nil {
 				panic(err)
