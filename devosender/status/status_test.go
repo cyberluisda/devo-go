@@ -15,6 +15,108 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_AllIDs(t *testing.T) {
+	type setup struct {
+		initialOrderIdx   *orderIdx
+		initialDataBucket map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		setup   setup
+		ns      *NutsDBStatus
+		want    []string
+		wantErr bool
+	}{
+		{
+			"Idx not found error",
+			setup{},
+			&NutsDBStatus{},
+			nil,
+			true,
+		},
+		{
+			"Evicted event",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+			},
+			&NutsDBStatus{},
+			[]string{},
+			false,
+		},
+		{
+			"Return IDs",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1", "id-3"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-3": "id-2",
+					},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": []byte("fake id-1"),
+					"id-2": []byte("fake id-2"),
+					"id-9": []byte("ignored because is missing in index"),
+				},
+			},
+			&NutsDBStatus{},
+			[]string{"id-1", "id-3"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if tt.setup.initialOrderIdx != nil {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+		if len(tt.setup.initialDataBucket) > 0 {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				for k, v := range tt.setup.initialDataBucket {
+					err := tx.Put(dataBucket, []byte(k), v, 0)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.ns.AllIDs()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.AllIDs() error = %+v, want %+v", err, tt.wantErr)
+
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatus.AllIDs() got = %+v, want %+v", got, tt.want)
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func TestNutsDBStatus_Stats(t *testing.T) {
 	type setup struct {
 		initialCounters   map[string]int
