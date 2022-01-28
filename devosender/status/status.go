@@ -475,7 +475,7 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 
 // FindAll is the Status.FindAll implementation for NutsDBStatus: Return all EventRecords from status
 // Bear in mind that this operation is heavy use resources.
-// Order is not WARRANTIED, Use AllIDs with Get to get all recores in order
+// Order is not WARRANTIED, Use AllIDs and Get to get all records in order
 func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
