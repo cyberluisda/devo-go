@@ -432,7 +432,7 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return idx.Order, fmt.Errorf("While load order index: %w", err)
+		return nil, fmt.Errorf("While load order index: %w", err)
 	}
 
 	// Evicted events
