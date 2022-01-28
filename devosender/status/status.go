@@ -581,7 +581,11 @@ func (ns *NutsDBStatus) Stats() Stats {
 		r.Updated = v
 
 		od, _ := getOrderIdxInTx(tx)
-		r.DbIdxSize = len(od.Order)
+		if od == nil {
+			r.DbIdxSize = 0
+		} else {
+			r.DbIdxSize = len(od.Order)
+		}
 
 		// high resources stats
 		if v, ok := os.LookupEnv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA"); ok && strings.ToLower(v) == "yes" {
