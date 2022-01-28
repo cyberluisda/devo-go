@@ -15,6 +15,150 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_Stats(t *testing.T) {
+	type setup struct {
+		initialCounters   map[string]int
+		initialOrderIdx   *orderIdx
+		initialDataBucket map[string][]byte
+		enableDebugEnvVar bool
+	}
+	tests := []struct {
+		name  string
+		setup setup
+		ns    *NutsDBStatus
+		want  Stats
+	}{
+		{
+			"Empty stats",
+			setup{},
+			&NutsDBStatus{},
+			Stats{
+				DbDataEntries: -1,
+			},
+		},
+		{
+			"Stats with values",
+			setup{
+				initialCounters: map[string]int{
+					string(countKey):    5,
+					string(droppedKey):  6,
+					string(evictedKey):  7,
+					string(finishedKey): 8,
+					string(updatedKey):  9,
+				},
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": []byte("fake id-1"),
+					"id-2": []byte("fake id-2"),
+					"id-3": []byte("fake id-3"),
+				},
+			},
+			&NutsDBStatus{},
+			Stats{
+				BufferCount:   5,
+				Updated:       9,
+				Finished:      8,
+				Dropped:       6,
+				Evicted:       7,
+				DbIdxSize:     2,
+				DbMaxFileID:   0,
+				DbDataEntries: -1, // This is resolved only when DEBUG flag is enabled
+			},
+		},
+		{
+			"Debug stats",
+			setup{
+				enableDebugEnvVar: true,
+				initialCounters: map[string]int{
+					string(countKey):    5,
+					string(droppedKey):  6,
+					string(evictedKey):  7,
+					string(finishedKey): 8,
+					string(updatedKey):  9,
+				},
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": []byte("fake id-1"),
+					"id-2": []byte("fake id-2"),
+					"id-3": []byte("fake id-3"),
+				},
+			},
+			&NutsDBStatus{},
+			Stats{
+				BufferCount:   5,
+				Updated:       9,
+				Finished:      8,
+				Dropped:       6,
+				Evicted:       7,
+				DbIdxSize:     2,
+				DbMaxFileID:   0,
+				DbDataEntries: 3,
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if len(tt.setup.initialCounters) > 0 {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				for k, v := range tt.setup.initialCounters {
+					err := set(tx, statsBucket, []byte(k), v)
+					if err != nil {
+						return err
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		if tt.setup.initialOrderIdx != nil {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		if tt.setup.enableDebugEnvVar {
+			os.Setenv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA", "yes")
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ns.Stats(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatus.Stats() got = %+v, want %+v", got, tt.want)
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+		if tt.setup.enableDebugEnvVar {
+			os.Unsetenv("DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA")
+		}
+	}
+}
+
 func TestNutsDBStatus_HouseKeeping(t *testing.T) {
 	type setup struct {
 		createDb     bool
