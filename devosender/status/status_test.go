@@ -15,6 +15,151 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_Update(t *testing.T) {
+	type setup struct {
+		initialOrderIdx   *orderIdx
+		initialDataBucket map[string][]byte
+	}
+	type args struct {
+		oldID string
+		newID string
+	}
+	tests := []struct {
+		name                 string
+		setup                setup
+		ns                   *NutsDBStatus
+		args                 args
+		wantErr              bool
+		wantERInStatus       map[string]*EventRecord
+		wantOrderIdxInStatus *orderIdx
+	}{
+		{
+			"Error load event",
+			setup{},
+			&NutsDBStatus{},
+			args{"id-1", "id-2"},
+			true,
+			nil,
+			nil,
+		},
+		{
+			"ID not found in index",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{},
+			args{"id-4", "id-5"},
+			true,
+			nil,
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs:  map[string]string{"id-1": "id-1"},
+			},
+		},
+		{
+			"Update event",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{},
+			args{"id-1", "id-2"},
+			false,
+			map[string]*EventRecord{
+				// Index is updated when we search EventRecord using ns.Get
+				"id-2": {AsyncIDs: []string{"id-1", "id-2"}},
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs:  map[string]string{"id-2": "id-1"},
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if tt.setup.initialOrderIdx != nil {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.Update(tt.args.oldID, tt.args.newID); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.Update() error = %+v, want %+v", err, tt.wantErr)
+			}
+
+			if len(tt.wantERInStatus) > 0 {
+				for k, v := range tt.wantERInStatus {
+					got, _, err := tt.ns.Get(k)
+					if err != nil {
+						t.Errorf("NutsDBStatus.Update() status EventRecord unexpected derror: %v", err)
+					} else {
+						if got != nil && got.Timestamp.Sub(v.Timestamp) == 0 {
+							v.Timestamp = got.Timestamp
+						}
+						if !reflect.DeepEqual(got, v) {
+							// Fix timestamp comparation
+							t.Errorf("NutsDBStatus.Update() status EventRecord got = %+v, want %+v", got, v)
+						}
+					}
+				}
+			}
+
+			if tt.wantOrderIdxInStatus != nil {
+				var got *orderIdx
+				err := tt.ns.db.View(func(tx *nutsdb.Tx) error {
+					var err error
+					got, err = getOrderIdxInTx(tx)
+					return err
+				})
+				if err != nil {
+					t.Errorf("NutsDBStatus.Update() status orderIdx unexpected derror: %v", err)
+				} else if !reflect.DeepEqual(got, tt.wantOrderIdxInStatus) {
+					t.Errorf("NutsDBStatus.Update() status orderIdx got = %+v, want %+v", got, tt.wantOrderIdxInStatus)
+				}
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func TestNutsDBStatus_Get(t *testing.T) {
 	type setup struct {
 		initialOrderIdx    *orderIdx
