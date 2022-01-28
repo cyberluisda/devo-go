@@ -15,6 +15,262 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatus_New(t *testing.T) {
+	type setup struct {
+		initialOrderIdx   *orderIdx
+		initialDataBucket map[string][]byte
+	}
+	type args struct {
+		er *EventRecord
+	}
+
+	now := time.Now()
+
+	tests := []struct {
+		name                 string
+		setup                setup
+		ns                   *NutsDBStatus
+		args                 args
+		wantErr              bool
+		wantERInStatus       map[string]*EventRecord
+		wantOrderIdxInStatus *orderIdx
+	}{
+		{
+			"Nil input",
+			setup{},
+			&NutsDBStatus{},
+			args{nil},
+			true,
+			nil,
+			nil,
+		},
+		{
+			"Error idx not found",
+			setup{},
+			&NutsDBStatus{
+				eventTTL: 120, // expiration time is 2 minutes
+			},
+			args{
+				&EventRecord{
+					AsyncIDs:  []string{"id-1"},
+					Timestamp: now,
+				},
+			},
+			true,
+			nil,
+			nil,
+		},
+		{
+			"Error event exists",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{},
+			args{&EventRecord{AsyncIDs: []string{"id-1"}}},
+			true,
+			map[string]*EventRecord{
+				"id-1": {AsyncIDs: []string{"id-1"}},
+			},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+		},
+		{
+			"Event expired",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{
+				eventTTL: 0, // all events expired
+			},
+			args{
+				&EventRecord{
+					AsyncIDs:  []string{"id-2"},
+					Timestamp: now,
+				},
+			},
+			false,
+			map[string]*EventRecord{
+				"id-1": {AsyncIDs: []string{"id-1"}},
+			},
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+				},
+			},
+		},
+		{
+			"Drop event by buffer full reason",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{
+				eventTTL:   120, // expiration time is 2 minutes
+				bufferSize: 1,
+			},
+			args{
+				&EventRecord{
+					AsyncIDs:  []string{"id-2"},
+					Timestamp: now,
+				},
+			},
+			false,
+			map[string]*EventRecord{
+				"id-2": {AsyncIDs: []string{"id-2"}, Timestamp: now},
+			},
+			&orderIdx{
+				Order: []string{"id-2"},
+				Refs: map[string]string{
+					"id-2": "id-2",
+				},
+			},
+		},
+		{
+			"New event",
+			setup{
+				initialOrderIdx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{
+				eventTTL:   120, // expiration time is 2 minutes
+				bufferSize: 10,
+			},
+			args{
+				&EventRecord{
+					AsyncIDs:  []string{"id-2"},
+					Timestamp: now,
+				},
+			},
+			false,
+			map[string]*EventRecord{
+				// Index is updated when we search EventRecord using ns.Get
+				"id-1": {AsyncIDs: []string{"id-1"}},
+				"id-2": {AsyncIDs: []string{"id-2"}, Timestamp: now},
+			},
+			&orderIdx{
+				Order: []string{"id-1", "id-2"},
+				Refs: map[string]string{
+					"id-1": "id-1",
+					"id-2": "id-2",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if tt.setup.initialOrderIdx != nil {
+			err := db.Update(func(tx *nutsdb.Tx) error {
+				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
+			})
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.New(tt.args.er); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.New() error = %+v, want %+v", err, tt.wantErr)
+			}
+
+			if len(tt.wantERInStatus) > 0 {
+				for k, v := range tt.wantERInStatus {
+					got, _, err := tt.ns.Get(k)
+					if err != nil {
+						t.Errorf("NutsDBStatus.New() status EventRecord unexpected derror: %v", err)
+					} else {
+						if got != nil && got.Timestamp.Sub(v.Timestamp) == 0 {
+							v.Timestamp = got.Timestamp
+						}
+						if !reflect.DeepEqual(got, v) {
+							// Fix timestamp comparation
+							t.Errorf("NutsDBStatus.New() status EventRecord got = %+v, want %+v", got, v)
+						}
+					}
+				}
+			}
+
+			if tt.wantOrderIdxInStatus != nil {
+				var got *orderIdx
+				err := tt.ns.db.View(func(tx *nutsdb.Tx) error {
+					var err error
+					got, err = getOrderIdxInTx(tx)
+					return err
+				})
+				if err != nil {
+					t.Errorf("NutsDBStatus.New() status orderIdx unexpected derror: %v", err)
+				} else if !reflect.DeepEqual(got, tt.wantOrderIdxInStatus) {
+					t.Errorf("NutsDBStatus.New() status orderIdx got = %+v, want %+v", got, tt.wantOrderIdxInStatus)
+				}
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+	}
+}
+
 func TestNutsDBStatus_Update(t *testing.T) {
 	type setup struct {
 		initialOrderIdx   *orderIdx
