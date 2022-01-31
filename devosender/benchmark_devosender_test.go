@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/devosender/compressor"
+	"github.com/cyberluisda/devo-go/devosender/status"
 )
 
 const tag = "test.keep.free"
@@ -240,7 +241,8 @@ func BenchmarkTestReliableClient_SendWTagAsync_standby(b *testing.B) {
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
@@ -294,7 +296,8 @@ func BenchmarkTestReliableClient_SendWTagAndCompressorAsync_standby(b *testing.B
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
@@ -361,7 +364,8 @@ func BenchmarkTestReliableClient_SendWTagAsync_udp(b *testing.B) {
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
@@ -411,7 +415,8 @@ func BenchmarkTestReliableClient_SendWTagAndCompressorAsync_udp(b *testing.B) {
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
@@ -474,7 +479,8 @@ func BenchmarkTestReliableClient_SendWTag_udp(b *testing.B) {
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
@@ -524,7 +530,8 @@ func BenchmarkTestReliableClient_SendWTagAndCompressor_udp(b *testing.B) {
 
 	// Create client
 	lc, err := NewReliableClientBuilder().
-		DbPath("/tmp/devo-sender-reliable-client-benchmar").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/devo-sender-reliable-client-benchmar")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://localhost:13000")).
 		Build()
