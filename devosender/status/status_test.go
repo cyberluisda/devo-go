@@ -15,6 +15,32 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_BufferSize(t *testing.T) {
+	type args struct {
+		size uint
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{1234},
+			&NutsDBStatusBuilder{bufferSize: 1234},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.BufferSize(tt.args.size); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.BufferSize() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_FilesToConsolidateDb(t *testing.T) {
 	type args struct {
 		files int
