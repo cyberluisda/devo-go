@@ -15,6 +15,36 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_DbEntryIdxMode(t *testing.T) {
+	type args struct {
+		mode nutsdb.EntryIdxMode
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{nutsdb.HintKeyAndRAMIdxMode},
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.Options{
+					EntryIdxMode: nutsdb.HintKeyAndRAMIdxMode,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.DbEntryIdxMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.DbEntryIdxMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_DbRWMode(t *testing.T) {
 	type args struct {
 		mode nutsdb.RWMode
