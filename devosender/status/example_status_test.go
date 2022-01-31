@@ -233,9 +233,9 @@ func ExampleNutsDBStatus_updateRecord() {
 	// 1 update: event record.AsyncIDs: er.AsyncIDs: [id-1 id-2], order: 0
 	// 2 update: All ids [id-3]
 	// 2 update: event record.AsyncIDs: er.AsyncIDs: [id-1 id-2 id-3], order: 0
-	// Stats: {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
+	// Stats: {BufferCount:1 Updated:2 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// Error when update after event expiration EventRecord evicted
-	// Stats: {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:1 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
+	// Stats: {BufferCount:0 Updated:2 Finished:0 Dropped:0 Evicted:1 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
 }
 
 func ExampleNutsDBStatus_findAll() {
