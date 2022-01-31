@@ -307,6 +307,12 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 			return fmt.Errorf("While update IDs references in eventrecord %+v: %w", er, err)
 		}
 
+		// increment update statº
+		err = inc(tx, statsBucket, updatedKey, 1, false)
+		if err != nil {
+			return fmt.Errorf("While update updated counter: %w", err)
+		}
+
 		err = saveOrderIdxInTx(tx, idx)
 		if err != nil {
 			return fmt.Errorf("While update index: %w", err)
