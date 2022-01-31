@@ -45,9 +45,9 @@ const (
 	DefaultRecreateDbClientAfterConsolidation = true
 )
 
-// NewSNutsDBStatusBuilder is the factory method for instantiate *NutsDBStatusBuilder with
+// NewNutsDBStatusBuilder is the factory method for instantiate *NutsDBStatusBuilder with
 // default values
-func NewSNutsDBStatusBuilder() *NutsDBStatusBuilder {
+func NewNutsDBStatusBuilder() *NutsDBStatusBuilder {
 	return &NutsDBStatusBuilder{
 		nutsdb.DefaultOptions,
 		DefaultEventsTTLSeconds,

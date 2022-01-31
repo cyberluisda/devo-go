@@ -14,7 +14,7 @@ func ExampleNutsDBStatus_newRecord() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_newRecord")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_newRecord").
 		Build()
 	if err != nil {
@@ -81,7 +81,7 @@ func ExampleNutsDBStatus_getRecord() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_getRecord")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_getRecord").
 		EventsTTLSeconds(1).
 		Build()
@@ -151,7 +151,7 @@ func ExampleNutsDBStatus_updateRecord() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_updateRecord")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_updateRecord").
 		EventsTTLSeconds(1).
 		Build()
@@ -243,7 +243,7 @@ func ExampleNutsDBStatus_findAll() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_findAll")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_findAll").
 		EventsTTLSeconds(1).
 		Build()
@@ -322,7 +322,7 @@ func ExampleNutsDBStatus_finishRecord() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_finishRecord")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_finishRecord").
 		Build()
 	if err != nil {
@@ -377,7 +377,7 @@ func ExampleNutsDBStatus_newRecord_bufferOverflow() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_newRecord_bufferOverflow")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		BufferSize(1). // Force buffer size to 1
 		DbPath("/tmp/test-ExampleNutsDBStatus_newRecord_bufferOverflow").
 		Build()
@@ -434,7 +434,7 @@ func ExampleNutsDBStatus_houseKeeping() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_houseKeeping")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbSegmentSize(10240).    // To ensure several files will be created
 		FilesToConsolidateDb(2). // To ensure that HouseKeeping call with generate files
 		DbPath("/tmp/test-ExampleNutsDBStatus_houseKeeping").
@@ -496,7 +496,7 @@ func ExampleNutsDBStatus_rebuiltCorruptIdx() {
 	// Ensure tmp path is clean
 	os.RemoveAll("/tmp/test-ExampleNutsDBStatus_rebuiltCorruptIdx")
 
-	status, err := NewSNutsDBStatusBuilder().
+	status, err := NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_rebuiltCorruptIdx").
 		Build()
 	if err != nil {
@@ -544,7 +544,7 @@ func ExampleNutsDBStatus_rebuiltCorruptIdx() {
 	db.Close()
 
 	// Reopen status and
-	status, err = NewSNutsDBStatusBuilder().
+	status, err = NewNutsDBStatusBuilder().
 		DbPath("/tmp/test-ExampleNutsDBStatus_rebuiltCorruptIdx").
 		Build()
 	if err != nil {

@@ -33,8 +33,8 @@ func TestNewSNutsDBStatusBuilder(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewSNutsDBStatusBuilder(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewSNutsDBStatusBuilder() = %v, want %v", got, tt.want)
+			if got := NewNutsDBStatusBuilder(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewNutsDBStatusBuilder() = %v, want %v", got, tt.want)
 			}
 		})
 	}
