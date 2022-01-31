@@ -15,6 +15,32 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_RecreateDbClientAfterConsolidation(t *testing.T) {
+	type args struct {
+		b bool
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{true},
+			&NutsDBStatusBuilder{recreateDbClientAfterConsolidation: true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.RecreateDbClientAfterConsolidation(tt.args.b); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.RecreateDbClientAfterConsolidation() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_Build(t *testing.T) {
 	tests := []struct {
 		name            string
