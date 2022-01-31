@@ -309,7 +309,7 @@ func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
 	}
 	err := dsrc.status.New(record)
 	if err != nil {
-		dsrc.appLogger.Logf(applogger.ERROR, "Uncontrolled error when create status record in SendWTagAsync: %v", err)
+		dsrc.appLogger.Logf(applogger.ERROR, "Uncontrolled error when create status record in SendWTagAsync, ID: %s: %v", id, err)
 	}
 
 	return id
