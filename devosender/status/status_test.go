@@ -15,6 +15,34 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_EventsTTLSeconds(t *testing.T) {
+	type args struct {
+		ttl uint32
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{256},
+			&NutsDBStatusBuilder{
+				eventsTTLSeconds: 256,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.EventsTTLSeconds(tt.args.ttl); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.EventsTTLSeconds() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_NutsDBOptions(t *testing.T) {
 	type args struct {
 		opts nutsdb.Options
