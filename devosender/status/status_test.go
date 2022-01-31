@@ -15,6 +15,37 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_DbRWMode(t *testing.T) {
+	type args struct {
+		mode nutsdb.RWMode
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{nutsdb.MMap},
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.Options{
+					RWMode:               nutsdb.MMap,
+					StartFileLoadingMode: nutsdb.MMap,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.DbRWMode(tt.args.mode); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.DbRWMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_BufferSize(t *testing.T) {
 	type args struct {
 		size uint
