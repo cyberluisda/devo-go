@@ -15,6 +15,36 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_DbPath(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{"/this/is/a/path"},
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.Options{
+					Dir: "/this/is/a/path",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.DbPath(tt.args.path); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.DbPath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_DbSegmentSize(t *testing.T) {
 	type args struct {
 		size int64
