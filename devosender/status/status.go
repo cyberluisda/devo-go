@@ -706,6 +706,22 @@ func (ns *NutsDBStatus) Initialize() error {
 	return nil
 }
 
+func (ns *NutsDBStatus) String() string {
+	if ns == nil {
+		return "<nil>"
+	}
+
+	var keyCount int
+	var listIdx nutsdb.ListIdx
+	if ns.db != nil {
+		keyCount = ns.db.KeyCount
+		listIdx = ns.db.ListIdx
+	}
+	return fmt.Sprintf(
+		"KeyCount: %d, ListIdx: %v, consolidationDbNumFilesThreshold: %d, dbFiles: %d, initalized: %v, bufferSize: %v",
+		keyCount, listIdx, ns.filesToConsolidateDb, NumberOfFiles(ns.dbOpts.Dir), ns.initialized, ns.bufferSize)
+}
+
 func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 	if idx == nil {
 		return fmt.Errorf("idx is nil")
