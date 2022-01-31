@@ -15,6 +15,34 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_NutsDBOptions(t *testing.T) {
+	type args struct {
+		opts nutsdb.Options
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{nutsdb.DefaultOptions},
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.DefaultOptions,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.NutsDBOptions(tt.args.opts); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.NutsDBOptions() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_DbPath(t *testing.T) {
 	type args struct {
 		path string
