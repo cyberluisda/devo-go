@@ -169,6 +169,7 @@ type Status interface {
 	Stats() Stats
 	HouseKeeping() error
 	Close() error
+	String() string
 }
 
 const (
