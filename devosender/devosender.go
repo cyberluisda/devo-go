@@ -6,9 +6,6 @@ Interfaces to grant abstraction between implementations are defined and complex 
 package devosender
 
 import (
-	"bytes"
-	"compress/gzip"
-	"compress/zlib"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -22,6 +19,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 	"github.com/satori/go.uuid"
 )
 
@@ -77,7 +75,7 @@ type ClientBuilder struct {
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
 	connExpiration            time.Duration
-	compressorAlgorithm       CompressorAlgorithm
+	compressorAlgorithm       compressor.CompressorAlgorithm
 	compressorMinSize         int
 	defaultDevoTag            string
 	isConnWorkingCheckPayload string
@@ -158,7 +156,7 @@ func (dsb *ClientBuilder) ConnectionExpiration(t time.Duration) *ClientBuilder {
 }
 
 // DefaultCompressor set and enable ompression when send messages
-func (dsb *ClientBuilder) DefaultCompressor(c CompressorAlgorithm) *ClientBuilder {
+func (dsb *ClientBuilder) DefaultCompressor(c compressor.CompressorAlgorithm) *ClientBuilder {
 	dsb.compressorAlgorithm = c
 	return dsb
 }
@@ -269,7 +267,10 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 
 	// compressor, only if NoCompression algorithm is selected
 	if dsb.compressorAlgorithm > 0 {
-		result.compressor = &Compressor{dsb.compressorAlgorithm, dsb.compressorMinSize}
+		result.compressor = &compressor.Compressor{
+			Algorithm:   dsb.compressorAlgorithm,
+			MinimumSize: dsb.compressorMinSize,
+		}
 	}
 
 	// Intialize default values
@@ -335,7 +336,7 @@ type Client struct {
 	asyncItemsMutext        sync.Mutex
 	lastSendCallTimestamp   time.Time
 	statsMutex              sync.Mutex
-	compressor              *Compressor
+	compressor              *compressor.Compressor
 	isConnWorkingPayload    []byte
 }
 
@@ -409,7 +410,7 @@ var ErrorTagEmpty error = errors.New("Tag can not be empty")
 // SendWTagAndCompressor is similar to SendWTag but using a specific Compressor.
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressor(t, m, nil)
-func (dsc *Client) SendWTagAndCompressor(t, m string, c *Compressor) error {
+func (dsc *Client) SendWTagAndCompressor(t, m string, c *compressor.Compressor) error {
 	if dsc == nil {
 		return ErrNilPointerReceiver
 	}
@@ -520,7 +521,7 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 // This can be usefull, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressorAsync(t, m, nil)
 // Empty string is returned in Client is nil
-func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *compressor.Compressor) string {
 	if dsc == nil {
 		return ""
 	}
@@ -929,93 +930,6 @@ func (dsc *Client) sendCalled() {
 	dsc.statsMutex.Lock()
 	dsc.lastSendCallTimestamp = time.Now()
 	dsc.statsMutex.Unlock()
-}
-
-// CompressorAlgorithm define the compression algorithm used bye Compressor
-type CompressorAlgorithm int
-
-const (
-	// CompressorNoComprs means compression disabled
-	CompressorNoComprs CompressorAlgorithm = iota
-	// CompressorGzip set GZIP compression
-	CompressorGzip
-	// CompressorZlib is Deprecated: This is not properly working if more than one message is send by same connection
-	CompressorZlib
-)
-
-// Compressor is a simple compressor to work with relative small size of bytes (all is in memory)
-type Compressor struct {
-	Algorithm   CompressorAlgorithm
-	MinimumSize int
-}
-
-// Compress compress bs input based on Algorithm and return the data compressed
-func (mc *Compressor) Compress(bs []byte) ([]byte, error) {
-	if mc == nil {
-		return bs, nil
-	}
-
-	if mc.MinimumSize > 0 && len(bs) <= mc.MinimumSize {
-		return bs, nil
-	}
-
-	var buf bytes.Buffer
-	var zw io.WriteCloser
-	switch mc.Algorithm {
-	case CompressorNoComprs:
-		r := make([]byte, len(bs))
-		copy(r, bs)
-		return r, nil
-	case CompressorGzip:
-		zw = gzip.NewWriter(&buf)
-	case CompressorZlib:
-		zw = zlib.NewWriter(&buf)
-	default:
-		return nil, fmt.Errorf("Algorithm %v is not supported", mc.Algorithm)
-	}
-
-	_, err := zw.Write(bs)
-	if err != nil {
-		return nil, fmt.Errorf("Compression: %w", err)
-	}
-
-	if err := zw.Close(); err != nil {
-		return nil, fmt.Errorf("Close compression engine: %w", err)
-	}
-
-	return buf.Bytes(), nil
-}
-
-// StringAlgoritm return the string value of algorithm selected in Compressor object
-func (mc *Compressor) StringAlgoritm() string {
-	return StringCompressorAlgorithm(mc.Algorithm)
-}
-
-// StringCompressorAlgorithm return the string value of algorithm selected
-func StringCompressorAlgorithm(a CompressorAlgorithm) string {
-	switch a {
-	case CompressorNoComprs:
-		return "No compression"
-	case CompressorGzip:
-		return "GZIP"
-	case CompressorZlib:
-		return "ZLIB"
-	default:
-		return "Unknown"
-	}
-}
-
-// ParseAlgorithm is the inverse func of StringCompressorAlgorithm. Error is returned
-// if s value is not matching with none valid algorithm
-func ParseAlgorithm(s string) (CompressorAlgorithm, error) {
-	for a := CompressorNoComprs; a <= CompressorZlib; a++ {
-		v := StringCompressorAlgorithm(a)
-		if v == s {
-			return a, nil
-		}
-	}
-
-	return CompressorNoComprs, fmt.Errorf("%s is not a valid algorithm", s)
 }
 
 func replaceSequences(s string, sequences map[string]string) string {
