@@ -10,9 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cyberluisda/devo-go/devosender"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
+
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 func TestNewSNutsDBStatusBuilder(t *testing.T) {
@@ -2770,7 +2771,7 @@ func TestEventRecord_Serialize(t *testing.T) {
 				Timestamp:  time.Time{}.Add(time.Second),
 				Tag:        "test.keep.free",
 				Msg:        "the event content",
-				Compressor: &devosender.Compressor{Algorithm: devosender.CompressorGzip},
+				Compressor: &compressor.Compressor{Algorithm: compressor.CompressorGzip},
 				LastError:  errors.New("Test error"),
 			},
 			func() []byte {
@@ -2779,7 +2780,7 @@ func TestEventRecord_Serialize(t *testing.T) {
 					Timestamp:  time.Time{}.Add(time.Second),
 					Tag:        "test.keep.free",
 					Msg:        "the event content",
-					Compressor: &devosender.Compressor{Algorithm: devosender.CompressorGzip},
+					Compressor: &compressor.Compressor{Algorithm: compressor.CompressorGzip},
 					LastError:  errors.New("Test error"),
 				}
 				r, _ := msgpack.Marshal(er)

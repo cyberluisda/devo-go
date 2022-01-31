@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cyberluisda/devo-go/devosender"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
 )
@@ -1070,7 +1070,7 @@ type EventRecord struct {
 	Timestamp  time.Time
 	Tag        string
 	Msg        string
-	Compressor *devosender.Compressor
+	Compressor *compressor.Compressor
 	LastError  error
 }
 
