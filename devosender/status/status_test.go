@@ -1567,6 +1567,61 @@ func TestNutsDBStatus_Initialize(t *testing.T) {
 	}
 }
 
+func TestNutsDBStatus_String(t *testing.T) {
+	type setup struct {
+		createDb bool
+	}
+	tests := []struct {
+		name  string
+		setup setup
+		ns    *NutsDBStatus
+		want  string
+	}{
+		{
+			"Nil target",
+			setup{},
+			nil,
+			"<nil>",
+		},
+		{
+			"Nil db",
+			setup{},
+			&NutsDBStatus{},
+			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 0, initalized: false, bufferSize: 0",
+		},
+		{
+			"Wtih settings and db",
+			setup{createDb: true},
+			&NutsDBStatus{
+				bufferSize:  128,
+				initialized: true,
+			},
+			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 1, initalized: true, bufferSize: 128",
+		},
+	}
+	for _, tt := range tests {
+		var path string
+		var db *nutsdb.DB
+		if tt.setup.createDb {
+			path, db = toolTestNewDb("", nil)
+			tt.ns.db = db
+			tt.ns.dbOpts = nutsdb.DefaultOptions
+			tt.ns.dbOpts.Dir = path
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.ns.String(); got != tt.want {
+				t.Errorf("NutsDBStatus.String() got = %v, want %v", got, tt.want)
+			}
+		})
+
+		if tt.setup.createDb {
+			tt.ns.Close()
+			toolTestDestroyDb(path, db)
+		}
+	}
+}
+
 func Test_recreateIdxInTx(t *testing.T) {
 	type setup struct {
 		initVals []*EventRecord
