@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 func ExampleReliableClientBuilder_initErrors() {
@@ -394,7 +395,7 @@ func ExampleReliableClient_appLoggerError() {
 
 	rc.SendAsync("test message")
 	rc.SendWTagAsync("tag", "test message")
-	rc.SendWTagAndCompressorAsync("tag", "test message", &Compressor{Algorithm: CompressorGzip})
+	rc.SendWTagAndCompressorAsync("tag", "test message", &compressor.Compressor{Algorithm: compressor.CompressorGzip})
 
 	// We hide the  ID to easy check the output
 	logString := buf.String()

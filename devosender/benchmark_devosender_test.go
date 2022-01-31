@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 const tag = "test.keep.free"
@@ -81,34 +83,34 @@ func BenchmarkTestLazyClient_SendWTagAndCompressorAsync_standby(b *testing.B) {
 	tests := []struct {
 		name       string
 		msgSize    int
-		compressor *Compressor
+		compressor *compressor.Compressor
 	}{
 		{
 			"Msg of 256 bytes",
 			256,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 512 bytes",
 			512,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 1024 bytes",
 			1024,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 2048 bytes",
 			2048,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 	}
@@ -186,34 +188,34 @@ func BenchmarkTestLazyClient_SendWTagAndCompressorAsync_udp(b *testing.B) {
 	tests := []struct {
 		name       string
 		msgSize    int
-		compressor *Compressor
+		compressor *compressor.Compressor
 	}{
 		{
 			"Msg of 256 bytes",
 			256,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 512 bytes",
 			512,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 1024 bytes",
 			1024,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 2048 bytes",
 			2048,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 	}
@@ -312,34 +314,34 @@ func BenchmarkTestReliableClient_SendWTagAndCompressorAsync_standby(b *testing.B
 	tests := []struct {
 		name       string
 		msgSize    int
-		compressor *Compressor
+		compressor *compressor.Compressor
 	}{
 		{
 			"Msg of 256 bytes",
 			256,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 512 bytes",
 			512,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 1024 bytes",
 			1024,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 2048 bytes",
 			2048,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 	}
@@ -425,34 +427,34 @@ func BenchmarkTestReliableClient_SendWTagAndCompressorAsync_udp(b *testing.B) {
 	tests := []struct {
 		name       string
 		msgSize    int
-		compressor *Compressor
+		compressor *compressor.Compressor
 	}{
 		{
 			"Msg of 256 bytes",
 			256,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 512 bytes",
 			512,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 1024 bytes",
 			1024,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 2048 bytes",
 			2048,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 	}
@@ -538,34 +540,34 @@ func BenchmarkTestReliableClient_SendWTagAndCompressor_udp(b *testing.B) {
 	tests := []struct {
 		name       string
 		msgSize    int
-		compressor *Compressor
+		compressor *compressor.Compressor
 	}{
 		{
 			"Msg of 256 bytes",
 			256,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 512 bytes",
 			512,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 1024 bytes",
 			1024,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 		{
 			"Msg of 2048 bytes",
 			2048,
-			&Compressor{
-				Algorithm: CompressorGzip,
+			&compressor.Compressor{
+				Algorithm: compressor.CompressorGzip,
 			},
 		},
 	}

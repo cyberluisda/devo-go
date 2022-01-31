@@ -15,9 +15,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cyberluisda/devo-go/applogger"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/xujiajun/nutsdb"
+
+	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 // ReliableClientBuilder defines the Builder for build ReliableClient
@@ -380,7 +382,7 @@ func (dsrc *ReliableClient) SendWTagAsync(t, m string) string {
 // SendWTagAndCompressorAsync sends Async message in same way like Client.SendWTagAndCompressorAsync
 // but saving the message,tag and Compressor in status until can ensure, at certain level of
 // confiance, that it was sent
-func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *Compressor) string {
+func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *compressor.Compressor) string {
 	var id string
 	if dsrc.IsStandBy() || dsrc.Client == nil {
 		id = newNoConnID()
@@ -1342,7 +1344,7 @@ type reliableClientRecord struct {
 	Timestamp  time.Time
 	Tag        string
 	Msg        string
-	Compressor *Compressor
+	Compressor *compressor.Compressor
 	LastError  error
 }
 

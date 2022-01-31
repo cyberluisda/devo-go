@@ -16,9 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cyberluisda/devo-go/applogger"
 	uuid "github.com/satori/go.uuid"
 	"github.com/xujiajun/nutsdb"
+
+	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 func TestReliableClientBuilder_DbSegmentSize(t *testing.T) {
@@ -803,7 +805,7 @@ func TestReliableClient_SendWTagAndCompressorAsync(t *testing.T) {
 	type args struct {
 		t string
 		m string
-		c *Compressor
+		c *compressor.Compressor
 	}
 	tests := []struct {
 		name           string
@@ -858,7 +860,7 @@ func TestReliableClient_SendWTagAndCompressorAsync(t *testing.T) {
 			args{
 				"my.app.tests.reliable",
 				"This is the message",
-				&Compressor{Algorithm: CompressorZlib},
+				&compressor.Compressor{Algorithm: compressor.CompressorZlib},
 			},
 			`\w{8}-\w{4}-\w{4}-\w{4}-\w{12}`,
 			// 483b88ce-88b0-4f66-a78d-e8dfbddf70b0
@@ -898,7 +900,7 @@ func TestReliableClient_Flush(t *testing.T) {
 	type asyncMsgs struct {
 		t string
 		m string
-		c *Compressor
+		c *compressor.Compressor
 	}
 	tests := []struct {
 		name                           string
@@ -1970,7 +1972,6 @@ func TestReliableClient_dbInitCleanup(t *testing.T) {
 					// Ensure previous execution data is cleaned
 					os.RemoveAll("/tmp/tests-reliable-dbInitCleanup-consolidateError")
 
-
 					// Open database
 					opts := nutsdbOptionsWithDir("/tmp/tests-reliable-dbInitCleanup-consolidateError")
 					r, err := nutsdb.Open(opts)
@@ -2449,7 +2450,7 @@ func TestReliableClient_resendRecord(t *testing.T) {
 				r.newRecord(
 					&reliableClientRecord{
 						AsyncIDs:   []string{"11111"},
-						Compressor: &Compressor{Algorithm: CompressorGzip},
+						Compressor: &compressor.Compressor{Algorithm: compressor.CompressorGzip},
 						Tag:        "test.keep.free",
 						Msg:        "The message",
 					},
@@ -2459,7 +2460,7 @@ func TestReliableClient_resendRecord(t *testing.T) {
 			args{
 				&reliableClientRecord{
 					AsyncIDs:   []string{"11111"},
-					Compressor: &Compressor{Algorithm: CompressorGzip},
+					Compressor: &compressor.Compressor{Algorithm: compressor.CompressorGzip},
 					Tag:        "test.keep.free",
 					Msg:        "The message",
 				},
