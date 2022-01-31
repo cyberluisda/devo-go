@@ -15,6 +15,31 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNewSNutsDBStatusBuilder(t *testing.T) {
+	tests := []struct {
+		name string
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Default values",
+			&NutsDBStatusBuilder{
+				nutsdb.DefaultOptions,
+				DefaultEventsTTLSeconds,
+				DefaultBufferSize,
+				DefaultFilesToConsolidateDb,
+				DefaultRecreateDbClientAfterConsolidation,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewSNutsDBStatusBuilder(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewSNutsDBStatusBuilder() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_EventsTTLSeconds(t *testing.T) {
 	type args struct {
 		ttl uint32
