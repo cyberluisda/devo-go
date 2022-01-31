@@ -12,6 +12,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 // SwitchDevoSender represents a Client that can be paused. That is that can close
@@ -22,7 +23,7 @@ type SwitchDevoSender interface {
 	String() string
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
-	SendWTagAndCompressorAsync(t string, m string, c *Compressor) string
+	SendWTagAndCompressorAsync(t string, m string, c *compressor.Compressor) string
 	WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error
 	AsyncErrors() map[string]error
 	AsyncErrorsNumber() int
@@ -164,7 +165,7 @@ type lazyClientRecord struct {
 	Timestamp  time.Time
 	Tag        string
 	Msg        string
-	Compressor *Compressor
+	Compressor *compressor.Compressor
 	LastError  error
 }
 
@@ -298,7 +299,7 @@ func (lc *LazyClient) Close() error {
 
 // SendWTagAndCompressorAsync is the same as Client.SendWTagAndCompressorAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
-func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *compressor.Compressor) string {
 	lc.clientMtx.Lock()
 	defer lc.clientMtx.Unlock()
 
@@ -353,7 +354,7 @@ func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) str
 // SendWTagAsync is the same as Client.SendWTagAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
 func (lc *LazyClient) SendWTagAsync(t, m string) string {
-	var compressor *Compressor
+	var compressor *compressor.Compressor
 	if lc.Client != nil {
 		compressor = lc.compressor
 	}
