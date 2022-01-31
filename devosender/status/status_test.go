@@ -15,6 +15,79 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_Build(t *testing.T) {
+	tests := []struct {
+		name            string
+		nsb             *NutsDBStatusBuilder
+		wantNilDBStatus bool
+		wantErr         bool
+	}{
+		{
+			"Error dbOpts.Dir empty",
+			&NutsDBStatusBuilder{},
+			true,
+			true,
+		},
+		{
+			"Error opent nutsdb",
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.Options{
+					Dir: "/only/root/should/create/this/dir",
+				},
+			},
+			true,
+			true,
+		},
+		{
+			"Error while initialize",
+			&NutsDBStatusBuilder{
+				dbOpts: func() nutsdb.Options {
+					r := nutsdb.DefaultOptions
+					r.Dir = toolsTestNewTempDirName()
+					return r
+				}(),
+				filesToConsolidateDb: 1,
+			},
+			false,
+			true,
+		},
+		{
+			"Open db",
+			&NutsDBStatusBuilder{
+				dbOpts: func() nutsdb.Options {
+					r := nutsdb.DefaultOptions
+					r.Dir = toolsTestNewTempDirName()
+					return r
+				}(),
+				filesToConsolidateDb: 3,
+			},
+			false,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.nsb.Build()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatusBuilder.Build() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if (got == nil) != tt.wantNilDBStatus {
+				t.Errorf("NutsDBStatusBuilder.Build() got = %v, want nil %v", got, tt.wantNilDBStatus)
+			}
+
+			// Clean
+			if got != nil && got.dbOpts.Dir != "" {
+				got.Close()
+				err := os.RemoveAll(got.dbOpts.Dir)
+				if err != nil {
+					panic(err)
+				}
+			}
+		})
+	}
+}
+
 func TestNutsDBStatus_New(t *testing.T) {
 	type setup struct {
 		initialOrderIdx   *orderIdx
@@ -2543,7 +2616,7 @@ func toolTestNewDb(initValBucket string, initVals map[string][]byte) (string, *n
 }
 
 func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opts nutsdb.Options) (string, *nutsdb.DB) {
-	path := fmt.Sprintf("%s%cdevosender_status-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
+	path := toolsTestNewTempDirName()
 
 	opts.Dir = path
 	db, err := nutsdb.Open(opts)
@@ -2562,6 +2635,10 @@ func toolTestNewDbWithOpts(initValBucket string, initVals map[string][]byte, opt
 	}
 
 	return path, db
+}
+
+func toolsTestNewTempDirName() string {
+	return fmt.Sprintf("%s%cdevosender_status-test-%d", os.TempDir(), os.PathSeparator, rand.Int())
 }
 
 // Add data to opened nutsdb.
