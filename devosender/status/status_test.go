@@ -302,7 +302,7 @@ func TestNutsDBStatusBuilder_RecreateDbClientAfterConsolidation(t *testing.T) {
 	}
 }
 
-func TestNutsDBStatusBuilder_Build(t *testing.T) {
+func TestNutsDBStatusBuilder_BuildNutsDBStatus(t *testing.T) {
 	tests := []struct {
 		name            string
 		nsb             *NutsDBStatusBuilder
@@ -354,13 +354,13 @@ func TestNutsDBStatusBuilder_Build(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.nsb.Build()
+			got, err := tt.nsb.BuildNutsDBStatus()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NutsDBStatusBuilder.Build() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NutsDBStatusBuilder.BuildNutsDBStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if (got == nil) != tt.wantNilDBStatus {
-				t.Errorf("NutsDBStatusBuilder.Build() got = %v, want nil %v", got, tt.wantNilDBStatus)
+				t.Errorf("NutsDBStatusBuilder.BuildNutsDBStatus() got = %v, want nil %v", got, tt.wantNilDBStatus)
 			}
 
 			// Clean

@@ -123,8 +123,10 @@ func (nsb *NutsDBStatusBuilder) RecreateDbClientAfterConsolidation(b bool) *Nuts
 }
 
 // Build builds NutsDBStatus instance based on Builder config.
+
+// BuildNutsDBStatus builds NutsDBStatus instance based on Builder config.
 // NutsDBStatus.Initialize is called just after build connection
-func (nsb *NutsDBStatusBuilder) Build() (*NutsDBStatus, error) {
+func (nsb *NutsDBStatusBuilder) BuildNutsDBStatus() (*NutsDBStatus, error) {
 	if nsb.dbOpts.Dir == "" {
 		return nil, fmt.Errorf("Empty Dir in nutsdb.Opts")
 	}
