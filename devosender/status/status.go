@@ -122,7 +122,11 @@ func (nsb *NutsDBStatusBuilder) RecreateDbClientAfterConsolidation(b bool) *Nuts
 	return nsb
 }
 
-// Build builds NutsDBStatus instance based on Builder config.
+// Build builds NutsDBStatus instance based on Builder config but return as Status interface.
+// This method makes NutsDBStatusBuilder as Builder interface implementation
+func (nsb *NutsDBStatusBuilder) Build() (Status, error) {
+	return nsb.BuildNutsDBStatus()
+}
 
 // BuildNutsDBStatus builds NutsDBStatus instance based on Builder config.
 // NutsDBStatus.Initialize is called just after build connection
