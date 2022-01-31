@@ -15,6 +15,36 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_DbSegmentSize(t *testing.T) {
+	type args struct {
+		size int64
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{1024},
+			&NutsDBStatusBuilder{
+				dbOpts: nutsdb.Options{
+					SegmentSize: 1024,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.DbSegmentSize(tt.args.size); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.DbSegmentSize() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_DbEntryIdxMode(t *testing.T) {
 	type args struct {
 		mode nutsdb.EntryIdxMode
