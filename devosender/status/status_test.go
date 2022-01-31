@@ -15,6 +15,38 @@ import (
 	"github.com/xujiajun/nutsdb"
 )
 
+func TestNutsDBStatusBuilder_FilesToConsolidateDb(t *testing.T) {
+	type args struct {
+		files int
+	}
+	tests := []struct {
+		name string
+		nsb  *NutsDBStatusBuilder
+		args args
+		want *NutsDBStatusBuilder
+	}{
+		{
+			"Set value",
+			&NutsDBStatusBuilder{},
+			args{5},
+			&NutsDBStatusBuilder{filesToConsolidateDb: 5},
+		},
+		{
+			"Ignore invalild value",
+			&NutsDBStatusBuilder{filesToConsolidateDb: 4},
+			args{1},
+			&NutsDBStatusBuilder{filesToConsolidateDb: 4},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.nsb.FilesToConsolidateDb(tt.args.files); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NutsDBStatusBuilder.FilesToConsolidateDb() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNutsDBStatusBuilder_RecreateDbClientAfterConsolidation(t *testing.T) {
 	type args struct {
 		b bool
