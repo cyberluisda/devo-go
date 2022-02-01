@@ -791,7 +791,19 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 			if dsrc.status == nil {
 				err = ErrNilPointerReceiver
 			} else {
+				var strBefore, strAfter string
+				if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+					strBefore = dsrc.status.String()
+				}
+
 				err = dsrc.status.HouseKeeping()
+
+				if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
+					strAfter = dsrc.status.String()
+					if strBefore != strAfter {
+						dsrc.appLogger.Logf(applogger.DEBUG, "Status db consolidated: Before: %s, After: %s", strBefore, strAfter)
+					}
+				}
 			}
 			endTime := time.Now()
 
