@@ -11,9 +11,11 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/xujiajun/nutsdb"
+
 	"github.com/cyberluisda/devo-go/applogger"
 	"github.com/cyberluisda/devo-go/devosender"
-	"github.com/xujiajun/nutsdb"
+	"github.com/cyberluisda/devo-go/devosender/status"
 )
 
 func init() {
@@ -62,7 +64,7 @@ func main() {
 	usDevo := flag.Bool("us", false, "Send data to us Devo site: "+devosender.DevoCentralRelayUS)
 	euDevo := flag.Bool("eu", false, "Send data to us Devo site: "+devosender.DevoCentralRelayEU)
 	localRelay := flag.String("relay", "", "Send data to custom relay. This option overwrites -us and -eu options")
-	msgPerSecond := flag.Uint("mps", 1, "Number of messages per second to send")
+	msgPerSecond := flag.Uint("mps", 1, "Number of messages per second to send. Time sleep between each iteration will be one second - time spend in send this number of events. If this value is less or equal to 0 none sleep will be done on that iteration")
 	msgBodySize := flag.Uint("size", 1024, "Lengh of the random string to send in the message")
 	seconds := flag.Int("seconds", 20, "Number of seconds to be running, negative number implies \"forever\"")
 	tag := flag.String("tag", "test.keep.free", "Devo tag")
@@ -72,7 +74,7 @@ func main() {
 	reconnectDaemonWait := flag.Duration("reconn-duration-checks", time.Minute, "Time to wait between two consecutive times that checks connection failed and reconnects in afirmative case")
 	consolidateDaemonWait := flag.Duration("consol-duration-checks", time.Minute, "Time to wait between two consecutive times to checks and consolidate status db if needed")
 	tcpTimeout := flag.Duration("tcp-timeout", time.Second*2, "Timeout to open tcp connection")
-	bufferSize := flag.Uint("buffer", devosender.DefaultBufferEventsSize, "Internal status buffer size")
+	bufferSize := flag.Uint("buffer", status.DefaultBufferSize, "Internal status buffer size")
 	displayOrigID := flag.Bool("display-orig-msg-id", false, "If true display the first ID for each mesage generated")
 	flushBfClose := flag.Bool("flush-before-close", false, "If true make a double flush when close client")
 	cpuProfile := flag.Bool(
@@ -148,18 +150,21 @@ func main() {
 			Writer: os.Stdout,
 			Level:  applogger.DEBUG,
 		}).
-		BufferEventsSize(*bufferSize).
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().
+				DbPath(*statusPath).
+				DbSegmentSize(*statusFileSize).
+				BufferSize(*bufferSize),
+		).
 		ClientReconnDaemonInitDelay(time.Second * 15).
 		ConsolidateDbDaemonInitDelay(time.Minute).
 		RetryDaemonInitDelay(time.Second * 5).
 		ClientReconnDaemonWaitBtwChecks(*reconnectDaemonWait).
 		ConsolidateDbDaemonWaitBtwChecks(*consolidateDaemonWait).
 		RetryDaemonWaitBtwChecks(*retryDaemonWait).
-		DbPath(*statusPath).
 		FlushTimeout(time.Second).
 		DaemonStopTimeout(time.Minute).
 		EnableStandByModeTimeout(time.Second).
-		DbSegmentSize(*statusFileSize).
 		ClientBuilder(cb).
 		Build()
 
@@ -190,7 +195,7 @@ func main() {
 	// main bucle
 	var totalMsgs uint
 	for *seconds != 0 && !canceled {
-
+		initTime := time.Now()
 		for i := uint(0); i < *msgPerSecond; i++ {
 			payload := randomChars(*msgBodySize)
 			id := rc.SendAsync(payload)
@@ -215,7 +220,10 @@ func main() {
 			}
 		}
 
-		time.Sleep(time.Second)
+		spendTime := time.Now().Sub(initTime)
+		if spendTime < time.Second {
+			time.Sleep(time.Second - spendTime)
+		}
 
 		if *seconds > 0 {
 			*seconds = *seconds - 1
