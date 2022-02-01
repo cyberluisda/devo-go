@@ -781,8 +781,13 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 
 			dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon shot: %+v", dsrc.consolidateDaemon)
 
+			var err error
 			beginTime := time.Now() // For warning if spended time is high
-			err := dsrc.status.HouseKeeping()
+			if dsrc.status == nil {
+				err = ErrNilPointerReceiver
+			} else {
+				err = dsrc.status.HouseKeeping()
+			}
 			endTime := time.Now()
 
 			thresold := beginTime.Add(consolidationDmnConsolidateWarnLimit)
