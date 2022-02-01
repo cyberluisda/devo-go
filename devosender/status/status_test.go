@@ -1587,7 +1587,7 @@ func TestNutsDBStatus_String(t *testing.T) {
 			"Nil db",
 			setup{},
 			&NutsDBStatus{},
-			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 0, initalized: false, bufferSize: 0, eventTTL: 0",
+			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 0, initialized: false, bufferSize: 0, eventTTL: 0",
 		},
 		{
 			"Wtih settings and db",
@@ -1596,7 +1596,7 @@ func TestNutsDBStatus_String(t *testing.T) {
 				bufferSize:  128,
 				initialized: true,
 			},
-			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 1, initalized: true, bufferSize: 128, eventTTL: 0",
+			"KeyCount: 0, ListIdx: map[], consolidationDbNumFilesThreshold: 0, dbFiles: 1, initialized: true, bufferSize: 128, eventTTL: 0",
 		},
 	}
 	for _, tt := range tests {
