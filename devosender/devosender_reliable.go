@@ -42,9 +42,6 @@ const (
 	// DefaultDaemonMicroWait is the default micro delay to check in the midle of daemon
 	// sleep time if daemon was marked to be stopped, then interrup sleep operation
 	DefaultDaemonMicroWait = time.Millisecond * 200
-	// DefaultEventTimeToLive is the expiration time in secods for each event before
-	//be evicted from the buffer by Reliable client
-	DefaultEventTimeToLive = 60 * 60
 	// DefaultEnableStandByModeTimeout is the Default timeout to wait for all pending
 	// async messages managed byclient when StandBy func is called . If timeout is
 	// reached then error will be send
