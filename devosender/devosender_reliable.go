@@ -22,7 +22,6 @@ type ReliableClientBuilder struct {
 	clientReconnOpts         daemonOpts
 	consolidateDbDaemonOpts  daemonOpts
 	daemonStopTimeout        time.Duration
-	eventTimeToLive          uint32
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
@@ -72,7 +71,6 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		consolidateDbDaemonOpts:  daemonOpts{DefaultConsolidateDbDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
-		eventTimeToLive:          DefaultEventTimeToLive,
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		flushTimeout:             DefaultFlushAsyncTimeout,
 		appLogger:                &applogger.NoLogAppLogger{},
@@ -151,13 +149,6 @@ func (dsrcb *ReliableClientBuilder) DaemonStopTimeout(d time.Duration) *Reliable
 	return dsrcb
 }
 
-// EventTimeToLiveInSeconds sets the time to live per each event in seconds.
-// If d value is zero then no expiration will be active
-func (dsrcb *ReliableClientBuilder) EventTimeToLiveInSeconds(d uint32) *ReliableClientBuilder {
-	dsrcb.eventTimeToLive = d
-	return dsrcb
-}
-
 // EnableStandByModeTimeout sets and enable if value is greter than 0, the timeout to wait
 // for pending async events in client when StandBy() func is called
 func (dsrcb *ReliableClientBuilder) EnableStandByModeTimeout(d time.Duration) *ReliableClientBuilder {
@@ -210,7 +201,6 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	r := &ReliableClient{
 		Client:                   cl,
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
-		eventTTLSeconds:          dsrcb.eventTimeToLive,
 		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
 		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
 		consolidateDaemon:        reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
