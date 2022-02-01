@@ -725,9 +725,9 @@ func (ns *NutsDBStatus) String() string {
 	}
 	return fmt.Sprintf(
 		"KeyCount: %d, ListIdx: %v, consolidationDbNumFilesThreshold: %d, dbFiles: %d, "+
-			"initialized: %v, bufferSize: %v, eventTTL: %d",
+			"initialized: %v, bufferSize: %v, eventTTL: %d, recreateDbClientAfterConsolidation: %v",
 		keyCount, listIdx, ns.filesToConsolidateDb, NumberOfFiles(ns.dbOpts.Dir),
-		ns.initialized, ns.bufferSize, ns.eventTTL)
+		ns.initialized, ns.bufferSize, ns.eventTTL, ns.recreateDbClientAfterConsolidation)
 }
 
 func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
