@@ -569,12 +569,18 @@ func (dsrc *ReliableClient) Stats() status.Stats {
 }
 
 func (dsrc *ReliableClient) String() string {
+
+	statusStr := "<nil>"
+	if dsrc.status != nil {
+		statusStr = dsrc.status.String()
+	}
+
 	return fmt.Sprintf(
 		"Client: {%s}, status: {%s}, retryDaemon: %v, "+
 			"reconnDaemon: %v, consolidateDbDaemon: %v, daemonStopTimeout: %v, "+
 			"standByMode: %v, enableStandByModeTimeout: %v, daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
-		dsrc.status.String(),
+		statusStr,
 		dsrc.retryDaemon,
 		dsrc.reconnDaemon,
 		dsrc.consolidateDaemon,
