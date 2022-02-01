@@ -228,7 +228,6 @@ type ReliableClient struct {
 	*Client
 	clientBuilder            *ClientBuilder
 	status                   status.Status
-	eventTTLSeconds          uint32
 	retryDaemon              reliableClientDaemon
 	reconnDaemon             reliableClientDaemon
 	consolidateDaemon        reliableClientDaemon
@@ -572,12 +571,11 @@ func (dsrc *ReliableClient) Stats() status.Stats {
 
 func (dsrc *ReliableClient) String() string {
 	return fmt.Sprintf(
-		"Client: {%s}, status: {%s}, eventTTLSeconds: %d, retryDaemon: %v, "+
+		"Client: {%s}, status: {%s}, retryDaemon: %v, "+
 			"reconnDaemon: %v, consolidateDbDaemon: %v, daemonStopTimeout: %v, "+
 			"standByMode: %v, enableStandByModeTimeout: %v, daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
 		dsrc.status.String(),
-		dsrc.eventTTLSeconds,
 		dsrc.retryDaemon,
 		dsrc.reconnDaemon,
 		dsrc.consolidateDaemon,
