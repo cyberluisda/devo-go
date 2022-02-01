@@ -403,7 +403,12 @@ func (dsrc *ReliableClient) Flush() error {
 		// Remove records were send
 		for _, ID := range assumingWasSent {
 			err = dsrc.status.FinishRecord(ID)
-			if err != nil {
+			if errors.Is(err, status.ErrRecordNotFoundInIdx) {
+				dsrc.appLogger.Logf(
+					applogger.WARNING,
+					"Ignoring record %s after assuming that was send by reason: %v", ID, err,
+				)
+			} else if err != nil {
 				return fmt.Errorf("Error when delete one status record that I assumed that was sent: %w", err)
 			}
 		}
