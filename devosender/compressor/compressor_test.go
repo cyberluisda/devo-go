@@ -224,3 +224,11 @@ func TestCompressor_Compress(t *testing.T) {
 		})
 	}
 }
+
+func TestCompressor_Compress_nil_compressor(t *testing.T) {
+	var mc *Compressor
+	_, err := mc.Compress([]byte{})
+	if err != nil {
+		t.Errorf("Compressor.Compress() nil instance error = %v", err)
+	}
+}
