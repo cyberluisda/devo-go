@@ -382,13 +382,12 @@ func (dsrc *ReliableClient) Flush() error {
 		// Now resend pending or mark as Evicted
 		evicted := make([]string, 0)
 		for k, v := range idsToBeResend {
-			record, pos, err := dsrc.status.Get(k)
-			if err != nil {
-				return fmt.Errorf("Error when load record from status with id %s, order %d to be processed: %w", k, pos, err)
-			}
-			if record == nil {
+			record, pos, err := dsrc.status.Get(k) // Evicted stats is managed by Get
+			if errors.Is(err, status.ErrRecordEvicted) {
 				// Evicted
 				evicted = append(evicted, k)
+			} else if err != nil {
+				return fmt.Errorf("Error when load record from status with id %s, order %d to be processed: %w", k, pos, err)
 			} else {
 				record.LastError = v
 				err = dsrc.resendRecord(record)
@@ -401,7 +400,7 @@ func (dsrc *ReliableClient) Flush() error {
 			}
 		}
 
-		// Remove records was send
+		// Remove records were send
 		for _, ID := range assumingWasSent {
 			err = dsrc.status.FinishRecord(ID)
 			if err != nil {
