@@ -478,7 +478,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 						waitBtwChecks: time.Millisecond * 100,
 					},
 				},
-				consolidateDaemon: reliableClientDaemon{
+				houseKeepingDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
 						initDelay:     time.Minute,
 						waitBtwChecks: time.Millisecond * 100,
@@ -1118,7 +1118,7 @@ func TestReliableClient_String(t *testing.T) {
 			fields{},
 			"Client: {<nil>}, status: {<nil>}, retryDaemon: { waitBtwChecks: 0s, " +
 				"initDelay: 0s, stop: false}, reconnDaemon: { waitBtwChecks: 0s, initDelay: 0s, " +
-				"stop: false}, consolidateDbDaemon: { waitBtwChecks: 0s, initDelay: 0s, " +
+				"stop: false}, houseKeepingDaemon: { waitBtwChecks: 0s, initDelay: 0s, " +
 				"stop: false}, daemonStopTimeout: 0s, standByMode: false, enableStandByModeTimeout: 0s, " +
 				"daemonStopped: <nil>, flushTimeout: 0s",
 		},
@@ -1169,7 +1169,7 @@ func TestReliableClient_String(t *testing.T) {
 				"consolidationDbNumFilesThreshold: 4, dbFiles: 1, initialized: true, bufferSize: 123, " +
 				"eventTTL: 20, recreateDbClientAfterConsolidation: true}, retryDaemon: " +
 				"{ waitBtwChecks: 1m0s, initDelay: 2s, stop: true}, reconnDaemon: { " +
-				"waitBtwChecks: 10s, initDelay: 1s, stop: true}, consolidateDbDaemon: " +
+				"waitBtwChecks: 10s, initDelay: 1s, stop: true}, houseKeepingDaemon: " +
 				"{ waitBtwChecks: 0s, initDelay: 0s, stop: false}, " +
 				"daemonStopTimeout: 5s, standByMode: true, enableStandByModeTimeout: 3s, " +
 				"daemonStopped: <nil>, flushTimeout: 2m0s",
@@ -1201,7 +1201,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		status                status.Status
 		retryDaemon           reliableClientDaemon
 		reconnDaemon          reliableClientDaemon
-		consolidateDaemon     reliableClientDaemon
+		houseKeepingDaemon    reliableClientDaemon
 		appLogger             applogger.SimpleAppLogger
 		consolidateDbNumFiles uint8
 	}
@@ -1305,7 +1305,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 						waitBtwChecks: 1 * time.Second,
 						initDelay:     time.Minute}},
 				// Force error
-				consolidateDaemon: reliableClientDaemon{
+				houseKeepingDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
 						waitBtwChecks: -2 * time.Second}},
 			},
@@ -1315,11 +1315,11 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				status:            tt.fields.status,
-				retryDaemon:       tt.fields.retryDaemon,
-				reconnDaemon:      tt.fields.reconnDaemon,
-				consolidateDaemon: tt.fields.consolidateDaemon,
-				appLogger:         tt.fields.appLogger,
+				status:             tt.fields.status,
+				retryDaemon:        tt.fields.retryDaemon,
+				reconnDaemon:       tt.fields.reconnDaemon,
+				houseKeepingDaemon: tt.fields.houseKeepingDaemon,
+				appLogger:          tt.fields.appLogger,
 			}
 			if err := dsrc.daemonsSartup(); (err != nil) != tt.wantErr {
 				t.Errorf("ReliableClient.daemonsSartup() error = %v, wantErr %v", err, tt.wantErr)
@@ -1527,7 +1527,7 @@ func TestReliableClient_statusHouseKeepingDaemon__consolidate_error(t *testing.T
 	}
 	// Create client with appLogger
 	rc := &ReliableClient{
-		consolidateDaemon: reliableClientDaemon{
+		houseKeepingDaemon: reliableClientDaemon{
 			daemonOpts: daemonOpts{
 				waitBtwChecks: time.Millisecond * 50,
 			},
@@ -1540,7 +1540,7 @@ func TestReliableClient_statusHouseKeepingDaemon__consolidate_error(t *testing.T
 
 	// wait and stop daemon
 	time.Sleep(time.Millisecond * 50)
-	rc.consolidateDaemon.stop = true
+	rc.houseKeepingDaemon.stop = true
 
 	// Checks that message is expected
 	got := buf.String()
@@ -1594,7 +1594,7 @@ func TestReliableClient_statusHouseKeepingDaemon__recreateDb(t *testing.T) {
 
 	// Create client with appLogger
 	rc := &ReliableClient{
-		consolidateDaemon: reliableClientDaemon{
+		houseKeepingDaemon: reliableClientDaemon{
 			daemonOpts: daemonOpts{
 				waitBtwChecks: time.Millisecond * 100,
 			},
@@ -1658,7 +1658,7 @@ func TestReliableClient_statusHouseKeepingDaemon(t *testing.T) {
 			"Daemon stopped",
 			&ReliableClient{
 				appLogger: &applogger.NoLogAppLogger{},
-				consolidateDaemon: reliableClientDaemon{
+				houseKeepingDaemon: reliableClientDaemon{
 					daemonOpts: daemonOpts{
 						waitBtwChecks: time.Second,
 					},
