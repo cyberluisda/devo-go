@@ -80,7 +80,7 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 	}
 }
 
-func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
+func TestReliableClientBuilder_HouseKeepingDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
 		houseKeepingDaemonOpts daemonOpts
 	}
@@ -115,8 +115,8 @@ func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
 			dsrcb := &ReliableClientBuilder{
 				houseKeepingDaemonOpts: tt.fields.houseKeepingDaemonOpts,
 			}
-			if got := dsrcb.ConsolidateDbDaemonWaitBtwChecks(tt.args.d); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonWaitBtwChecks() = %+v, want %+v", got, tt.want)
+			if got := dsrcb.HouseKeepingDaemonWaitBtwChecks(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.HouseKeepingDaemonWaitBtwChecks() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
