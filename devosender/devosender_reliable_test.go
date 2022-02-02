@@ -82,7 +82,7 @@ func TestReliableClientBuilder_ClientReconnDaemonWaitBtwChecks(t *testing.T) {
 
 func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
 	type fields struct {
-		consolidateDbDaemonOpts daemonOpts
+		houseKeepingDaemonOpts daemonOpts
 	}
 	type args struct {
 		d time.Duration
@@ -98,7 +98,7 @@ func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
 			fields{daemonOpts{waitBtwChecks: time.Second}},
 			args{},
 			&ReliableClientBuilder{
-				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Second},
+				houseKeepingDaemonOpts: daemonOpts{waitBtwChecks: time.Second},
 			},
 		},
 		{
@@ -106,14 +106,14 @@ func TestReliableClientBuilder_ConsolidateDbDaemonWaitBtwChecks(t *testing.T) {
 			fields{daemonOpts{waitBtwChecks: time.Second}},
 			args{time.Minute},
 			&ReliableClientBuilder{
-				consolidateDbDaemonOpts: daemonOpts{waitBtwChecks: time.Minute},
+				houseKeepingDaemonOpts: daemonOpts{waitBtwChecks: time.Minute},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrcb := &ReliableClientBuilder{
-				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+				houseKeepingDaemonOpts: tt.fields.houseKeepingDaemonOpts,
 			}
 			if got := dsrcb.ConsolidateDbDaemonWaitBtwChecks(tt.args.d); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonWaitBtwChecks() = %+v, want %+v", got, tt.want)
@@ -186,7 +186,7 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 
 func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
 	type fields struct {
-		consolidateDbDaemonOpts daemonOpts
+		houseKeepingDaemonOpts daemonOpts
 	}
 	type args struct {
 		d time.Duration
@@ -202,7 +202,7 @@ func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
 			fields{daemonOpts{initDelay: time.Second}},
 			args{},
 			&ReliableClientBuilder{
-				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Second},
+				houseKeepingDaemonOpts: daemonOpts{initDelay: time.Second},
 			},
 		},
 		{
@@ -210,14 +210,14 @@ func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
 			fields{daemonOpts{initDelay: time.Second}},
 			args{time.Minute},
 			&ReliableClientBuilder{
-				consolidateDbDaemonOpts: daemonOpts{initDelay: time.Minute},
+				houseKeepingDaemonOpts: daemonOpts{initDelay: time.Minute},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrcb := &ReliableClientBuilder{
-				consolidateDbDaemonOpts: tt.fields.consolidateDbDaemonOpts,
+				houseKeepingDaemonOpts: tt.fields.houseKeepingDaemonOpts,
 			}
 			if got := dsrcb.ConsolidateDbDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonInitDelay() = %+v, want %+v", got, tt.want)
@@ -400,7 +400,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 		statusBuilder            status.Builder
 		retryDaemonOpts          daemonOpts
 		clientReconnOpts         daemonOpts
-		consolidateDbDaemonOpts  daemonOpts
+		houseKeepingDaemonOpts   daemonOpts
 		daemonStopTimeout        time.Duration
 		enableStandByModeTimeout time.Duration
 		flushTimeout             time.Duration
@@ -453,7 +453,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 					initDelay:     time.Minute,
 					waitBtwChecks: time.Millisecond * 100,
 				},
-				consolidateDbDaemonOpts: daemonOpts{
+				houseKeepingDaemonOpts: daemonOpts{
 					initDelay:     time.Minute,
 					waitBtwChecks: time.Millisecond * 100,
 				},
@@ -495,7 +495,7 @@ func TestReliableClientBuilder_Build(t *testing.T) {
 				statusBuilder:            tt.fields.statusBuilder,
 				retryDaemonOpts:          tt.fields.retryDaemonOpts,
 				clientReconnOpts:         tt.fields.clientReconnOpts,
-				consolidateDbDaemonOpts:  tt.fields.consolidateDbDaemonOpts,
+				houseKeepingDaemonOpts:   tt.fields.houseKeepingDaemonOpts,
 				daemonStopTimeout:        tt.fields.daemonStopTimeout,
 				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
 				flushTimeout:             tt.fields.flushTimeout,
