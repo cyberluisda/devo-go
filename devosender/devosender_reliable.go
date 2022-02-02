@@ -20,7 +20,7 @@ type ReliableClientBuilder struct {
 	statusBuilder            status.Builder
 	retryDaemonOpts          daemonOpts
 	clientReconnOpts         daemonOpts
-	consolidateDbDaemonOpts  daemonOpts
+	houseKeepingDaemonOpts   daemonOpts
 	daemonStopTimeout        time.Duration
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
@@ -55,9 +55,9 @@ const (
 	// DefaultConsolidateDbNumFiles is default threshold value used to really consolidate
 	// statud db (Merge) when ReliableClient.ConsolidateStatusDb is called
 	DefaultConsolidateDbNumFiles uint8 = 4
-	// DefaultConsolidateDbDaemonWaitBtwChecks is the default time that consolidate db daemon must wait
+	// DefaultHouseKeepingDaemonWaitBtwChecks is the default time that status housekeeping daemon must wait
 	// between run checks or do any action
-	DefaultConsolidateDbDaemonWaitBtwChecks = time.Minute
+	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute
 )
 
 // NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
@@ -66,7 +66,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 	r := &ReliableClientBuilder{
 		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
-		consolidateDbDaemonOpts:  daemonOpts{DefaultConsolidateDbDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		houseKeepingDaemonOpts:   daemonOpts{DefaultHouseKeepingDaemonWaitBtwChecks, DefaultDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		flushTimeout:             DefaultFlushAsyncTimeout,
@@ -105,7 +105,7 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 // Value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
-		dsrcb.consolidateDbDaemonOpts.waitBtwChecks = d
+		dsrcb.houseKeepingDaemonOpts.waitBtwChecks = d
 	}
 	return dsrcb
 }
@@ -132,7 +132,7 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonInitDelay(d time.Duration)
 // Value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
-		dsrcb.consolidateDbDaemonOpts.initDelay = d
+		dsrcb.houseKeepingDaemonOpts.initDelay = d
 	}
 	return dsrcb
 }
@@ -200,7 +200,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
 		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
 		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
-		houseKeepingDaemon:       reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
+		houseKeepingDaemon:       reliableClientDaemon{daemonOpts: dsrcb.houseKeepingDaemonOpts},
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
