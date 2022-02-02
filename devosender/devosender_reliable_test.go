@@ -1518,7 +1518,7 @@ func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
 	}
 }
 
-func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
+func TestReliableClient_statusHouseKeepingDaemon__consolidate_error(t *testing.T) {
 	// applogger to check errors
 	var buf bytes.Buffer
 	al := &applogger.WriterAppLogger{
@@ -1536,7 +1536,7 @@ func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
 	}
 
 	// starts daemon execution
-	rc.consolidateDbDaemon()
+	rc.statusHouseKeepingDaemon()
 
 	// wait and stop daemon
 	time.Sleep(time.Millisecond * 50)
@@ -1544,13 +1544,13 @@ func TestReliableClient_consolidateDbDaemon__consolidate_error(t *testing.T) {
 
 	// Checks that message is expected
 	got := buf.String()
-	wantPrefix := "ERROR Error While perform status.HouseKeeping in consolidateDbDaemon: Receiver func call with nil pointer\n"
+	wantPrefix := "ERROR Error While perform status.HouseKeeping in statusHouseKeepingDaemon: Receiver func call with nil pointer\n"
 	if !strings.HasPrefix(got, wantPrefix) {
-		t.Errorf("ReliableClient.clientReconnectionDaemon() ConsolidateStatusDb logger msg = %v, wantPrefix %v", got, wantPrefix)
+		t.Errorf("ReliableClient.statusHouseKeepingDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
 }
 
-func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
+func TestReliableClient_statusHouseKeepingDaemon__recreateDb(t *testing.T) {
 	// applogger to check errors
 	var buf bytes.Buffer
 	al := &applogger.WriterAppLogger{
@@ -1558,10 +1558,10 @@ func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
 		Level:  applogger.DEBUG,
 	}
 
-	os.RemoveAll("/tmp/devosender-tests-ReliableClient_consolidateDbDaemon__recreateDb")
+	os.RemoveAll("/tmp/devosender-tests-ReliableClient_statusHouseKeepingDaemon__recreateDb")
 
 	statusdb, err := status.NewNutsDBStatusBuilder().
-		DbPath("/tmp/devosender-tests-ReliableClient_consolidateDbDaemon__recreateDb").
+		DbPath("/tmp/devosender-tests-ReliableClient_statusHouseKeepingDaemon__recreateDb").
 		DbSegmentSize(256).
 		FilesToConsolidateDb(1024). // To prevent consolidate files right now
 		RecreateDbClientAfterConsolidation(false).
@@ -1602,7 +1602,7 @@ func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
 		appLogger: al,
 		status: func() status.Status {
 			r, err := status.NewNutsDBStatusBuilder().
-				DbPath("/tmp/devosender-tests-ReliableClient_consolidateDbDaemon__recreateDb").
+				DbPath("/tmp/devosender-tests-ReliableClient_statusHouseKeepingDaemon__recreateDb").
 				DbSegmentSize(256). // Important: This value should be enought to adming Merges
 				FilesToConsolidateDb(2).
 				RecreateDbClientAfterConsolidation(true).
@@ -1626,24 +1626,24 @@ func TestReliableClient_consolidateDbDaemon__recreateDb(t *testing.T) {
 	}
 
 	// starts daemon execution
-	rc.consolidateDbDaemon()
+	rc.statusHouseKeepingDaemon()
 
 	// wait for consolidation call stop daemon
 	time.Sleep(time.Millisecond * 200)
 
 	// Checks that message is expected
 	got := buf.String()
-	wantPrefix := "DEBUG consolidateDbDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
-		"DEBUG consolidateDbDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
-		"DEBUG Status db consolidated: Before: KeyCount: 48, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 25, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 4, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
+	wantPrefix := "DEBUG statusHouseKeepingDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"DEBUG statusHouseKeepingDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
+		"DEBUG Status HouseKeeping results: Before: KeyCount: 48, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 25, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 4, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
 	if !strings.HasPrefix(got, wantPrefix) {
-		t.Errorf("ReliableClient.clientReconnectionDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
+		t.Errorf("ReliableClient.statusHouseKeepingDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
 
-	os.RemoveAll("/tmp/devosender-tests-ReliableClient_consolidateDbDaemon__recreateDb")
+	os.RemoveAll("/tmp/devosender-tests-ReliableClient_statusHouseKeepingDaemon__recreateDb")
 }
 
-func TestReliableClient_consolidateDbDaemon(t *testing.T) {
+func TestReliableClient_statusHouseKeepingDaemon(t *testing.T) {
 	tests := []struct {
 		name    string
 		dsrc    *ReliableClient
@@ -1670,8 +1670,8 @@ func TestReliableClient_consolidateDbDaemon(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.dsrc.consolidateDbDaemon(); (err != nil) != tt.wantErr {
-				t.Errorf("ReliableClient.consolidateDbDaemon() error = %v, wantErr %v", err, tt.wantErr)
+			if err := tt.dsrc.statusHouseKeepingDaemon(); (err != nil) != tt.wantErr {
+				t.Errorf("ReliableClient.statusHouseKeepingDaemon() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
