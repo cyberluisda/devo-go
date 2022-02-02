@@ -184,7 +184,7 @@ func TestReliableClientBuilder_ClientReconnDaemonInitDelay(t *testing.T) {
 	}
 }
 
-func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
+func TestReliableClientBuilder_HouseKeepingDaemonInitDelay(t *testing.T) {
 	type fields struct {
 		houseKeepingDaemonOpts daemonOpts
 	}
@@ -219,8 +219,8 @@ func TestReliableClientBuilder_ConsolidateDbDaemonInitDelay(t *testing.T) {
 			dsrcb := &ReliableClientBuilder{
 				houseKeepingDaemonOpts: tt.fields.houseKeepingDaemonOpts,
 			}
-			if got := dsrcb.ConsolidateDbDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ReliableClientBuilder.ConsolidateDbDaemonInitDelay() = %+v, want %+v", got, tt.want)
+			if got := dsrcb.HouseKeepingDaemonInitDelay(tt.args.d); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.HouseKeepingDaemonInitDelay() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}
@@ -1464,8 +1464,8 @@ func TestReliableClient_clientReconnectionDaemon__recreate_error(t *testing.T) {
 			NewClientBuilder().
 				EntryPoint("NO_VALID_PROTOCOL://localhost")).
 		EnableStandByModeTimeout(time.Millisecond * 50).
-		RetryDaemonInitDelay(time.Minute).         // Prevent retry daemon runs during tests
-		ConsolidateDbDaemonInitDelay(time.Minute). // Prevent retry daemon runs during tests
+		RetryDaemonInitDelay(time.Minute).        // Prevent retry daemon runs during tests
+		HouseKeepingDaemonInitDelay(time.Minute). // Prevent retry daemon runs during tests
 		ClientReconnDaemonWaitBtwChecks(time.Millisecond * 50).
 		ClientReconnDaemonInitDelay(time.Millisecond * 50).
 		AppLogger(&applogger.WriterAppLogger{
