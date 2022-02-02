@@ -200,7 +200,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
 		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
 		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
-		consolidateDaemon:        reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
+		houseKeepingDaemon:       reliableClientDaemon{daemonOpts: dsrcb.consolidateDbDaemonOpts},
 		daemonStopTimeout:        dsrcb.daemonStopTimeout,
 		daemonStopped:            make(chan bool),
 		flushTimeout:             dsrcb.flushTimeout,
@@ -230,7 +230,7 @@ type ReliableClient struct {
 	status                   status.Status
 	retryDaemon              reliableClientDaemon
 	reconnDaemon             reliableClientDaemon
-	consolidateDaemon        reliableClientDaemon
+	houseKeepingDaemon       reliableClientDaemon
 	daemonStopTimeout        time.Duration
 	clientMtx                sync.Mutex
 	standByMode              bool
@@ -582,13 +582,13 @@ func (dsrc *ReliableClient) String() string {
 
 	return fmt.Sprintf(
 		"Client: {%s}, status: {%s}, retryDaemon: %v, "+
-			"reconnDaemon: %v, consolidateDbDaemon: %v, daemonStopTimeout: %v, "+
+			"reconnDaemon: %v, houseKeepingDaemon: %v, daemonStopTimeout: %v, "+
 			"standByMode: %v, enableStandByModeTimeout: %v, daemonStopped: %v, flushTimeout: %v",
 		dsrc.Client.String(),
 		statusStr,
 		dsrc.retryDaemon,
 		dsrc.reconnDaemon,
-		dsrc.consolidateDaemon,
+		dsrc.houseKeepingDaemon,
 		dsrc.daemonStopTimeout,
 		dsrc.standByMode,
 		dsrc.enableStandByModeTimeout,
@@ -649,7 +649,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 func (dsrc *ReliableClient) daemonsShutdown() error {
 	dsrc.retryDaemon.stop = true
 	dsrc.reconnDaemon.stop = true
-	dsrc.consolidateDaemon.stop = true
+	dsrc.houseKeepingDaemon.stop = true
 
 	errors := make([]error, 0)
 
@@ -773,18 +773,18 @@ const (
 // statusHouseKeepingDaemon runs in background the consolidate status db daemon. This daemon checks
 // periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
 func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
-	if dsrc.consolidateDaemon.waitBtwChecks <= 0 {
-		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.consolidateDaemon.waitBtwChecks)
+	if dsrc.houseKeepingDaemon.waitBtwChecks <= 0 {
+		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
-		daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, true)
+		daemonSleep(&(dsrc.houseKeepingDaemon), DefaultDaemonMicroWait, true)
 
-		dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon working: %+v", dsrc.consolidateDaemon)
+		dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon working: %+v", dsrc.houseKeepingDaemon)
 
-		for !dsrc.consolidateDaemon.stop {
+		for !dsrc.houseKeepingDaemon.stop {
 
-			dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon shot: %+v", dsrc.consolidateDaemon)
+			dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon shot: %+v", dsrc.houseKeepingDaemon)
 
 			var err error
 			beginTime := time.Now() // For warning if spended time is high
@@ -827,7 +827,7 @@ func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 				)
 			}
 
-			daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, false)
+			daemonSleep(&(dsrc.houseKeepingDaemon), DefaultDaemonMicroWait, false)
 		}
 
 		// Closed signal
