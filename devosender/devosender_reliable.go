@@ -636,9 +636,9 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	}
 
 	// Consolidate status db
-	err = dsrc.consolidateDbDaemon()
+	err = dsrc.statusHouseKeepingDaemon()
 	if err != nil {
-		return fmt.Errorf("While starts consolidate status db daemon: %w", err)
+		return fmt.Errorf("While starts statusHouseKeeping daemon: %w", err)
 	}
 
 	return nil
@@ -770,9 +770,9 @@ const (
 	consolidationDmnNewDbClientWarnLimit = time.Second * 2
 )
 
-// consolidateDbDaemon runs in background the consolidate status db daemon. This daemon checks
+// statusHouseKeepingDaemon runs in background the consolidate status db daemon. This daemon checks
 // periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
-func (dsrc *ReliableClient) consolidateDbDaemon() error {
+func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 	if dsrc.consolidateDaemon.waitBtwChecks <= 0 {
 		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.consolidateDaemon.waitBtwChecks)
 	}
@@ -780,11 +780,11 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 		// Init delay
 		daemonSleep(&(dsrc.consolidateDaemon), DefaultDaemonMicroWait, true)
 
-		dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon working: %+v", dsrc.consolidateDaemon)
+		dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon working: %+v", dsrc.consolidateDaemon)
 
 		for !dsrc.consolidateDaemon.stop {
 
-			dsrc.appLogger.Logf(applogger.DEBUG, "consolidateDbDaemon shot: %+v", dsrc.consolidateDaemon)
+			dsrc.appLogger.Logf(applogger.DEBUG, "statusHouseKeepingDaemon shot: %+v", dsrc.consolidateDaemon)
 
 			var err error
 			beginTime := time.Now() // For warning if spended time is high
@@ -801,7 +801,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 				if dsrc.appLogger.IsLevelEnabled(applogger.DEBUG) {
 					strAfter = dsrc.status.String()
 					if strBefore != strAfter {
-						dsrc.appLogger.Logf(applogger.DEBUG, "Status db consolidated: Before: %s, After: %s", strBefore, strAfter)
+						dsrc.appLogger.Logf(applogger.DEBUG, "Status HouseKeeping results: Before: %s, After: %s", strBefore, strAfter)
 					}
 				}
 			}
@@ -823,7 +823,7 @@ func (dsrc *ReliableClient) consolidateDbDaemon() error {
 			if err != nil {
 				dsrc.appLogger.Logf(
 					applogger.ERROR,
-					"Error While perform status.HouseKeeping in consolidateDbDaemon: %v", err,
+					"Error While perform status.HouseKeeping in statusHouseKeepingDaemon: %v", err,
 				)
 			}
 
