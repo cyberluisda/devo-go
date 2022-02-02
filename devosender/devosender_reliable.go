@@ -101,9 +101,9 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 	return dsrcb
 }
 
-// ConsolidateDbDaemonWaitBtwChecks sets the interval time waited by daemon between checks for consolidate status db.
+// HouseKeepingDaemonWaitBtwChecks sets the interval time waited by daemon between checks for consolidate status db.
 // Value is set only if d value is greater than 0
-func (dsrcb *ReliableClientBuilder) ConsolidateDbDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
+func (dsrcb *ReliableClientBuilder) HouseKeepingDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
 		dsrcb.houseKeepingDaemonOpts.waitBtwChecks = d
 	}
