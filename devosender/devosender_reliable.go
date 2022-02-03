@@ -764,7 +764,6 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 
 const (
 	consolidationDmnConsolidateWarnLimit = time.Second * 10
-	consolidationDmnNewDbClientWarnLimit = time.Second * 2
 )
 
 // statusHouseKeepingDaemon runs in background the status housekeeping daemon. This daemon execute
