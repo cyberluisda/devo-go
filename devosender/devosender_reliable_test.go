@@ -1212,8 +1212,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 		{
 			"Error: status db nil",
 			fields{
-				appLogger:             &applogger.NoLogAppLogger{},
-				consolidateDbNumFiles: 2, //ConsolidateStatusDb required field
+				appLogger: &applogger.NoLogAppLogger{},
 			},
 			true,
 		},
