@@ -405,7 +405,7 @@ func (dsrc *ReliableClient) Flush() error {
 			err = dsrc.status.FinishRecord(ID)
 			if errors.Is(err, status.ErrRecordNotFoundInIdx) {
 				dsrc.appLogger.Logf(
-					applogger.WARNING,
+					applogger.DEBUG,
 					"Ignoring record %s after assuming that was send by reason: %v", ID, err,
 				)
 			} else if err != nil {
