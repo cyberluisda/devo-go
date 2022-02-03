@@ -98,8 +98,8 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonWaitBtwChecks(d time.Durat
 	return dsrcb
 }
 
-// HouseKeepingDaemonWaitBtwChecks sets the interval time waited by daemon between checks for consolidate status db.
-// Value is set only if d value is greater than 0
+// HouseKeepingDaemonWaitBtwChecks sets the interval time waited by daemon between executions
+// of stattus HouseKeeping operations. Value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) HouseKeepingDaemonWaitBtwChecks(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
 		dsrcb.houseKeepingDaemonOpts.waitBtwChecks = d
@@ -125,8 +125,8 @@ func (dsrcb *ReliableClientBuilder) ClientReconnDaemonInitDelay(d time.Duration)
 	return dsrcb
 }
 
-// HouseKeepingDaemonInitDelay sets the initial time delay to wait while consolidate status db daemon is starting.
-// Value is set only if d value is greater than 0
+// HouseKeepingDaemonInitDelay sets the initial time delay to wait before HouseKeepingDaemon
+// launchs the first execution. Value is set only if d value is greater than 0
 func (dsrcb *ReliableClientBuilder) HouseKeepingDaemonInitDelay(d time.Duration) *ReliableClientBuilder {
 	if d > 0 {
 		dsrcb.houseKeepingDaemonOpts.initDelay = d
@@ -632,7 +632,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 		return fmt.Errorf("While starts client reconnection daemon: %w", err)
 	}
 
-	// Consolidate status db
+	// status HouseKeeping
 	err = dsrc.statusHouseKeepingDaemon()
 	if err != nil {
 		return fmt.Errorf("While starts statusHouseKeeping daemon: %w", err)
@@ -767,8 +767,8 @@ const (
 	consolidationDmnNewDbClientWarnLimit = time.Second * 2
 )
 
-// statusHouseKeepingDaemon runs in background the consolidate status db daemon. This daemon checks
-// periodically the status db files and consolidate it calling RelicableClient.ConsolidateStatusDb()
+// statusHouseKeepingDaemon runs in background the status housekeeping daemon. This daemon execute
+// periodically the status.HouseKeeping() method
 func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 	if dsrc.houseKeepingDaemon.waitBtwChecks <= 0 {
 		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
