@@ -72,7 +72,7 @@ func main() {
 	statusFileSize := flag.Int64("status-file-size", nutsdb.DefaultOptions.SegmentSize, "Max size per file used to persist status")
 	retryDaemonWait := flag.Duration("retry-duration-checks", time.Second*30, "Time to wait between retry pending events shot")
 	reconnectDaemonWait := flag.Duration("reconn-duration-checks", time.Minute, "Time to wait between two consecutive times that checks connection failed and reconnects in afirmative case")
-	consolidateDaemonWait := flag.Duration("consol-duration-checks", time.Minute, "Time to wait between two consecutive times to checks and consolidate status db if needed")
+	housekeepingDaemonWait := flag.Duration("housekeeping-duration-checks", time.Minute, "Time to wait between two consecutive times to launch status housekeeping if needed")
 	tcpTimeout := flag.Duration("tcp-timeout", time.Second*2, "Timeout to open tcp connection")
 	bufferSize := flag.Uint("buffer", status.DefaultBufferSize, "Internal status buffer size")
 	displayOrigID := flag.Bool("display-orig-msg-id", false, "If true display the first ID for each mesage generated")
@@ -157,10 +157,10 @@ func main() {
 				BufferSize(*bufferSize),
 		).
 		ClientReconnDaemonInitDelay(time.Second * 15).
-		ConsolidateDbDaemonInitDelay(time.Minute).
+		HouseKeepingDaemonInitDelay(time.Minute).
 		RetryDaemonInitDelay(time.Second * 5).
 		ClientReconnDaemonWaitBtwChecks(*reconnectDaemonWait).
-		ConsolidateDbDaemonWaitBtwChecks(*consolidateDaemonWait).
+		HouseKeepingDaemonWaitBtwChecks(*housekeepingDaemonWait).
 		RetryDaemonWaitBtwChecks(*retryDaemonWait).
 		FlushTimeout(time.Second).
 		DaemonStopTimeout(time.Minute).
