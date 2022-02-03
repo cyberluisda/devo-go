@@ -687,18 +687,19 @@ func TestReliableClient_SendWTagAndCompressorAsync(t *testing.T) {
 
 func TestReliableClient_Flush(t *testing.T) {
 	type fields struct {
-		Client                   *Client
-		clientBuilder            *ClientBuilder
-		status                   status.Status
-		retryDaemon              reliableClientDaemon
-		reconnDaemon             reliableClientDaemon
-		daemonStopTimeout        time.Duration
-		standByMode              bool
-		enableStandByModeTimeout time.Duration
-		dbInitCleanedup          bool
-		daemonStopped            chan bool
-		flushTimeout             time.Duration
-		appLogger                applogger.SimpleAppLogger
+		Client                      *Client
+		clientBuilder               *ClientBuilder
+		status                      status.Status
+		retryDaemon                 reliableClientDaemon
+		reconnDaemon                reliableClientDaemon
+		daemonStopTimeout           time.Duration
+		standByMode                 bool
+		enableStandByModeTimeout    time.Duration
+		dbInitCleanedup             bool
+		daemonStopped               chan bool
+		flushTimeout                time.Duration
+		maxRecordsResentInFlushCall int
+		appLogger                   applogger.SimpleAppLogger
 	}
 	type asyncMsgs struct {
 		t string
@@ -820,21 +821,56 @@ func TestReliableClient_Flush(t *testing.T) {
 			true,
 			false,
 		},
+		{
+			"Max events limit reached",
+			fields{
+				standByMode: false,
+				Client: func() *Client {
+					r, err := NewClientBuilder().EntryPoint("udp://localhost:13000").Build()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				flushTimeout: time.Second,
+				status: func() status.Status {
+					os.RemoveAll("/tmp/tests-reliable-Flush-max-events-limit-reached")
+					sb := status.NewNutsDBStatusBuilder().DbPath("/tmp/tests-reliable-Flush-max-events-limit-reached")
+					r, err := sb.Build()
+					if err != nil {
+						panic(err)
+					}
+					return r
+				}(),
+				appLogger: &applogger.WriterAppLogger{
+					Writer: os.Stdout,
+					Level:  applogger.INFO,
+				},
+				maxRecordsResentInFlushCall: 1,
+			},
+			[]asyncMsgs{
+				{t: "tag1", m: "Mesg 1"},
+				{t: "tag2", m: "Mesg 2"},
+			},
+			false,
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsrc := &ReliableClient{
-				Client:                   tt.fields.Client,
-				clientBuilder:            tt.fields.clientBuilder,
-				status:                   tt.fields.status,
-				retryDaemon:              tt.fields.retryDaemon,
-				reconnDaemon:             tt.fields.reconnDaemon,
-				daemonStopTimeout:        tt.fields.daemonStopTimeout,
-				standByMode:              tt.fields.standByMode,
-				enableStandByModeTimeout: tt.fields.enableStandByModeTimeout,
-				daemonStopped:            tt.fields.daemonStopped,
-				flushTimeout:             tt.fields.flushTimeout,
-				appLogger:                tt.fields.appLogger,
+				Client:                      tt.fields.Client,
+				clientBuilder:               tt.fields.clientBuilder,
+				status:                      tt.fields.status,
+				retryDaemon:                 tt.fields.retryDaemon,
+				reconnDaemon:                tt.fields.reconnDaemon,
+				daemonStopTimeout:           tt.fields.daemonStopTimeout,
+				standByMode:                 tt.fields.standByMode,
+				enableStandByModeTimeout:    tt.fields.enableStandByModeTimeout,
+				daemonStopped:               tt.fields.daemonStopped,
+				flushTimeout:                tt.fields.flushTimeout,
+				maxRecordsResentInFlushCall: tt.fields.maxRecordsResentInFlushCall,
+				appLogger:                   tt.fields.appLogger,
 			}
 
 			for _, am := range tt.preAsyncMessages {
@@ -857,6 +893,7 @@ func TestReliableClient_Flush(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-Flush-pending")
 	os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors")
 	os.RemoveAll("/tmp/tests-reliable-Flush-pending-errors-no-conn")
+	os.RemoveAll("/tmp/tests-reliable-Flush-max-events-limit-reached")
 }
 
 func TestReliableClient_Close(t *testing.T) {
