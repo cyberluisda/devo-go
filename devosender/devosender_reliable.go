@@ -52,9 +52,6 @@ const (
 	// messages managed by client when Flush func is called. If timeout is reached
 	// then error will be send
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
-	// DefaultConsolidateDbNumFiles is default threshold value used to really consolidate
-	// statud db (Merge) when ReliableClient.ConsolidateStatusDb is called
-	DefaultConsolidateDbNumFiles uint8 = 4
 	// DefaultHouseKeepingDaemonWaitBtwChecks is the default time that status housekeeping daemon must wait
 	// between run checks or do any action
 	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute
