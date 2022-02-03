@@ -379,7 +379,9 @@ func (dsrc *ReliableClient) Flush() error {
 
 		// Now resend pending or mark as Evicted
 		evicted := make([]string, 0)
+		eventsSent := 0
 		for k, v := range idsToBeResend {
+
 			record, pos, err := dsrc.status.Get(k) // Evicted stats is managed by Get
 			if errors.Is(err, status.ErrRecordEvicted) {
 				// Evicted
@@ -389,8 +391,15 @@ func (dsrc *ReliableClient) Flush() error {
 			} else {
 				record.LastError = v
 				err = dsrc.resendRecord(record)
+				eventsSent++
+				if dsrc.maxRecordsResentInFlushCall > 0 && eventsSent >= dsrc.maxRecordsResentInFlushCall {
+					dsrc.appLogger.Logf(
+						applogger.WARNING,
+						"Limit of max number of events to re-send while Flush (%d) reached", eventsSent,
+					)
 
-				// FIXME check the limit here
+					break
+				}
 
 				if err != nil {
 					return fmt.Errorf("Error when resend record with id %s: %w", k, err)
