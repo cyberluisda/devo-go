@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/devosender"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
+	"github.com/cyberluisda/devo-go/devosender/status"
 )
 
 const (
@@ -74,7 +76,9 @@ The main procedure to implement this is:
 
 	// Sender
 	sender, err := devosender.NewReliableClientBuilder().
-		DbPath(statusPath).
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath(statusPath),
+		).
 		ClientBuilder(
 			devosender.NewClientBuilder().
 				EntryPoint(entrypoint1),
@@ -88,7 +92,7 @@ The main procedure to implement this is:
 
 	// Send messages
 	fmt.Println("Starting to send first messages batch asynchronously at", time.Now())
-	cpr := &devosender.Compressor{devosender.CompressorGzip, 1}
+	cpr := &compressor.Compressor{compressor.CompressorGzip, 1}
 	for i := 1; i <= numMessages1; i++ {
 		compress := batch2CompressSomeEvents && i%2 == 1
 		if compress {
@@ -117,7 +121,9 @@ The main procedure to implement this is:
 
 	// Sender to new url
 	sender, err = devosender.NewReliableClientBuilder().
-		DbPath(statusPath).
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath(statusPath),
+		).
 		ClientBuilder(
 			devosender.NewClientBuilder().
 				EntryPoint(entrypoint2),
