@@ -771,7 +771,7 @@ const (
 // periodically the status.HouseKeeping() method
 func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 	if dsrc.houseKeepingDaemon.waitBtwChecks <= 0 {
-		return fmt.Errorf("Time to wait between each check to consolidate status db: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
+		return fmt.Errorf("Invalid time to wait between each HouseKeeping execution: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
