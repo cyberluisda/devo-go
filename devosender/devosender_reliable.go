@@ -401,6 +401,7 @@ func (dsrc *ReliableClient) Flush() error {
 		for _, ID := range assumingWasSent {
 			err = dsrc.status.FinishRecord(ID)
 			if errors.Is(err, status.ErrRecordNotFoundInIdx) {
+				// Special case event was sent before
 				dsrc.appLogger.Logf(
 					applogger.DEBUG,
 					"Ignoring record %s after assuming that was send by reason: %v", ID, err,
