@@ -763,7 +763,7 @@ func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 }
 
 const (
-	consolidationDmnConsolidateWarnLimit = time.Second * 10
+	houseKeepingWarnLimit = time.Second * 10
 )
 
 // statusHouseKeepingDaemon runs in background the status housekeeping daemon. This daemon execute
@@ -803,7 +803,7 @@ func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 			}
 			endTime := time.Now()
 
-			thresold := beginTime.Add(consolidationDmnConsolidateWarnLimit)
+			thresold := beginTime.Add(houseKeepingWarnLimit)
 			// Spend time warning
 			if thresold.Before(endTime) {
 				dsrc.appLogger.Logf(
@@ -812,7 +812,7 @@ func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 					beginTime.Format(time.RFC3339Nano),
 					endTime.Format(time.RFC3339Nano),
 					thresold,
-					consolidationDmnConsolidateWarnLimit,
+					houseKeepingWarnLimit,
 				)
 			}
 
