@@ -1198,12 +1198,11 @@ func TestReliableClient_String(t *testing.T) {
 
 func TestReliableClient_daemonsSartup(t *testing.T) {
 	type fields struct {
-		status                status.Status
-		retryDaemon           reliableClientDaemon
-		reconnDaemon          reliableClientDaemon
-		houseKeepingDaemon    reliableClientDaemon
-		appLogger             applogger.SimpleAppLogger
-		consolidateDbNumFiles uint8
+		status             status.Status
+		retryDaemon        reliableClientDaemon
+		reconnDaemon       reliableClientDaemon
+		houseKeepingDaemon reliableClientDaemon
+		appLogger          applogger.SimpleAppLogger
 	}
 	tests := []struct {
 		name    string
@@ -1282,12 +1281,12 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 			true,
 		},
 		{
-			"Error: consolidate db daemon",
+			"Error: housekeeping daemon",
 			fields{
 				appLogger: &applogger.NoLogAppLogger{},
 				status: func() status.Status {
-					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-consolidateDB")
-					sb := status.NewNutsDBStatusBuilder().DbPath("/tmp/tests-reliable-daemonsSartup-consolidateDB")
+					os.RemoveAll("/tmp/tests-reliable-daemonsSartup-housekeeping")
+					sb := status.NewNutsDBStatusBuilder().DbPath("/tmp/tests-reliable-daemonsSartup-housekeeping")
 					r, err := sb.Build()
 					if err != nil {
 						panic(err)
@@ -1331,6 +1330,7 @@ func TestReliableClient_daemonsSartup(t *testing.T) {
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup")
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-retryEvents")
 	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-clientReconn")
+	os.RemoveAll("/tmp/tests-reliable-daemonsSartup-housekeeping")
 }
 
 func TestReliableClient_daemonsSartup_errorAsyncClosing(t *testing.T) {
@@ -1518,7 +1518,7 @@ func TestReliableClient_clientReconnectionDaemon(t *testing.T) {
 	}
 }
 
-func TestReliableClient_statusHouseKeepingDaemon__consolidate_error(t *testing.T) {
+func TestReliableClient_statusHouseKeepingDaemon__housekeeping_error(t *testing.T) {
 	// applogger to check errors
 	var buf bytes.Buffer
 	al := &applogger.WriterAppLogger{
