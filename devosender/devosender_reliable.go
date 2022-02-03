@@ -223,18 +223,19 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 // ReliableClient defines a Client with Reliable capatilities for Async operations only
 type ReliableClient struct {
 	*Client
-	clientBuilder            *ClientBuilder
-	status                   status.Status
-	retryDaemon              reliableClientDaemon
-	reconnDaemon             reliableClientDaemon
-	houseKeepingDaemon       reliableClientDaemon
-	daemonStopTimeout        time.Duration
-	clientMtx                sync.Mutex
-	standByMode              bool
-	enableStandByModeTimeout time.Duration
-	daemonStopped            chan bool
-	flushTimeout             time.Duration
-	appLogger                applogger.SimpleAppLogger
+	clientBuilder               *ClientBuilder
+	status                      status.Status
+	retryDaemon                 reliableClientDaemon
+	reconnDaemon                reliableClientDaemon
+	houseKeepingDaemon          reliableClientDaemon
+	daemonStopTimeout           time.Duration
+	clientMtx                   sync.Mutex
+	standByMode                 bool
+	enableStandByModeTimeout    time.Duration
+	daemonStopped               chan bool
+	flushTimeout                time.Duration
+	maxRecordsResentInFlushCall int
+	appLogger                   applogger.SimpleAppLogger
 }
 
 type reliableClientDaemon struct {
