@@ -25,6 +25,7 @@ type ReliableClientBuilder struct {
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
 	appLogger                applogger.SimpleAppLogger
+	maxRecordsResendByFlush  int
 }
 
 type daemonOpts struct {
