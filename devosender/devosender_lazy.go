@@ -257,9 +257,19 @@ func (lc *LazyClient) Flush() error {
 
 		// Send events
 		newIDs := make([]string, len(lc.buffer))
+		events := 0
 		for i, event := range lc.buffer {
 			newID := lc.Client.SendWTagAndCompressorAsync(event.Tag, event.Msg, event.Compressor)
 			newIDs[i] = newID
+			events++
+			if lc.maxRecordsResend > 0 && events >= lc.maxRecordsResend {
+				lc.appLogger.Logf(
+					applogger.WARNING,
+					"Limit of max number of events to re-send while Flush (%d) reached", events,
+				)
+
+				break
+			}
 
 			lc.Stats.SendFromBuffer++ // Update stats
 		}
