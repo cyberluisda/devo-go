@@ -698,7 +698,7 @@ func TestReliableClient_Flush(t *testing.T) {
 		dbInitCleanedup             bool
 		daemonStopped               chan bool
 		flushTimeout                time.Duration
-		maxRecordsResentInFlushCall int
+		maxRecordsResendInFlushCall int
 		appLogger                   applogger.SimpleAppLogger
 	}
 	type asyncMsgs struct {
@@ -846,7 +846,7 @@ func TestReliableClient_Flush(t *testing.T) {
 					Writer: os.Stdout,
 					Level:  applogger.INFO,
 				},
-				maxRecordsResentInFlushCall: 1,
+				maxRecordsResendInFlushCall: 1,
 			},
 			[]asyncMsgs{
 				{t: "tag1", m: "Mesg 1"},
@@ -869,7 +869,7 @@ func TestReliableClient_Flush(t *testing.T) {
 				enableStandByModeTimeout:    tt.fields.enableStandByModeTimeout,
 				daemonStopped:               tt.fields.daemonStopped,
 				flushTimeout:                tt.fields.flushTimeout,
-				maxRecordsResentInFlushCall: tt.fields.maxRecordsResentInFlushCall,
+				maxRecordsResendInFlushCall: tt.fields.maxRecordsResendInFlushCall,
 				appLogger:                   tt.fields.appLogger,
 			}
 

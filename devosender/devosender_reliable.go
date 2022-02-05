@@ -234,7 +234,7 @@ type ReliableClient struct {
 	enableStandByModeTimeout    time.Duration
 	daemonStopped               chan bool
 	flushTimeout                time.Duration
-	maxRecordsResentInFlushCall int
+	maxRecordsResendInFlushCall int
 	appLogger                   applogger.SimpleAppLogger
 }
 
@@ -392,7 +392,7 @@ func (dsrc *ReliableClient) Flush() error {
 				record.LastError = v
 				err = dsrc.resendRecord(record)
 				eventsSent++
-				if dsrc.maxRecordsResentInFlushCall > 0 && eventsSent >= dsrc.maxRecordsResentInFlushCall {
+				if dsrc.maxRecordsResendInFlushCall > 0 && eventsSent >= dsrc.maxRecordsResendInFlushCall {
 					dsrc.appLogger.Logf(
 						applogger.WARNING,
 						"Limit of max number of events to re-send while Flush (%d) reached", eventsSent,
