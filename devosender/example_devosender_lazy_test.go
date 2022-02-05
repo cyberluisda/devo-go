@@ -76,6 +76,7 @@ func ExampleLazyClient_StandBy() {
 		).
 		BufferSize(2).                         // very small buffers of two events only
 		EnableStandByModeTimeout(time.Second). // Set to 0 to wait for ever for async events when pass to stand by mode
+		MaxRecordsResendByFlush(10).           // Max records can be set too
 		Build()
 	if err != nil {
 		panic(err)
