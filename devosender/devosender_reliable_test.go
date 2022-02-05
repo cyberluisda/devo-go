@@ -394,6 +394,62 @@ func TestReliableClientBuilder_FlushTimeout(t *testing.T) {
 	}
 }
 
+func TestReliableClientBuilder_MaxRecordsResendByFlush(t *testing.T) {
+	type fields struct {
+		maxRecordsResendByFlush int
+	}
+	type args struct {
+		max int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ReliableClientBuilder
+	}{
+		{
+			"Param eq to 0",
+			fields{
+				maxRecordsResendByFlush: 20,
+			},
+			args{0},
+			&ReliableClientBuilder{
+				maxRecordsResendByFlush: 20,
+			},
+		},
+		{
+			"Param less to 0",
+			fields{
+				maxRecordsResendByFlush: 20,
+			},
+			args{-1},
+			&ReliableClientBuilder{
+				maxRecordsResendByFlush: 20,
+			},
+		},
+		{
+			"Param greater than 0",
+			fields{
+				0,
+			},
+			args{500},
+			&ReliableClientBuilder{
+				maxRecordsResendByFlush: 500,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsrcb := &ReliableClientBuilder{
+				maxRecordsResendByFlush: tt.fields.maxRecordsResendByFlush,
+			}
+			if got := dsrcb.MaxRecordsResendByFlush(tt.args.max); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReliableClientBuilder.MaxRecordsResendByFlush() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReliableClientBuilder_Build(t *testing.T) {
 	type fields struct {
 		clientBuilder            *ClientBuilder
