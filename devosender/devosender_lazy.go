@@ -43,6 +43,7 @@ type LazyClientBuilder struct {
 	bufferEventsSize         uint32
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
+	maxRecordsResendByFlush  int
 	appLogger                applogger.SimpleAppLogger
 }
 
