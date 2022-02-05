@@ -56,6 +56,9 @@ const (
 	// DefaultHouseKeepingDaemonWaitBtwChecks is the default time that status housekeeping daemon must wait
 	// between run checks or do any action
 	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute
+	// DefaultMaxRecordsResendByFlush is the default value for the max numbers of pending events to resend
+	// when Flush operation is called
+	DefaultMaxRecordsResendByFlush = 1000
 )
 
 // NewReliableClientBuilder return ReliableClientBuilder with intialized to default values
