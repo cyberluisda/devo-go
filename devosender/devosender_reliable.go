@@ -72,6 +72,7 @@ func NewReliableClientBuilder() *ReliableClientBuilder {
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		flushTimeout:             DefaultFlushAsyncTimeout,
 		appLogger:                &applogger.NoLogAppLogger{},
+		maxRecordsResendByFlush:  DefaultMaxRecordsResendByFlush,
 	}
 
 	return r
