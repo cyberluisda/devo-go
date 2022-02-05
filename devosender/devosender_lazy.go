@@ -59,8 +59,9 @@ const (
 // NewLazyClientBuilder is the factory method of LazyClientBuilder with defautl values set
 func NewLazyClientBuilder() *LazyClientBuilder {
 	return &LazyClientBuilder{
-		bufferEventsSize: LCBDefaultBufferEventsSize,
-		flushTimeout:     LCBDefaultFlushTimeout,
+		bufferEventsSize:        LCBDefaultBufferEventsSize,
+		flushTimeout:            LCBDefaultFlushTimeout,
+		maxRecordsResendByFlush: DefaultMaxRecordsResendByFlush,
 	}
 }
 
