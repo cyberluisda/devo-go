@@ -180,11 +180,9 @@ func (dsrcb *ReliableClientBuilder) AppLogger(lg applogger.SimpleAppLogger) *Rel
 }
 
 // MaxRecordsResendByFlush sets the max number of pending events to be resend when Flush events
-// is called. Value is set only if max is greater than 0
+// is called. Zero or negative values deactivate the functionallity
 func (dsrcb *ReliableClientBuilder) MaxRecordsResendByFlush(max int) *ReliableClientBuilder {
-	if max > 0 {
-		dsrcb.maxRecordsResendByFlush = max
-	}
+	dsrcb.maxRecordsResendByFlush = max
 	return dsrcb
 }
 
