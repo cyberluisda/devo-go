@@ -414,7 +414,7 @@ func TestReliableClientBuilder_MaxRecordsResendByFlush(t *testing.T) {
 			},
 			args{0},
 			&ReliableClientBuilder{
-				maxRecordsResendByFlush: 20,
+				maxRecordsResendByFlush: 0,
 			},
 		},
 		{
@@ -424,7 +424,7 @@ func TestReliableClientBuilder_MaxRecordsResendByFlush(t *testing.T) {
 			},
 			args{-1},
 			&ReliableClientBuilder{
-				maxRecordsResendByFlush: 20,
+				maxRecordsResendByFlush: -1,
 			},
 		},
 		{
