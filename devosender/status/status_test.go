@@ -916,7 +916,6 @@ func TestNutsDBStatus_Get(t *testing.T) {
 
 func TestNutsDBStatus_FinishRecord(t *testing.T) {
 	type setup struct {
-		initialOrderIdx      *orderIdx
 		initialDataBucket    map[string][]byte
 		initialCounCounter   int
 		initialFinishCounter int
@@ -940,57 +939,63 @@ func TestNutsDBStatus_FinishRecord(t *testing.T) {
 		},
 		{
 			"ID not found in index",
-			setup{
-				initialOrderIdx: &orderIdx{},
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{},
 			},
-			&NutsDBStatus{},
 			args{"id-1"},
 			true,
 		},
 		{
 			"Error decrement count counter",
-			setup{
-				initialOrderIdx: &orderIdx{
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs: map[string]string{
 						"id-1": "id-1",
 					},
 				},
 			},
-			&NutsDBStatus{},
 			args{"id-1"},
 			true,
 		},
 		{
 			"ID only in idx",
 			setup{
-				initialOrderIdx: &orderIdx{
+				initialCounCounter: 1,
+			},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs: map[string]string{
 						"id-1": "id-1",
 					},
 				},
-				initialCounCounter: 1,
 			},
-			&NutsDBStatus{},
 			args{"id-1"},
 			false,
 		},
 		{
 			"Delete",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs: map[string]string{
-						"id-1": "id-1",
-					},
-				},
 				initialCounCounter: 1,
 				initialDataBucket: map[string][]byte{
 					"id-1": []byte("fake id-1"),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+					},
+				},
+			},
 			args{"id-1"},
 			false,
 		},
@@ -1003,14 +1008,6 @@ func TestNutsDBStatus_FinishRecord(t *testing.T) {
 		tt.ns.dbOpts = nutsdb.DefaultOptions
 		tt.ns.dbOpts.Dir = path
 
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 		if tt.setup.initialCounCounter > 0 {
 			err := db.Update(func(tx *nutsdb.Tx) error {
 				return set(tx, statsBucket, countKey, tt.setup.initialCounCounter)
