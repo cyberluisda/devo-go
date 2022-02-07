@@ -324,6 +324,10 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 
 // Get is the Status.Get implementation for NutsDBStatus: Returns EventRecord based on ID
 func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return nil, 0, ErrIdxNoIntialized
+	}
+
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
 
@@ -331,25 +335,21 @@ func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
 	var pos int
 	evictedRecord := false
 	err := ns.db.Update(func(tx *nutsdb.Tx) error {
-		idx, err := getOrderIdxInTx(tx)
-		if err != nil {
-			return fmt.Errorf("While load order index: %w", err)
-		}
-
 		// Load position in order idx
-		pos = idx.indexOf(ID)
+		pos = ns.idx.indexOf(ID)
 		if pos == -1 {
 			return ErrRecordNotFoundInIdx
 		}
 
 		// Get reference in idx
-		origID := idx.Refs[ID]
+		origID := ns.idx.Refs[ID]
 
 		// Get register raw
+		var err error
 		r, err = getDataRecordInTx(tx, []byte(origID))
 		if IsNotFoundErr(err) {
 			// Assuming record was expired
-			err = removeFromIdxInTx(tx, idx, pos, evictedKey)
+			err = removeFromIdxInTx(tx, ns.idx, pos, evictedKey)
 			if err != nil {
 				return fmt.Errorf("While mark %s as evicted: %w", ID, err)
 			}
@@ -362,7 +362,7 @@ func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
 
 			r = nil
 			pos = -1
-			evictedRecord = true // Instaed of return return ErrRecordEvicted to prevent nutsdb rollback
+			evictedRecord = true // Instead of return return ErrRecordEvicted to prevent nutsdb rollback
 		} else if err != nil {
 			return fmt.Errorf("While load record: %w", err)
 		}
