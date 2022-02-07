@@ -320,6 +320,46 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 	return err
 }
 
+// BatchUpdate is similar to update but new Id is based on a function parameter
+// Function parameter will receive the current id value and it should return new
+// id or empty string "" if update should not be done
+func (ns *NutsDBStatus) BatchUpdate(f func(old string) string) error {
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return ErrIdxNoIntialized
+	}
+
+	// Get all ids
+	allIds, err := ns.AllIDs()
+	if err != nil {
+		return fmt.Errorf("While load AllIDs: %v", err)
+	}
+
+	if len(allIds) == 0 {
+		return nil
+	}
+
+	idsMapping := make(map[string]string, len(allIds))
+	for _, old := range allIds {
+		new := f(old)
+		if new != "" {
+			idsMapping[old] = new
+		}
+	}
+
+	for old, new := range idsMapping {
+		err := ns.Update(old, new)
+		if errors.Is(err, ErrRecordEvicted) || errors.Is(err, ErrRecordNotFoundInIdx) {
+			// Ignoring this kind of errors because it means that element
+			// was finished before doing the mapping
+		} else if err != nil {
+			return fmt.Errorf("While updating record with old id %s with new id %s: %v",
+				old, new, err)
+		}
+	}
+
+	return nil
+}
+
 // Get is the Status.Get implementation for NutsDBStatus: Returns EventRecord based on ID
 func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
 	if ns.idx == nil || ns.idx.Refs == nil {
