@@ -332,7 +332,7 @@ func (ns *NutsDBStatus) BatchUpdate(f func(old string) string) error {
 	// Get all ids
 	allIds, err := ns.AllIDs()
 	if err != nil {
-		return fmt.Errorf("While load AllIDs: %v", err)
+		return fmt.Errorf("While load AllIDs: %w", err)
 	}
 
 	if len(allIds) == 0 {
@@ -353,7 +353,7 @@ func (ns *NutsDBStatus) BatchUpdate(f func(old string) string) error {
 			// Ignoring this kind of errors because it means that element
 			// was finished before doing the mapping
 		} else if err != nil {
-			return fmt.Errorf("While updating record with old id %s with new id %s: %v",
+			return fmt.Errorf("While updating record with old id %s with new id %s: %w",
 				old, new, err)
 		}
 	}
