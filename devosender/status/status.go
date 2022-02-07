@@ -174,12 +174,10 @@ type Status interface {
 
 const (
 	dataBucket  = "data"
-	idxBucket   = "idx"
 	statsBucket = "stats"
 )
 
 var (
-	idxKey      = []byte("idx")
 	countKey    = []byte("count")
 	updatedKey  = []byte("updated")
 	evictedKey  = []byte("evicted")
