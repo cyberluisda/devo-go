@@ -751,7 +751,6 @@ func TestNutsDBStatus_Update(t *testing.T) {
 
 func TestNutsDBStatus_Get(t *testing.T) {
 	type setup struct {
-		initialOrderIdx    *orderIdx
 		initialDataBucket  map[string][]byte
 		initialCounCounter int
 	}
@@ -778,13 +777,14 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		},
 		{
 			"ID not found in index",
-			setup{
-				initialOrderIdx: &orderIdx{
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs:  map[string]string{"id-1": "id-1"},
 				},
 			},
-			&NutsDBStatus{},
 			args{"id-4"},
 			nil,
 			-1,
@@ -792,13 +792,14 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		},
 		{
 			"Error count counter",
-			setup{
-				initialOrderIdx: &orderIdx{
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs:  map[string]string{"id-1": "id-1"},
 				},
 			},
-			&NutsDBStatus{},
 			args{"id-1"},
 			nil,
 			0,
@@ -807,13 +808,15 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		{
 			"Error event expired",
 			setup{
-				initialOrderIdx: &orderIdx{
+				initialCounCounter: 1,
+			},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs:  map[string]string{"id-1": "id-1"},
 				},
-				initialCounCounter: 1,
 			},
-			&NutsDBStatus{},
 			args{"id-1"},
 			nil,
 			-1,
@@ -822,16 +825,17 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		{
 			"Error get event",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialCounCounter: 1,
 				initialDataBucket: map[string][]byte{
 					"id-1": []byte("unmarshall error"),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				}},
 			args{"id-1"},
 			nil,
 			0,
@@ -840,10 +844,6 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		{
 			"Get event",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialCounCounter: 1,
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
@@ -855,7 +855,13 @@ func TestNutsDBStatus_Get(t *testing.T) {
 					}(),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
 			args{"id-1"},
 			&EventRecord{
 				AsyncIDs: []string{"id-1"},
@@ -872,14 +878,6 @@ func TestNutsDBStatus_Get(t *testing.T) {
 		tt.ns.dbOpts = nutsdb.DefaultOptions
 		tt.ns.dbOpts.Dir = path
 
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 		if tt.setup.initialCounCounter > 0 {
 			err := db.Update(func(tx *nutsdb.Tx) error {
 				return set(tx, statsBucket, countKey, tt.setup.initialCounCounter)
