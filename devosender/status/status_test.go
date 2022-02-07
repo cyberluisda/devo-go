@@ -1041,7 +1041,6 @@ func TestNutsDBStatus_FinishRecord(t *testing.T) {
 
 func TestNutsDBStatus_AllIDs(t *testing.T) {
 	type setup struct {
-		initialOrderIdx   *orderIdx
 		initialDataBucket map[string][]byte
 	}
 	tests := []struct {
@@ -1060,35 +1059,38 @@ func TestNutsDBStatus_AllIDs(t *testing.T) {
 		},
 		{
 			"Evicted event",
-			setup{
-				initialOrderIdx: &orderIdx{
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
 					Order: []string{"id-1"},
 					Refs: map[string]string{
 						"id-1": "id-1",
 					},
 				},
 			},
-			&NutsDBStatus{},
 			[]string{},
 			false,
 		},
 		{
 			"Return IDs",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1", "id-3"},
-					Refs: map[string]string{
-						"id-1": "id-1",
-						"id-3": "id-2",
-					},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": []byte("fake id-1"),
 					"id-2": []byte("fake id-2"),
 					"id-9": []byte("ignored because is missing in index"),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1", "id-3"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-3": "id-2",
+					},
+				},
+			},
 			[]string{"id-1", "id-3"},
 			false,
 		},
@@ -1100,15 +1102,6 @@ func TestNutsDBStatus_AllIDs(t *testing.T) {
 		tt.ns.db = db
 		tt.ns.dbOpts = nutsdb.DefaultOptions
 		tt.ns.dbOpts.Dir = path
-
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.ns.AllIDs()
