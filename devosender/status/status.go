@@ -197,6 +197,7 @@ type NutsDBStatus struct {
 	bufferSize                         uint
 	filesToConsolidateDb               int
 	recreateDbClientAfterConsolidation bool
+	idx                                *orderIdx
 }
 
 // New is the New implementation of Status interface for NutsDBStatus.
