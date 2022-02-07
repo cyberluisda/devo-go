@@ -567,11 +567,10 @@ func (ns *NutsDBStatus) Stats() Stats {
 		v, _ = cont(tx, statsBucket, updatedKey, true)
 		r.Updated = v
 
-		od, _ := getOrderIdxInTx(tx)
-		if od == nil {
+		if ns.idx == nil {
 			r.DbIdxSize = 0
 		} else {
-			r.DbIdxSize = len(od.Order)
+			r.DbIdxSize = len(ns.idx.Order)
 		}
 
 		// high resources stats
