@@ -1258,7 +1258,7 @@ func TestReliableClient_String(t *testing.T) {
 				"connAddr: '<nil>', ReplaceSequences: map[], tls: <nil>, #asyncErrors: 0, " +
 				"tcp: {<nil>} -> <nil>, connectionUsedTimestamp: '0001-01-01 00:00:00 +0000 UTC', " +
 				"maxTimeConnActive: '0s', #asyncItems: 0, lastSendCallTimestamp: " +
-				"'0001-01-01 00:00:00 +0000 UTC'}, status: {KeyCount: 2, ListIdx: map[], " +
+				"'0001-01-01 00:00:00 +0000 UTC'}, status: {KeyCount: 0, ListIdx: map[], " +
 				"consolidationDbNumFilesThreshold: 4, dbFiles: 1, initialized: true, bufferSize: 123, " +
 				"eventTTL: 20, recreateDbClientAfterConsolidation: true}, retryDaemon: " +
 				"{ waitBtwChecks: 1m0s, initDelay: 2s, stop: true}, reconnDaemon: { " +
@@ -1727,7 +1727,7 @@ func TestReliableClient_statusHouseKeepingDaemon__recreateDb(t *testing.T) {
 	got := buf.String()
 	wantPrefix := "DEBUG statusHouseKeepingDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
 		"DEBUG statusHouseKeepingDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
-		"DEBUG Status HouseKeeping results: Before: KeyCount: 48, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 25, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 4, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
+		"DEBUG Status HouseKeeping results: Before: KeyCount: 38, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 17, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 3, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
 	if !strings.HasPrefix(got, wantPrefix) {
 		t.Errorf("ReliableClient.statusHouseKeepingDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
