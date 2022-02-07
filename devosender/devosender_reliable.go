@@ -224,6 +224,19 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 		return nil, fmt.Errorf("Error while load satus engine: %w", err)
 	}
 
+	// Ensure existing elements in status are marked as no-conn (to prevent daemons eviction)
+	// Passing all remaining events to no-conn
+	err = r.status.BatchUpdate(
+		func(o string) string {
+			if isNoConnID(o) {
+				return ""
+			}
+			return newNoConnID()
+		})
+	if err != nil {
+		return nil, fmt.Errorf("While mark remaining IDs as no-conn in status engine: %w", err)
+	}
+
 	// Daemons startup
 	err = r.daemonsSartup()
 	if err != nil {
