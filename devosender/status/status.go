@@ -424,31 +424,20 @@ func (ns *NutsDBStatus) FinishRecord(ID string) error {
 // AllIDs is the Status.AllIDs implementation for NutsDBStatus: Return all ids based
 // on index information only
 func (ns *NutsDBStatus) AllIDs() ([]string, error) {
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return nil, ErrIdxNoIntialized
+	}
+
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
 
-	// Load index
-	var idx *orderIdx
-	err := ns.db.View(func(tx *nutsdb.Tx) error {
-		var err error
-		idx, err = getOrderIdxInTx(tx)
-
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("While load order index: %w", err)
-	}
-
 	// Evicted events
-	err = ns.db.Update(func(tx *nutsdb.Tx) error {
+	err := ns.db.Update(func(tx *nutsdb.Tx) error {
 
 		// Look for expired
 		posToRemove := make([]int, 0)
-		for i, ID := range idx.Order {
-			origID := []byte(idx.Refs[ID])
+		for i, ID := range ns.idx.Order {
+			origID := []byte(ns.idx.Refs[ID])
 			_, err := tx.Get(dataBucket, origID)
 			if IsNotFoundErr(err) {
 				// Assuming was expired
@@ -461,14 +450,10 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 		// Clean expired
 		if len(posToRemove) > 0 {
 			for _, pos := range posToRemove {
-				idx.remove(pos)
-			}
-			err := saveOrderIdxInTx(tx, idx)
-			if err != nil {
-				return fmt.Errorf("While update order index after clean expired events: %w", err)
+				ns.idx.remove(pos)
 			}
 
-			err = inc(tx, statsBucket, evictedKey, len(posToRemove), false)
+			err := inc(tx, statsBucket, evictedKey, len(posToRemove), false)
 			if err != nil {
 				return fmt.Errorf("While update evicted stat: %w", err)
 			}
@@ -477,7 +462,7 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 		return nil
 	})
 
-	return idx.Order, err
+	return ns.idx.Order, err
 }
 
 // FindAll is the Status.FindAll implementation for NutsDBStatus: Return all EventRecords from status
