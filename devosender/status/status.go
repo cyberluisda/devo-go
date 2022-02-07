@@ -800,37 +800,6 @@ type orderIdx struct {
 	Refs  map[string]string
 }
 
-func getOrderIdxInTx(tx *nutsdb.Tx) (*orderIdx, error) {
-	raw, err := tx.Get(idxBucket, idxKey)
-	if err != nil {
-		return nil, fmt.Errorf("While load %s.%s: %w", idxBucket, string(idxKey), err)
-	}
-
-	r, err := unSerialzeOrderIdx(raw.Value)
-	if r.Refs == nil {
-		r.Refs = map[string]string{}
-	}
-	if err != nil {
-		return r, fmt.Errorf("While unserialize value of %s.%s: %w", idxBucket, string(idxKey), err)
-	}
-
-	return r, nil
-}
-
-func saveOrderIdxInTx(tx *nutsdb.Tx, od *orderIdx) error {
-	raw, err := od.serialize()
-	if err != nil {
-		return fmt.Errorf("While serialize orderIdx: %w", err)
-	}
-
-	err = tx.Put(idxBucket, idxKey, raw, 0)
-	if err != nil {
-		return fmt.Errorf("While save value to %s.%s: %w", idxBucket, string(idxKey), err)
-	}
-
-	return nil
-}
-
 func removeFromIdxInTx(tx *nutsdb.Tx, oi *orderIdx, pos int, metricToIncrement []byte) error {
 	if pos < 0 || pos > len(oi.Order)-1 {
 		return fmt.Errorf("Pos is out of bounds")
