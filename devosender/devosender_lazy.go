@@ -132,7 +132,7 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 
 	client, err := lcb.clientBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Error while initialize client: %v", err)
+		return nil, fmt.Errorf("Error while initialize client: %w", err)
 	}
 
 	// Create LazyClient
