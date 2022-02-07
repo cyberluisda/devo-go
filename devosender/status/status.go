@@ -652,21 +652,14 @@ func (ns *NutsDBStatus) Initialize() error {
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
 
-	err = ns.db.Update(func(tx *nutsdb.Tx) error {
-		// Load index from status db
-		idx, err := getOrderIdxInTx(tx)
-		if IsNotFoundErr(errors.Unwrap(err)) {
-			idx = &orderIdx{}
-			err := saveOrderIdxInTx(tx, idx)
-			if err != nil {
-				return fmt.Errorf("While save empty index: %w", err)
-			}
-		} else if err != nil {
-			return fmt.Errorf("While load index: %w", err)
-		}
+	// Initialize index if it is required
+	if ns.idx == nil || ns.idx.Refs == nil {
+		ns.idx = &orderIdx{Refs: map[string]string{}}
+	}
 
+	err = ns.db.View(func(tx *nutsdb.Tx) error {
 		// Reindex if needed
-		err = recreateIdxInTx(tx, idx)
+		err := recreateIdxInTx(tx, ns.idx)
 		if err != nil {
 			return fmt.Errorf("While recreate index: %w", err)
 		}
