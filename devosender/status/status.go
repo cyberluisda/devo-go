@@ -380,22 +380,21 @@ func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
 // FinishRecord is the Status.FinishRecord implementation for NutsDBStatus: Mark
 // as record as finished and remove it from status
 func (ns *NutsDBStatus) FinishRecord(ID string) error {
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return ErrIdxNoIntialized
+	}
+
 	ns.dbMtx.Lock()
 	defer ns.dbMtx.Unlock()
 
 	notFound := false
 	err := ns.db.Update(func(tx *nutsdb.Tx) error {
-		idx, err := getOrderIdxInTx(tx)
-		if err != nil {
-			return fmt.Errorf("While load index: %w", err)
-		}
-
 		// Check if record exists.
-		pos := idx.indexOf(ID)
+		pos := ns.idx.indexOf(ID)
 		notFound = pos == -1
 
 		// Ensure is deleted from data
-		err = deleteDataRecordInTx(tx, []byte(ID))
+		err := deleteDataRecordInTx(tx, []byte(ID))
 		if err != nil {
 			return fmt.Errorf("While ensure record is removed from data")
 		}
@@ -403,7 +402,7 @@ func (ns *NutsDBStatus) FinishRecord(ID string) error {
 			return nil
 		}
 
-		err = removeFromIdxInTx(tx, idx, pos, finishedKey)
+		err = removeFromIdxInTx(tx, ns.idx, pos, finishedKey)
 		if err != nil {
 			return fmt.Errorf("While remove form index: %w", err)
 		}
