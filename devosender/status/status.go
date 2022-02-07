@@ -223,6 +223,10 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 		return fmt.Errorf("AsyncIDs must be formed by one and only one value")
 	}
 
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return ErrIdxNoIntialized
+	}
+
 	err := ns.db.Update(func(tx *nutsdb.Tx) error {
 		// Check if key exists
 
@@ -242,18 +246,12 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 			return err
 		}
 
-		// Load order idx
-		idx, err := getOrderIdxInTx(tx)
-		if err != nil {
-			return fmt.Errorf("While load order index: %w", err)
-		}
-
 		// Check if buffer is full after add new record and remove old one in affirmative
 		// case
 		shouldIncCount := true
-		if uint(len(idx.Order)) >= ns.bufferSize {
+		if uint(len(ns.idx.Order)) >= ns.bufferSize {
 			shouldIncCount = false
-			err = removeFirstRecordInTx(tx, idx, droppedKey)
+			err = removeFirstRecordInTx(tx, ns.idx, droppedKey)
 			if err != nil {
 				return fmt.Errorf("While drop event because buffer is full: %w", err)
 			}
@@ -265,12 +263,8 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 			return fmt.Errorf("While create new record in status db: %w", err)
 		}
 
-		// Update order IDX and persist
-		idx.add(IDStr)
-		err = saveOrderIdxInTx(tx, idx)
-		if err != nil {
-			return fmt.Errorf("While save index: %w", err)
-		}
+		// Update order
+		ns.idx.add(IDStr)
 
 		// Update counter if required (if event was drop countKey was not needed to be incremented)
 		if shouldIncCount {
