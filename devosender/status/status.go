@@ -200,6 +200,15 @@ type NutsDBStatus struct {
 	idx                                *orderIdx
 }
 
+var (
+	// ErrRecordEvicted is the error returned when EventRecord was expired
+	ErrRecordEvicted error = errors.New("EventRecord evicted")
+	// ErrRecordNotFoundInIdx is the error returned when EventRecord was not found in the index
+	ErrRecordNotFoundInIdx error = errors.New("EventRecord not found in index")
+	// ErrIdxNoIntialized is the error returned when Internal index was not propertly initialized
+	ErrIdxNoIntialized = fmt.Errorf("Idx was not properly initialized")
+)
+
 // New is the New implementation of Status interface for NutsDBStatus.
 // This will create new record in the status db.
 func (ns *NutsDBStatus) New(er *EventRecord) error {
@@ -324,13 +333,6 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 
 	return err
 }
-
-var (
-	// ErrRecordEvicted is the error returned when EventRecord was expired
-	ErrRecordEvicted error = errors.New("EventRecord evicted")
-	// ErrRecordNotFoundInIdx is the error returned when EventRecord was not found in the index
-	ErrRecordNotFoundInIdx error = errors.New("EventRecord not found in index")
-)
 
 // Get is the Status.Get implementation for NutsDBStatus: Returns EventRecord based on ID
 func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
