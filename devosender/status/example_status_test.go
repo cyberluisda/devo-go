@@ -485,11 +485,11 @@ func ExampleNutsDBStatus_houseKeeping() {
 
 	// Output:
 	// BEFORE HouseKeeping
-	// Number of files: 55
-	// Stats: {BufferCount:0 Updated:0 Finished:1000 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:54 DbDataEntries:-1}
+	// Number of files: 41
+	// Stats: {BufferCount:0 Updated:0 Finished:1000 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:40 DbDataEntries:-1}
 	// AFTER HouseKeeping
 	// Number of files: 1
-	// Stats: {BufferCount:0 Updated:0 Finished:1000 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:55 DbDataEntries:-1}
+	// Stats: {BufferCount:0 Updated:0 Finished:1000 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:41 DbDataEntries:-1}
 }
 
 func ExampleNutsDBStatus_rebuiltCorruptIdx() {
