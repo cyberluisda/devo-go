@@ -162,6 +162,7 @@ func (nsb *NutsDBStatusBuilder) BuildNutsDBStatus() (*NutsDBStatus, error) {
 type Status interface {
 	New(er *EventRecord) error
 	Update(oldID, newID string) error
+	BatchUpdate(f func(old string) string) error
 	Get(ID string) (*EventRecord, int, error)
 	FinishRecord(ID string) error
 	AllIDs() ([]string, error)
