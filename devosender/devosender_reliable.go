@@ -484,6 +484,18 @@ func (dsrc *ReliableClient) Close() error {
 		}
 	}
 
+	// Passing all remaining events to no-conn
+	err = dsrc.status.BatchUpdate(
+		func(o string) string {
+			if isNoConnID(o) {
+				return ""
+			}
+			return newNoConnID()
+		})
+	if err != nil {
+		errors = append(errors, fmt.Errorf("While mark remaining IDs as no-conn in status engine: %w", err))
+	}
+
 	dsrc.status.Close()
 	if err != nil {
 		errors = append(errors, fmt.Errorf("While close status engine: %w", err))
