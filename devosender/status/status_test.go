@@ -1123,7 +1123,6 @@ func TestNutsDBStatus_AllIDs(t *testing.T) {
 func TestNutsDBStatus_Stats(t *testing.T) {
 	type setup struct {
 		initialCounters   map[string]int
-		initialOrderIdx   *orderIdx
 		initialDataBucket map[string][]byte
 		enableDebugEnvVar bool
 	}
@@ -1151,20 +1150,22 @@ func TestNutsDBStatus_Stats(t *testing.T) {
 					string(finishedKey): 8,
 					string(updatedKey):  9,
 				},
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1", "id-2"},
-					Refs: map[string]string{
-						"id-1": "id-1",
-						"id-2": "id-2",
-					},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": []byte("fake id-1"),
 					"id-2": []byte("fake id-2"),
 					"id-3": []byte("fake id-3"),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+			},
 			Stats{
 				BufferCount:   5,
 				Updated:       9,
@@ -1187,20 +1188,22 @@ func TestNutsDBStatus_Stats(t *testing.T) {
 					string(finishedKey): 8,
 					string(updatedKey):  9,
 				},
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1", "id-2"},
-					Refs: map[string]string{
-						"id-1": "id-1",
-						"id-2": "id-2",
-					},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": []byte("fake id-1"),
 					"id-2": []byte("fake id-2"),
 					"id-3": []byte("fake id-3"),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1", "id-2"},
+					Refs: map[string]string{
+						"id-1": "id-1",
+						"id-2": "id-2",
+					},
+				},
+			},
 			Stats{
 				BufferCount:   5,
 				Updated:       9,
@@ -1230,15 +1233,6 @@ func TestNutsDBStatus_Stats(t *testing.T) {
 					}
 				}
 				return nil
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
 			})
 			if err != nil {
 				panic(err)
