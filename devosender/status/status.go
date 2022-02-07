@@ -503,13 +503,8 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 			return fmt.Errorf("Event record unseriallize errors: %s", strings.Join(errors, ", "))
 		}
 
-		// Fix expired in index
-		idx, err := getOrderIdxInTx(tx)
-		if err != nil {
-			return fmt.Errorf("While load index: %w", err)
-		}
 		expiredIDs := make(map[string]interface{}, 0)
-		for _, v := range idx.Order {
+		for _, v := range ns.idx.Order {
 			if _, ok := updatedIDsInRecords[v]; !ok {
 				// Assuming event was expired because it was not foudn in ids from records
 				expiredIDs[v] = nil
@@ -529,8 +524,8 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 
 			// Remove expired events from idx one by one
 			for ID := range expiredIDs {
-				i := idx.indexOf(ID)
-				err = removeFromIdxInTx(tx, idx, i, nil)
+				i := ns.idx.indexOf(ID)
+				err = removeFromIdxInTx(tx, ns.idx, i, nil)
 				if err != nil {
 					return fmt.Errorf("While remove expired %s ID (%d) from index: %w", ID, i, err)
 				}
