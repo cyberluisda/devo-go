@@ -77,6 +77,7 @@ func main() {
 	bufferSize := flag.Uint("buffer", status.DefaultBufferSize, "Internal status buffer size")
 	displayOrigID := flag.Bool("display-orig-msg-id", false, "If true display the first ID for each mesage generated")
 	flushBfClose := flag.Bool("flush-before-close", false, "If true make a double flush when close client")
+	maxFlushResend := flag.Int("max-pending-events-to-resend", 0, "If value is greater than 0 set the limit of pending events to resend when flush is called")
 	cpuProfile := flag.Bool(
 		"cpu-profile",
 		false,
@@ -163,6 +164,7 @@ func main() {
 		HouseKeepingDaemonWaitBtwChecks(*housekeepingDaemonWait).
 		RetryDaemonWaitBtwChecks(*retryDaemonWait).
 		FlushTimeout(time.Second).
+		MaxRecordsResendByFlush(*maxFlushResend).
 		DaemonStopTimeout(time.Minute).
 		EnableStandByModeTimeout(time.Second).
 		ClientBuilder(cb).
