@@ -443,7 +443,7 @@ func (dsrc *ReliableClient) Flush() error {
 					"Ignoring record %s after assuming that was send by reason: %v", ID, err,
 				)
 			} else if err != nil {
-				return fmt.Errorf("Error when delete one status record that I assumed that was sent: %w", err)
+				return fmt.Errorf("While delete one status record that I assumed that was sent: %w", err)
 			}
 		}
 
@@ -454,7 +454,7 @@ func (dsrc *ReliableClient) Flush() error {
 			if !isNoConnID(id) {
 				err = dsrc.status.Update(id, toNoConnID(id))
 				if err != nil {
-					return fmt.Errorf("Error when pass one status record with old id %s to no-conn state: %w", id, err)
+					return fmt.Errorf("While pass one status record with old id %s to no-conn state: %w", id, err)
 				}
 			}
 		}
@@ -469,24 +469,24 @@ func (dsrc *ReliableClient) Close() error {
 
 	err := dsrc.Flush()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when flush: %w", err))
+		errors = append(errors, fmt.Errorf("While flush events: %w", err))
 	}
 
 	err = dsrc.daemonsShutdown()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when shutdown daemons: %w", err))
+		errors = append(errors, fmt.Errorf("While shutdown daemons: %w", err))
 	}
 
 	if dsrc.Client != nil {
 		dsrc.Client.Close()
 		if err != nil {
-			errors = append(errors, fmt.Errorf("Error when close client: %w", err))
+			errors = append(errors, fmt.Errorf("While close client: %w", err))
 		}
 	}
 
 	dsrc.status.Close()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("Error when close status engine: %w", err))
+		errors = append(errors, fmt.Errorf("While close status engine: %w", err))
 	}
 
 	if len(errors) == 0 {
