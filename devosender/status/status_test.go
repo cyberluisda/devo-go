@@ -620,7 +620,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 
 func TestNutsDBStatus_Update(t *testing.T) {
 	type setup struct {
-		initialOrderIdx   *orderIdx
 		initialDataBucket map[string][]byte
 	}
 	type args struct {
@@ -628,13 +627,13 @@ func TestNutsDBStatus_Update(t *testing.T) {
 		newID string
 	}
 	tests := []struct {
-		name                 string
-		setup                setup
-		ns                   *NutsDBStatus
-		args                 args
-		wantErr              bool
-		wantERInStatus       map[string]*EventRecord
-		wantOrderIdxInStatus *orderIdx
+		name           string
+		setup          setup
+		ns             *NutsDBStatus
+		args           args
+		wantErr        bool
+		wantERInStatus map[string]*EventRecord
+		wantOrderIdx   *orderIdx
 	}{
 		{
 			"Error load event",
@@ -648,10 +647,6 @@ func TestNutsDBStatus_Update(t *testing.T) {
 		{
 			"ID not found in index",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -663,7 +658,13 @@ func TestNutsDBStatus_Update(t *testing.T) {
 					}(),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
 			args{"id-4", "id-5"},
 			true,
 			nil,
@@ -675,10 +676,6 @@ func TestNutsDBStatus_Update(t *testing.T) {
 		{
 			"Update event",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -690,7 +687,13 @@ func TestNutsDBStatus_Update(t *testing.T) {
 					}(),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
 			args{"id-1", "id-2"},
 			false,
 			map[string]*EventRecord{
@@ -710,15 +713,6 @@ func TestNutsDBStatus_Update(t *testing.T) {
 		tt.ns.db = db
 		tt.ns.dbOpts = nutsdb.DefaultOptions
 		tt.ns.dbOpts.Dir = path
-
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
 
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.ns.Update(tt.args.oldID, tt.args.newID); (err != nil) != tt.wantErr {
@@ -742,17 +736,9 @@ func TestNutsDBStatus_Update(t *testing.T) {
 				}
 			}
 
-			if tt.wantOrderIdxInStatus != nil {
-				var got *orderIdx
-				err := tt.ns.db.View(func(tx *nutsdb.Tx) error {
-					var err error
-					got, err = getOrderIdxInTx(tx)
-					return err
-				})
-				if err != nil {
-					t.Errorf("NutsDBStatus.Update() status orderIdx unexpected derror: %v", err)
-				} else if !reflect.DeepEqual(got, tt.wantOrderIdxInStatus) {
-					t.Errorf("NutsDBStatus.Update() status orderIdx got = %+v, want %+v", got, tt.wantOrderIdxInStatus)
+			if tt.wantOrderIdx != nil {
+				if !reflect.DeepEqual(tt.ns.idx, tt.wantOrderIdx) {
+					t.Errorf("NutsDBStatus.Update() orderIdx got = %+v, want %+v", tt.ns.idx, tt.wantOrderIdx)
 				}
 			}
 		})
