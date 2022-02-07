@@ -1950,7 +1950,6 @@ func Test_getOrderIdxInTx(t *testing.T) {
 
 func Test_removeFromIdxInTx(t *testing.T) {
 	type setup struct {
-		initVal  *orderIdx
 		closedTx bool
 	}
 	type args struct {
@@ -2004,7 +2003,7 @@ func Test_removeFromIdxInTx(t *testing.T) {
 			true,
 		},
 		{
-			"Error saving idx",
+			"Error updating metric",
 			setup{
 				closedTx: true,
 			},
@@ -2014,19 +2013,14 @@ func Test_removeFromIdxInTx(t *testing.T) {
 					Refs:  map[string]string{"id-1": "id-1"},
 				},
 				pos:               0,
-				metricToIncrement: nil,
+				metricToIncrement: droppedKey,
 			},
 			nil,
 			true,
 		},
 		{
 			"Update idx",
-			setup{
-				initVal: &orderIdx{
-					Order: []string{"id-3"},
-					Refs:  map[string]string{"id-3": "id-3"},
-				},
-			},
+			setup{},
 			args{
 				oi: &orderIdx{
 					Order: []string{"id-1", "id-2"},
@@ -2046,14 +2040,7 @@ func Test_removeFromIdxInTx(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		var bucket string
-		initStatusKeyVal := make(map[string][]byte, 1)
-		if tt.setup.initVal != nil {
-			bucket = idxBucket
-			bs, _ := tt.setup.initVal.serialize()
-			initStatusKeyVal[string(idxKey)] = bs
-		}
-		path, db := toolTestNewDb(bucket, initStatusKeyVal)
+		path, db := toolTestNewDb("", nil)
 
 		t.Run(tt.name, func(t *testing.T) {
 
@@ -2074,18 +2061,8 @@ func Test_removeFromIdxInTx(t *testing.T) {
 			}
 
 			if tt.want != nil {
-				var idxInDb *orderIdx
-				err := db.View(func(tx *nutsdb.Tx) error {
-					var errTx error
-					idxInDb, errTx = getOrderIdxInTx(tx)
-					return errTx
-				})
-				if err != nil {
-					t.Errorf("removeFromIdxInTx() error when load saved idx to validate value: %v", err)
-					return
-				}
-				if !reflect.DeepEqual(idxInDb, tt.want) {
-					t.Errorf("removeFromIdxInTx() idx saved = %+v, want %+v", idxInDb, tt.want)
+				if !reflect.DeepEqual(tt.args.oi, tt.want) {
+					t.Errorf("removeFromIdxInTx() idx got = %+v, want %+v", tt.args.oi, tt.want)
 				}
 			}
 
