@@ -843,11 +843,6 @@ func removeFromIdxInTx(tx *nutsdb.Tx, oi *orderIdx, pos int, metricToIncrement [
 		}
 	}
 	oi.remove(pos)
-
-	err := saveOrderIdxInTx(tx, oi)
-	if err != nil {
-		return fmt.Errorf("While save index: %w", err)
-	}
 	return nil
 }
 
