@@ -1486,9 +1486,19 @@ func TestNutsDBStatus_Initialize(t *testing.T) {
 			false,
 		},
 		{
+			"Nil idx",
+			setup{createDb: true},
+			&NutsDBStatus{
+				filesToConsolidateDb: 2,
+			},
+			false,
+			true,
+		},
+		{
 			"Empty idx",
 			setup{createDb: true},
 			&NutsDBStatus{
+				idx:                  &orderIdx{Refs: map[string]string{}},
 				filesToConsolidateDb: 2,
 			},
 			false,
@@ -1511,7 +1521,7 @@ func TestNutsDBStatus_Initialize(t *testing.T) {
 			}
 
 			if tt.ns.initialized != tt.wantIntialized {
-				t.Errorf("NutsDBStatus.Initialize() intiealized got = %v, want %v", tt.ns.initialized, tt.wantIntialized)
+				t.Errorf("NutsDBStatus.Initialize() initialized got = %v, want %v", tt.ns.initialized, tt.wantIntialized)
 			}
 		})
 
