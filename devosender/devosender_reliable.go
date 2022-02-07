@@ -205,16 +205,17 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	}
 
 	r := &ReliableClient{
-		Client:                   cl,
-		clientBuilder:            dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
-		retryDaemon:              reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
-		reconnDaemon:             reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
-		houseKeepingDaemon:       reliableClientDaemon{daemonOpts: dsrcb.houseKeepingDaemonOpts},
-		daemonStopTimeout:        dsrcb.daemonStopTimeout,
-		daemonStopped:            make(chan bool),
-		flushTimeout:             dsrcb.flushTimeout,
-		enableStandByModeTimeout: dsrcb.enableStandByModeTimeout,
-		appLogger:                dsrcb.appLogger,
+		Client:                      cl,
+		clientBuilder:               dsrcb.clientBuilder, // We maybe need the builder when will need to recreate client
+		retryDaemon:                 reliableClientDaemon{daemonOpts: dsrcb.retryDaemonOpts},
+		reconnDaemon:                reliableClientDaemon{daemonOpts: dsrcb.clientReconnOpts},
+		houseKeepingDaemon:          reliableClientDaemon{daemonOpts: dsrcb.houseKeepingDaemonOpts},
+		daemonStopTimeout:           dsrcb.daemonStopTimeout,
+		daemonStopped:               make(chan bool),
+		flushTimeout:                dsrcb.flushTimeout,
+		enableStandByModeTimeout:    dsrcb.enableStandByModeTimeout,
+		maxRecordsResendInFlushCall: dsrcb.maxRecordsResendByFlush,
+		appLogger:                   dsrcb.appLogger,
 	}
 
 	// Status DB
