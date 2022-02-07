@@ -724,13 +724,13 @@ func TestNutsDBStatus_Update(t *testing.T) {
 				for k, v := range tt.wantERInStatus {
 					got, _, err := tt.ns.Get(k)
 					if err != nil {
-						t.Errorf("NutsDBStatus.Update() status EventRecord unexpected derror: %v", err)
+						t.Errorf("NutsDBStatus.Update() status EventRecord unexpected error: %v", err)
 					} else {
+						// Fix timestamp comparation
 						if got != nil && got.Timestamp.Sub(v.Timestamp) == 0 {
 							v.Timestamp = got.Timestamp
 						}
 						if !reflect.DeepEqual(got, v) {
-							// Fix timestamp comparation
 							t.Errorf("NutsDBStatus.Update() status EventRecord got = %+v, want %+v", got, v)
 						}
 					}
