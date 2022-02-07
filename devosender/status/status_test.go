@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -739,6 +740,182 @@ func TestNutsDBStatus_Update(t *testing.T) {
 			if tt.wantOrderIdx != nil {
 				if !reflect.DeepEqual(tt.ns.idx, tt.wantOrderIdx) {
 					t.Errorf("NutsDBStatus.Update() orderIdx got = %+v, want %+v", tt.ns.idx, tt.wantOrderIdx)
+				}
+			}
+		})
+
+		// Clean
+		tt.ns.Close()
+		toolTestDestroyDb(path, db)
+	}
+}
+
+func TestNutsDBStatus_BatchUpdate(t *testing.T) {
+	type setup struct {
+		initialDataBucket map[string][]byte
+		closedDatabase    bool
+	}
+	type args struct {
+		f func(old string) string
+	}
+	tests := []struct {
+		name           string
+		setup          setup
+		ns             *NutsDBStatus
+		args           args
+		wantErr        bool
+		wantERInStatus map[string]*EventRecord
+		wantOrderIdx   *orderIdx
+	}{
+		{
+			"Error idx not initialized",
+			setup{},
+			&NutsDBStatus{},
+			args{func(old string) string { return "" }},
+			true,
+			nil,
+			nil,
+		},
+		{
+			"Error loading All IDs",
+			setup{
+				closedDatabase: true,
+			},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
+			args{func(old string) string { return "" }},
+			true,
+			nil,
+			&orderIdx{
+				Order: []string{"id-1"},
+				Refs:  map[string]string{"id-1": "id-1"},
+			},
+		},
+		{
+			"Empty index",
+			setup{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{},
+					Refs:  map[string]string{},
+				},
+			},
+			args{func(old string) string { return "" }},
+			false,
+			nil,
+			nil,
+		},
+		{
+			"Update events",
+			setup{
+				initialDataBucket: map[string][]byte{
+					"id-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+					"id-2": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"id-2"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+					"other-1": func() []byte {
+						er := &EventRecord{AsyncIDs: []string{"other-1"}}
+						r, err := er.Serialize()
+						if err != nil {
+							panic(err)
+						}
+						return r
+					}(),
+				},
+			},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1", "id-2", "other-1"},
+					Refs: map[string]string{
+						"id-1":    "id-1",
+						"id-2":    "id-2",
+						"other-1": "other-1",
+					},
+				},
+			},
+			args{
+				func(old string) string {
+					if strings.HasPrefix(old, "id-") {
+						return fmt.Sprintf("new-%s", old)
+					}
+					return ""
+				},
+			},
+			false,
+			map[string]*EventRecord{
+				"new-id-1": {AsyncIDs: []string{"id-1", "new-id-1"}},
+				"new-id-2": {AsyncIDs: []string{"id-2", "new-id-2"}},
+				"other-1":  {AsyncIDs: []string{"other-1"}},
+			},
+			&orderIdx{
+				Order: []string{"new-id-1", "new-id-2", "other-1"},
+				Refs: map[string]string{
+					"new-id-1": "id-1",
+					"new-id-2": "id-2",
+					"other-1":  "other-1",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+
+		// Intialize status db
+		path, db := toolTestNewDb(dataBucket, tt.setup.initialDataBucket)
+		tt.ns.db = db
+		tt.ns.dbOpts = nutsdb.DefaultOptions
+		tt.ns.dbOpts.Dir = path
+
+		if tt.setup.closedDatabase {
+			err := tt.ns.db.Close()
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ns.BatchUpdate(tt.args.f); (err != nil) != tt.wantErr {
+				t.Errorf("NutsDBStatus.BatchUpdate() error = %+v, want %+v", err, tt.wantErr)
+			}
+
+			if len(tt.wantERInStatus) > 0 {
+				for k, v := range tt.wantERInStatus {
+					got, _, err := tt.ns.Get(k)
+					if err != nil {
+						t.Errorf("NutsDBStatus.BatchUpdate() status EventRecord id: %s, unexpected error: %v", k, err)
+					} else {
+						// Fix timestamp comparation
+						if got != nil && got.Timestamp.Sub(v.Timestamp) == 0 {
+							v.Timestamp = got.Timestamp
+						}
+						if !reflect.DeepEqual(got, v) {
+							t.Errorf("NutsDBStatus.BatchUpdate() status EventRecord got = %+v, want %+v", got, v)
+						}
+					}
+				}
+			}
+
+			if tt.wantOrderIdx != nil {
+				if !reflect.DeepEqual(tt.ns.idx, tt.wantOrderIdx) {
+					t.Errorf("NutsDBStatus.BatchUpdate() orderIdx got = %+v, want %+v", tt.ns.idx, tt.wantOrderIdx)
 				}
 			}
 		})
