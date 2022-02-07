@@ -431,14 +431,16 @@ func (ns *NutsDBStatus) FinishRecord(ID string) error {
 		// Check if record exists.
 		pos := ns.idx.indexOf(ID)
 		notFound = pos == -1
-
-		// Ensure is deleted from data
-		err := deleteDataRecordInTx(tx, []byte(ID))
-		if err != nil {
-			return fmt.Errorf("While ensure record is removed from data")
-		}
 		if notFound {
 			return nil
+		}
+
+		// Ensure is deleted from data
+		idInData := ns.idx.Refs[ID]
+		err := deleteDataRecordInTx(tx, []byte(idInData))
+		if err != nil {
+			return fmt.Errorf("While ensure record is removed from data (id: %s, key: %s.%s): %w",
+				ID, dataBucket, idInData, err)
 		}
 
 		err = removeFromIdxInTx(tx, ns.idx, pos, finishedKey)
