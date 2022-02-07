@@ -702,10 +702,6 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 	if IsNotFoundErr(err) || (len(entries) == 0 && err == nil) {
 		// We should set empty idx
 		idx.reset(0)
-		err := saveOrderIdxInTx(tx, idx)
-		if err != nil {
-			return fmt.Errorf("While save empty index after checks that %s bucket is empty: %w", dataBucket, err)
-		}
 	} else if err != nil {
 		return fmt.Errorf("While load instances to do initial index check: %w", err)
 	} else {
@@ -757,12 +753,6 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 			for i, k := range idsTs.Values {
 				idx.Order[i] = k
 				idx.Refs[k] = keysInStatus[k]
-			}
-
-			// Save new verison of idx
-			err = saveOrderIdxInTx(tx, idx)
-			if err != nil {
-				return fmt.Errorf("While save rebuilt index: %w", err)
 			}
 		}
 	}
