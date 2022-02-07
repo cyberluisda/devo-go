@@ -377,7 +377,6 @@ func TestNutsDBStatusBuilder_BuildNutsDBStatus(t *testing.T) {
 
 func TestNutsDBStatus_New(t *testing.T) {
 	type setup struct {
-		initialOrderIdx   *orderIdx
 		initialDataBucket map[string][]byte
 	}
 	type args struct {
@@ -387,13 +386,13 @@ func TestNutsDBStatus_New(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		name                 string
-		setup                setup
-		ns                   *NutsDBStatus
-		args                 args
-		wantErr              bool
-		wantERInStatus       map[string]*EventRecord
-		wantOrderIdxInStatus *orderIdx
+		name           string
+		setup          setup
+		ns             *NutsDBStatus
+		args           args
+		wantErr        bool
+		wantERInStatus map[string]*EventRecord
+		wantOrderIdx   *orderIdx
 	}{
 		{
 			"Nil input",
@@ -405,7 +404,7 @@ func TestNutsDBStatus_New(t *testing.T) {
 			nil,
 		},
 		{
-			"Error idx not found",
+			"Error idx not initialized",
 			setup{},
 			&NutsDBStatus{
 				eventTTL: 120, // expiration time is 2 minutes
@@ -423,10 +422,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 		{
 			"Error event exists",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -438,7 +433,13 @@ func TestNutsDBStatus_New(t *testing.T) {
 					}(),
 				},
 			},
-			&NutsDBStatus{},
+			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
+			},
 			args{&EventRecord{AsyncIDs: []string{"id-1"}}},
 			true,
 			map[string]*EventRecord{
@@ -454,10 +455,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 		{
 			"Event expired",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -470,6 +467,11 @@ func TestNutsDBStatus_New(t *testing.T) {
 				},
 			},
 			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
 				eventTTL: 0, // all events expired
 			},
 			args{
@@ -492,10 +494,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 		{
 			"Drop event by buffer full reason",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -508,6 +506,11 @@ func TestNutsDBStatus_New(t *testing.T) {
 				},
 			},
 			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
 				eventTTL:   120, // expiration time is 2 minutes
 				bufferSize: 1,
 			},
@@ -531,10 +534,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 		{
 			"New event",
 			setup{
-				initialOrderIdx: &orderIdx{
-					Order: []string{"id-1"},
-					Refs:  map[string]string{"id-1": "id-1"},
-				},
 				initialDataBucket: map[string][]byte{
 					"id-1": func() []byte {
 						er := &EventRecord{AsyncIDs: []string{"id-1"}}
@@ -547,6 +546,11 @@ func TestNutsDBStatus_New(t *testing.T) {
 				},
 			},
 			&NutsDBStatus{
+				// Initial idx
+				idx: &orderIdx{
+					Order: []string{"id-1"},
+					Refs:  map[string]string{"id-1": "id-1"},
+				},
 				eventTTL:   120, // expiration time is 2 minutes
 				bufferSize: 10,
 			},
@@ -579,15 +583,6 @@ func TestNutsDBStatus_New(t *testing.T) {
 		tt.ns.dbOpts = nutsdb.DefaultOptions
 		tt.ns.dbOpts.Dir = path
 
-		if tt.setup.initialOrderIdx != nil {
-			err := db.Update(func(tx *nutsdb.Tx) error {
-				return saveOrderIdxInTx(tx, tt.setup.initialOrderIdx)
-			})
-			if err != nil {
-				panic(err)
-			}
-		}
-
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.ns.New(tt.args.er); (err != nil) != tt.wantErr {
 				t.Errorf("NutsDBStatus.New() error = %+v, want %+v", err, tt.wantErr)
@@ -610,17 +605,9 @@ func TestNutsDBStatus_New(t *testing.T) {
 				}
 			}
 
-			if tt.wantOrderIdxInStatus != nil {
-				var got *orderIdx
-				err := tt.ns.db.View(func(tx *nutsdb.Tx) error {
-					var err error
-					got, err = getOrderIdxInTx(tx)
-					return err
-				})
-				if err != nil {
-					t.Errorf("NutsDBStatus.New() status orderIdx unexpected derror: %v", err)
-				} else if !reflect.DeepEqual(got, tt.wantOrderIdxInStatus) {
-					t.Errorf("NutsDBStatus.New() status orderIdx got = %+v, want %+v", got, tt.wantOrderIdxInStatus)
+			if tt.wantOrderIdx != nil {
+				if !reflect.DeepEqual(tt.ns.idx, tt.wantOrderIdx) {
+					t.Errorf("NutsDBStatus.New() orderIdx got = %+v, want %+v", tt.ns.idx, tt.wantOrderIdx)
 				}
 			}
 		})
