@@ -285,6 +285,9 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 
 // Update is the Status.Update implementation for NutsDBStatus: Update the record with new ID
 func (ns *NutsDBStatus) Update(oldID, newID string) error {
+	if ns.idx == nil || ns.idx.Refs == nil {
+		return ErrIdxNoIntialized
+	}
 
 	// Load eventrecord: Evicted record and index is managed and updated by Get)
 	er, _, err := ns.Get(oldID)
@@ -298,12 +301,8 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 
 	er.AsyncIDs = append(er.AsyncIDs, newID)
 	err = ns.db.Update(func(tx *nutsdb.Tx) error {
-		idx, err := getOrderIdxInTx(tx)
-		if err != nil {
-			return fmt.Errorf("While load index: %w", err)
-		}
-
-		idx.set(oldID, newID)
+		// Update idx
+		ns.idx.set(oldID, newID)
 
 		// Save event record
 		err = saveDataRecordInTx(tx, er, ns.eventTTL)
@@ -311,15 +310,10 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 			return fmt.Errorf("While update IDs references in eventrecord %+v: %w", er, err)
 		}
 
-		// increment update statº
+		// increment update stat
 		err = inc(tx, statsBucket, updatedKey, 1, false)
 		if err != nil {
 			return fmt.Errorf("While update updated counter: %w", err)
-		}
-
-		err = saveOrderIdxInTx(tx, idx)
-		if err != nil {
-			return fmt.Errorf("While update index: %w", err)
 		}
 
 		return nil
