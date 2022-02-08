@@ -1,7 +1,6 @@
 package devosender
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 // SwitchDevoSender represents a Client that can be paused. That is that can close
@@ -22,7 +22,7 @@ type SwitchDevoSender interface {
 	String() string
 	SendAsync(m string) string
 	SendWTagAsync(t, m string) string
-	SendWTagAndCompressorAsync(t string, m string, c *Compressor) string
+	SendWTagAndCompressorAsync(t string, m string, c *compressor.Compressor) string
 	WaitForPendingAsyncMsgsOrTimeout(timeout time.Duration) error
 	AsyncErrors() map[string]error
 	AsyncErrorsNumber() int
@@ -42,6 +42,7 @@ type LazyClientBuilder struct {
 	bufferEventsSize         uint32
 	enableStandByModeTimeout time.Duration
 	flushTimeout             time.Duration
+	maxRecordsResendByFlush  int
 	appLogger                applogger.SimpleAppLogger
 }
 
@@ -57,8 +58,9 @@ const (
 // NewLazyClientBuilder is the factory method of LazyClientBuilder with defautl values set
 func NewLazyClientBuilder() *LazyClientBuilder {
 	return &LazyClientBuilder{
-		bufferEventsSize: LCBDefaultBufferEventsSize,
-		flushTimeout:     LCBDefaultFlushTimeout,
+		bufferEventsSize:        LCBDefaultBufferEventsSize,
+		flushTimeout:            LCBDefaultFlushTimeout,
+		maxRecordsResendByFlush: DefaultMaxRecordsResendByFlush,
 	}
 }
 
@@ -93,6 +95,13 @@ func (lcb *LazyClientBuilder) FlushTimeout(d time.Duration) *LazyClientBuilder {
 	return lcb
 }
 
+// MaxRecordsResendByFlush sets the max number of pending events to be resend when Flush events
+// is called. Zero or negative values deactivate the functionallity
+func (lcb *LazyClientBuilder) MaxRecordsResendByFlush(max int) *LazyClientBuilder {
+	lcb.maxRecordsResendByFlush = max
+	return lcb
+}
+
 // AppLogger sets the applogger.SimpleAppLogger used to write log messages
 func (lcb *LazyClientBuilder) AppLogger(log applogger.SimpleAppLogger) *LazyClientBuilder {
 	if log != nil {
@@ -105,14 +114,14 @@ func (lcb *LazyClientBuilder) AppLogger(log applogger.SimpleAppLogger) *LazyClie
 func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 	// Validations
 	if lcb.clientBuilder == nil {
-		return nil, errors.New("Undefined inner client builder")
+		return nil, errors.New("undefined inner client builder")
 	}
 
 	if lcb.bufferEventsSize < 1 {
-		return nil, errors.New("Buffer size less than 1")
+		return nil, errors.New("buffer size less than 1")
 	}
 	if lcb.flushTimeout < 1 {
-		return nil, errors.New("Flush timeout empty or negative")
+		return nil, errors.New("flush timeout empty or negative")
 	}
 
 	// Default values
@@ -122,17 +131,18 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 
 	client, err := lcb.clientBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Error while initialize client: %v", err)
+		return nil, fmt.Errorf("while initialize client: %w", err)
 	}
 
 	// Create LazyClient
 	r := &LazyClient{
-		Client:         client,
-		bufferSize:     lcb.bufferEventsSize,
-		flushTimeout:   lcb.flushTimeout,
-		standByTimeout: lcb.enableStandByModeTimeout,
-		appLogger:      lcb.appLogger,
-		clientBuilder:  lcb.clientBuilder,
+		Client:           client,
+		bufferSize:       lcb.bufferEventsSize,
+		flushTimeout:     lcb.flushTimeout,
+		standByTimeout:   lcb.enableStandByModeTimeout,
+		appLogger:        lcb.appLogger,
+		clientBuilder:    lcb.clientBuilder,
+		maxRecordsResend: lcb.maxRecordsResendByFlush,
 	}
 
 	return r, nil
@@ -146,14 +156,15 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 // an "oversize" situation.
 type LazyClient struct {
 	*Client
-	clientBuilder  *ClientBuilder
-	bufferSize     uint32
-	flushTimeout   time.Duration
-	standByTimeout time.Duration
-	buffer         []*lazyClientRecord
-	appLogger      applogger.SimpleAppLogger
-	clientMtx      sync.Mutex
-	Stats          LazyClientStats
+	clientBuilder    *ClientBuilder
+	bufferSize       uint32
+	flushTimeout     time.Duration
+	standByTimeout   time.Duration
+	buffer           []*lazyClientRecord
+	appLogger        applogger.SimpleAppLogger
+	clientMtx        sync.Mutex
+	maxRecordsResend int
+	Stats            LazyClientStats
 }
 
 // lazyClientRecord is the internal structure to save in memory of the events while
@@ -164,7 +175,7 @@ type lazyClientRecord struct {
 	Timestamp  time.Time
 	Tag        string
 	Msg        string
-	Compressor *Compressor
+	Compressor *compressor.Compressor
 	LastError  error
 }
 
@@ -196,7 +207,7 @@ func (lc *LazyClient) StandBy() error {
 		}
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While wait for pending async messages: %w", err)
+			return fmt.Errorf("while wait for pending async messages: %w", err)
 		}
 
 		// Closing current client
@@ -234,7 +245,7 @@ func (lc *LazyClient) WakeUp() error {
 		client, err := lc.clientBuilder.Build()
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While (re)create client: %w", err)
+			return fmt.Errorf("while (re)create client: %w", err)
 		}
 		lc.Client = client
 		lc.clientMtx.Unlock()
@@ -242,7 +253,7 @@ func (lc *LazyClient) WakeUp() error {
 		// Flush will send pending events
 		err = lc.Flush()
 		if err != nil {
-			return fmt.Errorf("While flush pending events: %w", err)
+			return fmt.Errorf("while flush pending events: %w", err)
 		}
 	}
 	return nil
@@ -255,9 +266,19 @@ func (lc *LazyClient) Flush() error {
 
 		// Send events
 		newIDs := make([]string, len(lc.buffer))
+		events := 0
 		for i, event := range lc.buffer {
 			newID := lc.Client.SendWTagAndCompressorAsync(event.Tag, event.Msg, event.Compressor)
 			newIDs[i] = newID
+			events++
+			if lc.maxRecordsResend > 0 && events >= lc.maxRecordsResend {
+				lc.appLogger.Logf(
+					applogger.WARNING,
+					"Limit of max number of events to re-send while Flush (%d) reached", events,
+				)
+
+				break
+			}
 
 			lc.Stats.SendFromBuffer++ // Update stats
 		}
@@ -267,7 +288,7 @@ func (lc *LazyClient) Flush() error {
 		err := lc.Client.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While waiting for pending messages: %w", err)
+			return fmt.Errorf("while waiting for pending messages: %w", err)
 		}
 
 		lc.resetBuffer()
@@ -280,17 +301,17 @@ func (lc *LazyClient) Flush() error {
 func (lc *LazyClient) Close() error {
 	err := lc.WakeUp()
 	if err != nil {
-		return fmt.Errorf("While WakeUp client: %w", err)
+		return fmt.Errorf("while WakeUp client: %w", err)
 	}
 
 	err = lc.Flush()
 	if err != nil {
-		return fmt.Errorf("While Flush events: %w", err)
+		return fmt.Errorf("while Flush events: %w", err)
 	}
 
 	err = lc.StandBy()
 	if err != nil {
-		return fmt.Errorf("While pass to StandBy to force close inner client: %w", err)
+		return fmt.Errorf("while pass to StandBy to force close inner client: %w", err)
 	}
 
 	return nil
@@ -298,7 +319,7 @@ func (lc *LazyClient) Close() error {
 
 // SendWTagAndCompressorAsync is the same as Client.SendWTagAndCompressorAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
-func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) string {
+func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *compressor.Compressor) string {
 	lc.clientMtx.Lock()
 	defer lc.clientMtx.Unlock()
 
@@ -353,7 +374,7 @@ func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *Compressor) str
 // SendWTagAsync is the same as Client.SendWTagAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
 func (lc *LazyClient) SendWTagAsync(t, m string) string {
-	var compressor *Compressor
+	var compressor *compressor.Compressor
 	if lc.Client != nil {
 		compressor = lc.compressor
 	}
@@ -368,9 +389,9 @@ func (lc *LazyClient) SendAsync(m string) string {
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
-	ErrBufferOverflow = errors.New("Overwriting item(s) because buffer is full")
+	ErrBufferOverflow = errors.New("overwriting item(s) because buffer is full")
 	//ErrBufferFull is the error returned when buffer is full and any other action taken
-	ErrBufferFull = errors.New("Buffer is full")
+	ErrBufferFull = errors.New("buffer is full")
 )
 
 func (lc *LazyClient) addToBuffer(r *lazyClientRecord) error {
@@ -445,18 +466,12 @@ func (lcs LazyClientStats) String() string {
 
 const nonConnIDPrefix = "non-conn-"
 
-var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
-
 func newNoConnID() string {
 	return nonConnIDPrefix + uuid.NewV4().String()
 }
 
 func isNoConnID(id string) bool {
 	return strings.HasPrefix(id, nonConnIDPrefix)
-}
-
-func isNoConnIDBytes(id []byte) bool {
-	return bytes.HasPrefix(id, nonConnIDPrefixBytes)
 }
 
 func toNoConnID(id string) string {

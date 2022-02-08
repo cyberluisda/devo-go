@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/applogger"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
+	"github.com/cyberluisda/devo-go/devosender/status"
 )
 
 func ExampleReliableClientBuilder_initErrors() {
@@ -18,22 +20,30 @@ func ExampleReliableClientBuilder_initErrors() {
 
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
-	rc, err = NewReliableClientBuilder().DbPath("/tmp/test").Build()
+	rc, err = NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
+		Build()
 	fmt.Println("2 error", err)
 	fmt.Println("2 rc", rc)
 
 	// No path permissions
 	os.RemoveAll("/this-is-not-valid-path")
-	rc, err = NewReliableClientBuilder().DbPath("/this-is-not-valid-path").ClientBuilder(NewClientBuilder()).Build()
+	rc, err = NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath(
+				"/this-is-not-valid-path")).
+		ClientBuilder(NewClientBuilder()).
+		Build()
 	fmt.Println("3 error", errors.Unwrap(err)) // Unwrapped to decrese the verbose of the output
 	fmt.Println("3 rc", rc)
 
 	// Output:
-	// 1 error Empty path where persist status
+	// 1 error undefined status builder
 	// 1 rc <nil>
-	// 2 error Undefined inner client builder
+	// 2 error undefined inner client builder
 	// 2 rc <nil>
-	// 3 error mkdir /this-is-not-valid-path: permission denied
+	// 3 error while open nutsdb: mkdir /this-is-not-valid-path: permission denied
 	// 3 rc <nil>
 }
 
@@ -42,7 +52,8 @@ func ExampleReliableClient_withoutConnection() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(NewClientBuilder()).
 		Build()
 
@@ -65,12 +76,11 @@ func ExampleReliableClient_withoutConnection() {
 	// error <nil>
 	// rc.Client <nil>
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after flush {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// error close: <nil>
-	// rc.Stats after close {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
-
+	// rc.Stats after close {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 }
 
 func ExampleReliableClient() {
@@ -78,7 +88,8 @@ func ExampleReliableClient() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(
 			NewClientBuilder().
 				EntryPoint("udp://example.com:80"),
@@ -102,9 +113,9 @@ func ExampleReliableClient() {
 	// error <nil>
 	// rc.GetEntryPoint udp://example.com:80
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after flush {BufferCount:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
 	// error close: <nil>
 }
 
@@ -115,7 +126,8 @@ func ExampleReliableClient_as_SwitchDevoSender() {
 	var sender SwitchDevoSender
 	var err error
 	sender, err = NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test-reliable-client")).
 		ClientBuilder(
 			NewClientBuilder().
 				EntryPoint("udp://localhost:13000"),
@@ -147,9 +159,9 @@ func ExampleReliableClient_as_SwitchDevoSender() {
 	// error <nil>
 	// SwitchDevoSender Client: {entryPoint: 'udp://localhost:13000', syslogHostname:
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after flush {BufferCount:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
 	// error close: <nil>
 }
 
@@ -158,7 +170,8 @@ func ExampleReliableClient_standbyAndWakeUp() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://example.com:80"),
 		).
@@ -191,11 +204,12 @@ func ExampleReliableClient_standbyAndWakeUp() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
-	// rc.Stats after flush {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
+	// rc.Stats after flush {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:0 Updated:1 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// rc.Stats after Wakeup and wait {BufferCount:0 Updated:1 Finished:1 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
+	// rc.Stats after closed {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
+
 }
 
 func ExampleReliableClient_evicted() {
@@ -203,12 +217,15 @@ func ExampleReliableClient_evicted() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().
+				DbPath("/tmp/test").
+				EventsTTLSeconds(1)).
 		ClientBuilder(
-			NewClientBuilder().EntryPoint("udp://example.com:80"),
+			NewClientBuilder().EntryPoint("udp://localhost:13000"),
 		).
+		RetryDaemonInitDelay(time.Minute). // Prevents retry daemon to waste CPU
 		RetryDaemonWaitBtwChecks(time.Millisecond * 100).
-		EventTimeToLiveInSeconds(1). // Event expiration  to 1 second
 		Build()
 	if err != nil {
 		panic(err)
@@ -238,12 +255,12 @@ func ExampleReliableClient_evicted() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after Wakeup and wait {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
 	// Flush error <nil>
-	// rc.Stats after Flush and wait {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:1 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// rc.Stats after Flush and wait {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:1 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
+	// rc.Stats after closed {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 }
 
 func ExampleReliableClient_dropped() {
@@ -251,11 +268,13 @@ func ExampleReliableClient_dropped() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().
+				DbPath("/tmp/test").
+				BufferSize(2)).
 		ClientBuilder(
 			NewClientBuilder().EntryPoint("udp://example.com:80"),
 		).
-		BufferEventsSize(2).
 		Build()
 	if err != nil {
 		panic(err)
@@ -288,12 +307,12 @@ func ExampleReliableClient_dropped() {
 
 	// Output:
 	// StandBy error <nil>
-	// rc.Stats {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats {BufferCount:2 Updated:0 Finished:0 Dropped:3 Evicted:0 DbIdxSize:2 DbMaxFileID:0 DbDataEntries:-1}
 	// WakeUp error <nil>
-	// rc.Stats after Wakeup and wait {Count:2 Updated:0 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
+	// rc.Stats after Wakeup and wait {BufferCount:2 Updated:0 Finished:0 Dropped:3 Evicted:0 DbIdxSize:2 DbMaxFileID:0 DbDataEntries:-1}
 	// Flush error <nil>
-	// rc.Stats after Flush and wait {Count:2 Updated:2 Finished:3 Dropped:3 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:2 DbMaxFileID:0 DbDataEntries:-1 DbKeysSize:-1}
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// rc.Stats after Flush and wait {BufferCount:2 Updated:2 Finished:0 Dropped:3 Evicted:0 DbIdxSize:2 DbMaxFileID:0 DbDataEntries:-1}
+	// rc.Stats after closed {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 }
 
 func ExampleReliableClient_nilInnerClient() {
@@ -301,7 +320,8 @@ func ExampleReliableClient_nilInnerClient() {
 	os.RemoveAll("/tmp/test")
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(
 			NewClientBuilder(),
 		).
@@ -350,26 +370,26 @@ func ExampleReliableClient_nilInnerClient() {
 	fmt.Printf("rc.Stats after closed %+v\n", rc.Stats())
 
 	// Output:
-	// AddReplaceSequences: Receiver func call with nil pointer
+	// AddReplaceSequences: receiver func call with nil pointer
 	// Nothing to do when call SetSyslogHostName
-	// SetDefaultTag: Receiver func call with nil pointer
-	// Send: Receiver func call with nil pointer
-	// SendWTag: Receiver func call with nil pointer
+	// SetDefaultTag: receiver func call with nil pointer
+	// Send: receiver func call with nil pointer
+	// SendWTag: receiver func call with nil pointer
 	// SendAsync returns not empty id: 'true'
 	// SendWTagAsync returns not empty id: 'true'
 	// SendWTagAndCompressorAsync returns not empty id: 'true'
-	// WaitForPendingAsyncMessages: Receiver func call with nil pointer
-	// WaitForPendingAsyncMsgsOrTimeout: Receiver func call with nil pointer
-	// AsyncErrors: map[:Receiver func call with nil pointer]
+	// WaitForPendingAsyncMessages: receiver func call with nil pointer
+	// WaitForPendingAsyncMsgsOrTimeout: receiver func call with nil pointer
+	// AsyncErrors: map[:receiver func call with nil pointer]
 	// AsyncErrorsNumber: '0'
 	// GetEntryPoint returns: ''
 	// AsyncIds returns nil: 'true'
 	// IsAsyncActive returns: false
 	// AsyncsNumber returns: '0'
 	// LastSendCallTimestamp returns: '0001-01-01 00:00:00 +0000 UTC'
-	// Write i: 0 err: Receiver func call with nil pointer
+	// Write i: 0 err: receiver func call with nil pointer
 	// Close: <nil>
-	// rc.Stats after closed {Count:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// rc.Stats after closed {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 }
 
 func ExampleReliableClient_appLoggerError() {
@@ -379,7 +399,8 @@ func ExampleReliableClient_appLoggerError() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(
 			NewClientBuilder(),
 		).
@@ -394,7 +415,7 @@ func ExampleReliableClient_appLoggerError() {
 
 	rc.SendAsync("test message")
 	rc.SendWTagAsync("tag", "test message")
-	rc.SendWTagAndCompressorAsync("tag", "test message", &Compressor{Algorithm: CompressorGzip})
+	rc.SendWTagAndCompressorAsync("tag", "test message", &compressor.Compressor{Algorithm: compressor.CompressorGzip})
 
 	// We hide the  ID to easy check the output
 	logString := buf.String()
@@ -408,10 +429,9 @@ func ExampleReliableClient_appLoggerError() {
 	// rc.IsStandBy() false err <nil>
 	// rc.Close <nil>
 	// Log:
-	// ERROR Uncontrolled error when create status record in SendAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
-	// ERROR Uncontrolled error when create status record in SendWTagAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
-	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync: Error when create new record with non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX id: db is closed
-
+	// ERROR Uncontrolled error when create status record in SendAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
 }
 
 func ExampleReliableClient_extendedStats() {
@@ -427,7 +447,8 @@ func ExampleReliableClient_extendedStats() {
 	}
 
 	rc, err := NewReliableClientBuilder().
-		DbPath("/tmp/test").
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
 		ClientBuilder(
 			NewClientBuilder().
 				EntryPoint("udp://example.com:80"),
@@ -451,8 +472,8 @@ func ExampleReliableClient_extendedStats() {
 	// error <nil>
 	// rc.GetEntryPoint udp://example.com:80
 	// rc.IsStandBy false
-	// rc.Stats {Count:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:1 DbMaxFileID:0 DbDataEntries:1 DbKeysSize:1}
+	// rc.Stats {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:1}
 	// error flush: <nil>
-	// rc.Stats after flush {Count:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbKeyCount:0 DbKeysInOrderSize:0 DbMaxFileID:0 DbDataEntries:0 DbKeysSize:0}
+	// rc.Stats after flush {BufferCount:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 	// error close: <nil>
 }

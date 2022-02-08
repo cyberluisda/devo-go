@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/devosender"
+	"github.com/cyberluisda/devo-go/devosender/compressor"
 )
 
 const (
@@ -43,9 +44,9 @@ func main() {
 		log.Fatalf("Error when parse number of seconds while to send events (%s): %v\n", os.Args[5], err)
 	}
 
-	algorithm := devosender.CompressorGzip
+	algorithm := compressor.CompressorGzip
 	if len(os.Args) > 6 {
-		newAlgorithm, err := devosender.ParseAlgorithm(os.Args[6])
+		newAlgorithm, err := compressor.ParseAlgorithm(os.Args[6])
 		if err == nil {
 			algorithm = newAlgorithm
 		} else {
@@ -53,7 +54,7 @@ func main() {
 		}
 	}
 
-	strAlgorithm := devosender.StringCompressorAlgorithm(algorithm)
+	strAlgorithm := compressor.StringCompressorAlgorithm(algorithm)
 	log.Println("Algorithm used", strAlgorithm)
 
 	client, err := devosender.NewClientBuilder().

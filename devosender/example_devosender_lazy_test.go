@@ -24,10 +24,10 @@ func ExampleLazyClientBuilder_initErrors() {
 	fmt.Println("4: error", err, "- LazyClient", lc)
 
 	// Output:
-	// 1: error Undefined inner client builder - LazyClient <nil>
-	// 2: error Buffer size less than 1 - LazyClient <nil>
-	// 3: error Flush timeout empty or negative - LazyClient <nil>
-	// 4: error Error while initialize client: Error when create new DevoSender (Clear): Entrypoint can not be empty - LazyClient <nil>
+	// 1: error undefined inner client builder - LazyClient <nil>
+	// 2: error buffer size less than 1 - LazyClient <nil>
+	// 3: error flush timeout empty or negative - LazyClient <nil>
+	// 4: error while initialize client: while create new DevoSender (Clear): entrypoint can not be empty - LazyClient <nil>
 
 }
 
@@ -63,7 +63,7 @@ func ExampleNewLazyClientBuilder() {
 	fmt.Println("2: error", err, "- LazyClient", lcStr, "...")
 
 	// Output:
-	// 1: error Undefined inner client builder - LazyClient <nil>
+	// 1: error undefined inner client builder - LazyClient <nil>
 	// 2: error <nil> - LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000' ...
 }
 
@@ -76,6 +76,7 @@ func ExampleLazyClient_StandBy() {
 		).
 		BufferSize(2).                         // very small buffers of two events only
 		EnableStandByModeTimeout(time.Second). // Set to 0 to wait for ever for async events when pass to stand by mode
+		MaxRecordsResendByFlush(10).           // Max records can be set too
 		Build()
 	if err != nil {
 		panic(err)
@@ -112,15 +113,14 @@ func ExampleLazyClient_StandBy() {
 	fmt.Println("Stats after WakeUp", lc.Stats)
 	fmt.Println("LazyClient after WakeUp", lc.String()[0:141])
 
-	var sender SwitchDevoSender
-	sender = lc
+	var sender SwitchDevoSender = lc
 	sender.Close()
 	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
 
 	// Output:
 	// LazyClient bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000'
 	// IsStandBy true
-	// SendWTag error Receiver func call with nil pointer
+	// SendWTag error receiver func call with nil pointer
 	// ID has non-conn- prefix true
 	// Stats AsyncEvents: 1, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
 	// Stats AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 0
@@ -165,8 +165,7 @@ func ExampleLazyClient() {
 	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:146])
 	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty", lc.LastSendCallTimestamp() == time.Time{})
 
-	var sender SwitchDevoSender
-	sender = lc
+	var sender SwitchDevoSender = lc
 	sender.Close()
 	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
 
@@ -245,8 +244,8 @@ func ExampleLazyClient_SendAsync() {
 
 	// Output:
 	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
-	// AsyncErrors associated with first id: Tag can not be empty
-	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: Tag can not be empty
+	// AsyncErrors associated with first id: tag can not be empty
+	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: tag can not be empty
 	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
