@@ -650,7 +650,7 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 
 	// Capture termination and close client
 	go func() {
-		sigchan := make(chan os.Signal)
+		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 		s := <-sigchan
 
