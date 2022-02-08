@@ -114,14 +114,14 @@ func (lcb *LazyClientBuilder) AppLogger(log applogger.SimpleAppLogger) *LazyClie
 func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 	// Validations
 	if lcb.clientBuilder == nil {
-		return nil, errors.New("Undefined inner client builder")
+		return nil, errors.New("undefined inner client builder")
 	}
 
 	if lcb.bufferEventsSize < 1 {
-		return nil, errors.New("Buffer size less than 1")
+		return nil, errors.New("buffer size less than 1")
 	}
 	if lcb.flushTimeout < 1 {
-		return nil, errors.New("Flush timeout empty or negative")
+		return nil, errors.New("flush timeout empty or negative")
 	}
 
 	// Default values
@@ -131,7 +131,7 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 
 	client, err := lcb.clientBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Error while initialize client: %w", err)
+		return nil, fmt.Errorf("while initialize client: %w", err)
 	}
 
 	// Create LazyClient
@@ -207,7 +207,7 @@ func (lc *LazyClient) StandBy() error {
 		}
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While wait for pending async messages: %w", err)
+			return fmt.Errorf("while wait for pending async messages: %w", err)
 		}
 
 		// Closing current client
@@ -245,7 +245,7 @@ func (lc *LazyClient) WakeUp() error {
 		client, err := lc.clientBuilder.Build()
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While (re)create client: %w", err)
+			return fmt.Errorf("while (re)create client: %w", err)
 		}
 		lc.Client = client
 		lc.clientMtx.Unlock()
@@ -253,7 +253,7 @@ func (lc *LazyClient) WakeUp() error {
 		// Flush will send pending events
 		err = lc.Flush()
 		if err != nil {
-			return fmt.Errorf("While flush pending events: %w", err)
+			return fmt.Errorf("while flush pending events: %w", err)
 		}
 	}
 	return nil
@@ -288,7 +288,7 @@ func (lc *LazyClient) Flush() error {
 		err := lc.Client.WaitForPendingAsyncMsgsOrTimeout(lc.flushTimeout)
 		if err != nil {
 			lc.clientMtx.Unlock()
-			return fmt.Errorf("While waiting for pending messages: %w", err)
+			return fmt.Errorf("while waiting for pending messages: %w", err)
 		}
 
 		lc.resetBuffer()
@@ -301,17 +301,17 @@ func (lc *LazyClient) Flush() error {
 func (lc *LazyClient) Close() error {
 	err := lc.WakeUp()
 	if err != nil {
-		return fmt.Errorf("While WakeUp client: %w", err)
+		return fmt.Errorf("while WakeUp client: %w", err)
 	}
 
 	err = lc.Flush()
 	if err != nil {
-		return fmt.Errorf("While Flush events: %w", err)
+		return fmt.Errorf("while Flush events: %w", err)
 	}
 
 	err = lc.StandBy()
 	if err != nil {
-		return fmt.Errorf("While pass to StandBy to force close inner client: %w", err)
+		return fmt.Errorf("while pass to StandBy to force close inner client: %w", err)
 	}
 
 	return nil
@@ -389,9 +389,9 @@ func (lc *LazyClient) SendAsync(m string) string {
 
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
-	ErrBufferOverflow = errors.New("Overwriting item(s) because buffer is full")
+	ErrBufferOverflow = errors.New("overwriting item(s) because buffer is full")
 	//ErrBufferFull is the error returned when buffer is full and any other action taken
-	ErrBufferFull = errors.New("Buffer is full")
+	ErrBufferFull = errors.New("buffer is full")
 )
 
 func (lc *LazyClient) addToBuffer(r *lazyClientRecord) error {
