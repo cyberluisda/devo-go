@@ -39,9 +39,9 @@ func ExampleReliableClientBuilder_initErrors() {
 	fmt.Println("3 rc", rc)
 
 	// Output:
-	// 1 error Undefined status builder
+	// 1 error undefined status builder
 	// 1 rc <nil>
-	// 2 error Undefined inner client builder
+	// 2 error undefined inner client builder
 	// 2 rc <nil>
 	// 3 error while open nutsdb: mkdir /this-is-not-valid-path: permission denied
 	// 3 rc <nil>
