@@ -275,9 +275,6 @@ func TestClient_AsyncErrors(t *testing.T) {
 }
 
 func TestClient_AsyncErrorsIds(t *testing.T) {
-	type args struct {
-		id string
-	}
 	tests := []struct {
 		name string
 		dsc  *Client
