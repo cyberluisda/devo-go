@@ -404,14 +404,12 @@ func (dsrc *ReliableClient) Flush() error {
 		}
 
 		// Now resend pending or mark as Evicted
-		evicted := make([]string, 0)
 		eventsSent := 0
 		for k, v := range idsToBeResend {
 
 			record, pos, err := dsrc.status.Get(k) // Evicted stats is managed by Get
 			if errors.Is(err, status.ErrRecordEvicted) {
-				// Evicted
-				evicted = append(evicted, k)
+				// Ignored becasue we consider event as evicted
 			} else if err != nil {
 				return fmt.Errorf("while load record from status with id %s, order %d to be processed: %w", k, pos, err)
 			} else {
