@@ -1,7 +1,6 @@
 package devosender
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -467,18 +466,12 @@ func (lcs LazyClientStats) String() string {
 
 const nonConnIDPrefix = "non-conn-"
 
-var nonConnIDPrefixBytes = []byte(nonConnIDPrefix)
-
 func newNoConnID() string {
 	return nonConnIDPrefix + uuid.NewV4().String()
 }
 
 func isNoConnID(id string) bool {
 	return strings.HasPrefix(id, nonConnIDPrefix)
-}
-
-func isNoConnIDBytes(id []byte) bool {
-	return bytes.HasPrefix(id, nonConnIDPrefixBytes)
 }
 
 func toNoConnID(id string) string {
