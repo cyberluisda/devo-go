@@ -1,3 +1,13 @@
+# 1.0.0
+**Release date**: 2022-02-08
+
+**Bugs**
+* [#28](https://github.com/cyberluisda/devo-go/issues/28): devo-sender: `RelieableClient` does not pass to "standby mode" state when connection is broken/closed
+
+**Features**
+* [#32](https://github.com/cyberluisda/devo-go/pull/32):  devosender: Data and structs of `ReliableClient` internal status redesigned and improved
+* [#30](https://github.com/cyberluisda/devo-go/pull/30):  devosender: Improve `ReliableClient` to get internal status database clean
+
 # 0.1.3
 **Release date**: 2021-12-09
 
