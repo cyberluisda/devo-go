@@ -24,10 +24,10 @@ func ExampleLazyClientBuilder_initErrors() {
 	fmt.Println("4: error", err, "- LazyClient", lc)
 
 	// Output:
-	// 1: error Undefined inner client builder - LazyClient <nil>
-	// 2: error Buffer size less than 1 - LazyClient <nil>
-	// 3: error Flush timeout empty or negative - LazyClient <nil>
-	// 4: error Error while initialize client: while create new DevoSender (Clear): entrypoint can not be empty - LazyClient <nil>
+	// 1: error undefined inner client builder - LazyClient <nil>
+	// 2: error buffer size less than 1 - LazyClient <nil>
+	// 3: error flush timeout empty or negative - LazyClient <nil>
+	// 4: error while initialize client: while create new DevoSender (Clear): entrypoint can not be empty - LazyClient <nil>
 
 }
 
@@ -63,7 +63,7 @@ func ExampleNewLazyClientBuilder() {
 	fmt.Println("2: error", err, "- LazyClient", lcStr, "...")
 
 	// Output:
-	// 1: error Undefined inner client builder - LazyClient <nil>
+	// 1: error undefined inner client builder - LazyClient <nil>
 	// 2: error <nil> - LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000' ...
 }
 
@@ -113,8 +113,7 @@ func ExampleLazyClient_StandBy() {
 	fmt.Println("Stats after WakeUp", lc.Stats)
 	fmt.Println("LazyClient after WakeUp", lc.String()[0:141])
 
-	var sender SwitchDevoSender
-	sender = lc
+	var sender SwitchDevoSender = lc
 	sender.Close()
 	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
 
@@ -166,8 +165,7 @@ func ExampleLazyClient() {
 	fmt.Println("LazyClient (after WakeUp)", lc.String()[0:146])
 	fmt.Println("SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty", lc.LastSendCallTimestamp() == time.Time{})
 
-	var sender SwitchDevoSender
-	sender = lc
+	var sender SwitchDevoSender = lc
 	sender.Close()
 	fmt.Println("LazyClient as SwitchDevoSender closed", sender.String())
 
