@@ -27,7 +27,7 @@ func ExampleLazyClientBuilder_initErrors() {
 	// 1: error Undefined inner client builder - LazyClient <nil>
 	// 2: error Buffer size less than 1 - LazyClient <nil>
 	// 3: error Flush timeout empty or negative - LazyClient <nil>
-	// 4: error Error while initialize client: Error when create new DevoSender (Clear): Entrypoint can not be empty - LazyClient <nil>
+	// 4: error Error while initialize client: while create new DevoSender (Clear): entrypoint can not be empty - LazyClient <nil>
 
 }
 
@@ -121,7 +121,7 @@ func ExampleLazyClient_StandBy() {
 	// Output:
 	// LazyClient bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000'
 	// IsStandBy true
-	// SendWTag error Receiver func call with nil pointer
+	// SendWTag error receiver func call with nil pointer
 	// ID has non-conn- prefix true
 	// Stats AsyncEvents: 1, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
 	// Stats AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 0
@@ -246,8 +246,8 @@ func ExampleLazyClient_SendAsync() {
 
 	// Output:
 	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
-	// AsyncErrors associated with first id: Tag can not be empty
-	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: Tag can not be empty
+	// AsyncErrors associated with first id: tag can not be empty
+	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: tag can not be empty
 	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
 	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
