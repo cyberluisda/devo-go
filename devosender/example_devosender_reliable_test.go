@@ -370,24 +370,24 @@ func ExampleReliableClient_nilInnerClient() {
 	fmt.Printf("rc.Stats after closed %+v\n", rc.Stats())
 
 	// Output:
-	// AddReplaceSequences: Receiver func call with nil pointer
+	// AddReplaceSequences: receiver func call with nil pointer
 	// Nothing to do when call SetSyslogHostName
-	// SetDefaultTag: Receiver func call with nil pointer
-	// Send: Receiver func call with nil pointer
-	// SendWTag: Receiver func call with nil pointer
+	// SetDefaultTag: receiver func call with nil pointer
+	// Send: receiver func call with nil pointer
+	// SendWTag: receiver func call with nil pointer
 	// SendAsync returns not empty id: 'true'
 	// SendWTagAsync returns not empty id: 'true'
 	// SendWTagAndCompressorAsync returns not empty id: 'true'
-	// WaitForPendingAsyncMessages: Receiver func call with nil pointer
-	// WaitForPendingAsyncMsgsOrTimeout: Receiver func call with nil pointer
-	// AsyncErrors: map[:Receiver func call with nil pointer]
+	// WaitForPendingAsyncMessages: receiver func call with nil pointer
+	// WaitForPendingAsyncMsgsOrTimeout: receiver func call with nil pointer
+	// AsyncErrors: map[:receiver func call with nil pointer]
 	// AsyncErrorsNumber: '0'
 	// GetEntryPoint returns: ''
 	// AsyncIds returns nil: 'true'
 	// IsAsyncActive returns: false
 	// AsyncsNumber returns: '0'
 	// LastSendCallTimestamp returns: '0001-01-01 00:00:00 +0000 UTC'
-	// Write i: 0 err: Receiver func call with nil pointer
+	// Write i: 0 err: receiver func call with nil pointer
 	// Close: <nil>
 	// rc.Stats after closed {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 }
