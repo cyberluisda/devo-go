@@ -194,7 +194,7 @@ func ParseDevoCentralEntrySite(s string) (ClienBuilderDevoCentralRelay, error) {
 	} else if strings.EqualFold("EU", s) {
 		return ClientBuilderRelayEU, nil
 	} else {
-		return 0, fmt.Errorf("Site '%s' is not valid", s)
+		return 0, fmt.Errorf("site '%s' is not valid", s)
 	}
 }
 
@@ -207,7 +207,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		var err error
 		dsb.key, dsb.cert, dsb.chain, err = loadTLSFiles(dsb.keyFileName, dsb.certFileName, dsb.chainFileName)
 		if err != nil {
-			return nil, fmt.Errorf("Error when prepare TLS connection using key file name and cert file name: %w", err)
+			return nil, fmt.Errorf("while prepare TLS connection using key file name and cert file name: %w", err)
 		}
 	}
 	if len(dsb.key) != 0 && len(dsb.cert) != 0 {
@@ -224,7 +224,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		if len(dsb.chain) > 0 {
 			ok := pool.AppendCertsFromPEM(dsb.chain)
 			if !ok {
-				return nil, fmt.Errorf("Could not parse chain certificate, content %s", string(dsb.chain))
+				return nil, fmt.Errorf("ould not parse chain certificate, content %s", string(dsb.chain))
 			}
 			TLSSetup.tlsConfig.RootCAs = pool
 		}
@@ -232,7 +232,7 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		// Load key and certificate
 		crts, err := tls.X509KeyPair(dsb.cert, dsb.key)
 		if err != nil {
-			return nil, fmt.Errorf("Error when load key and cert: %w", err)
+			return nil, fmt.Errorf("while load key and cert: %w", err)
 		}
 		TLSSetup.tlsConfig.Certificates = []tls.Certificate{crts}
 		TLSSetup.tlsConfig.BuildNameToCertificate()
@@ -285,7 +285,7 @@ type connectionError struct {
 }
 
 func (ce *connectionError) Error() string {
-	return fmt.Sprintf("Error when create new DevoSender (%s): %v", ce.Mode, ce.Err)
+	return fmt.Sprintf("while create new DevoSender (%s): %v", ce.Mode, ce.Err)
 }
 
 func isConnectionError(e error) bool {
@@ -348,7 +348,7 @@ type tcpConfig struct {
 }
 
 // ErrNilPointerReceiver is the error returned when received funcs are call over nil pointer
-var ErrNilPointerReceiver = errors.New("Receiver func call with nil pointer")
+var ErrNilPointerReceiver = errors.New("receiver func call with nil pointer")
 
 // SetSyslogHostName overwrite hostname send in raw Syslog payload
 func (dsc *Client) SetSyslogHostName(host string) {
@@ -373,7 +373,7 @@ func (dsc *Client) SetDefaultTag(t string) error {
 	}
 
 	if t == "" {
-		return fmt.Errorf("Tag can not be empty")
+		return ErrorTagEmpty
 	}
 
 	dsc.defaultTag = t
@@ -390,7 +390,7 @@ func (dsc *Client) Send(m string) error {
 
 	err := dsc.SendWTag(dsc.defaultTag, m)
 	if err != nil {
-		return fmt.Errorf("Error when call SendWTag using default tag '%s': %w", dsc.defaultTag, err)
+		return fmt.Errorf("while call SendWTag using default tag '%s': %w", dsc.defaultTag, err)
 	}
 	return nil
 }
@@ -405,7 +405,7 @@ func (dsc *Client) SendWTag(t, m string) error {
 }
 
 // ErrorTagEmpty is returneed when Devo tag is empty string
-var ErrorTagEmpty error = errors.New("Tag can not be empty")
+var ErrorTagEmpty error = errors.New("tag can not be empty")
 
 // SendWTagAndCompressor is similar to SendWTag but using a specific Compressor.
 // This can be usefull, for example, to force disable compression for one message using
@@ -454,7 +454,7 @@ func (dsc *Client) SendWTagAndCompressor(t, m string, c *compressor.Compressor) 
 	_, err := dsc.conn.Write(bytesdevomsg)
 
 	if err != nil {
-		return fmt.Errorf("Error when send data to devo: %w", err)
+		return fmt.Errorf("while send data to devo: %w", err)
 	}
 
 	// Save timestamp of event send
@@ -571,8 +571,8 @@ func (dsc *Client) WaitForPendingAsyncMessages() error {
 	return nil
 }
 
-// ErrWaitAsyncTimeout is the error returned when timeout is reached in "WaitFor" functions
-var ErrWaitAsyncTimeout = errors.New("Timeout when wait for pending items")
+// ErrWaitAsyncTimeout is the error returned while timeout is reached in "WaitFor" functions
+var ErrWaitAsyncTimeout = errors.New("timeout while wait for pending items")
 
 // WaitForPendingAsyncMsgsOrTimeout is similar to WaitForPendingAsyncMessages but
 // return ErrWaitAsyncTimeout error if timeout is reached
@@ -814,13 +814,13 @@ func (dsc *Client) Close() error {
 	}
 
 	if dsc.conn == nil {
-		return fmt.Errorf("Connection is nil")
+		return fmt.Errorf("connection is nil")
 	}
 	return dsc.conn.Close()
 }
 
 // ErrPayloadNoDefined is the error returned when payload is required by was not defined
-var ErrPayloadNoDefined = errors.New("Payload to check connection is not defined")
+var ErrPayloadNoDefined = errors.New("payload to check connection is not defined")
 
 // IsConnWorking check if connection is opened and make a test writing data to ensure that is working
 // If payload to check is not defined (ClientBuilder.IsConnWorkingCheckPayload) then ErrPayloadNoDefined
@@ -884,21 +884,21 @@ func (dsc *Client) String() string {
 
 func (dsc *Client) makeConnection() error {
 	if dsc.entryPoint == "" {
-		return fmt.Errorf("Entrypoint can not be empty")
+		return fmt.Errorf("entrypoint can not be empty")
 	}
 	u, err := url.Parse(dsc.entryPoint)
 	if err != nil {
-		return fmt.Errorf("Error when parse entrypoint %s: %w", dsc.entryPoint, err)
+		return fmt.Errorf("while parse entrypoint %s: %w", dsc.entryPoint, err)
 	}
 
 	if u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("Unexpected format (protocol://fqdn[:port]) for entrypoint: %v", dsc.entryPoint)
+		return fmt.Errorf("unexpected format (protocol://fqdn[:port]) for entrypoint: %v", dsc.entryPoint)
 	}
 
 	// Make connection BODY
 	tcpConn, err := dsc.tcp.tcpDialer.Dial(u.Scheme, u.Host)
 	if err != nil {
-		return fmt.Errorf("Error when try to open TCP connection to scheme: %s, host: %s, error: %w", u.Scheme, u.Host, err)
+		return fmt.Errorf("while try to open TCP connection to scheme: %s, host: %s, error: %w", u.Scheme, u.Host, err)
 	}
 
 	// TLS
@@ -947,18 +947,18 @@ func loadTLSFiles(keyFileName, certFileName string, chainFileName *string) ([]by
 	var err error
 	dataKey, err = ioutil.ReadFile(keyFileName)
 	if err != nil {
-		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Key file '%s': %w", keyFileName, err)
+		return dataKey, dataCert, dataChain, fmt.Errorf("while load Key file '%s': %w", keyFileName, err)
 	}
 
 	dataCert, err = ioutil.ReadFile(certFileName)
 	if err != nil {
-		return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cert file '%s': %w", certFileName, err)
+		return dataKey, dataCert, dataChain, fmt.Errorf("while load Cert file '%s': %w", certFileName, err)
 	}
 
 	if chainFileName != nil {
 		dataChain, err = ioutil.ReadFile(*chainFileName)
 		if err != nil {
-			return dataKey, dataCert, dataChain, fmt.Errorf("Error when load Cahin (RootCA) file '%s': %w", *chainFileName, err)
+			return dataKey, dataCert, dataChain, fmt.Errorf("while load Cahin (RootCA) file '%s': %w", *chainFileName, err)
 		}
 	}
 	return dataKey, dataCert, dataChain, nil
