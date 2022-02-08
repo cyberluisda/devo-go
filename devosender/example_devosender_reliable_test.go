@@ -43,7 +43,7 @@ func ExampleReliableClientBuilder_initErrors() {
 	// 1 rc <nil>
 	// 2 error Undefined inner client builder
 	// 2 rc <nil>
-	// 3 error While open nutsdb: mkdir /this-is-not-valid-path: permission denied
+	// 3 error while open nutsdb: mkdir /this-is-not-valid-path: permission denied
 	// 3 rc <nil>
 }
 
@@ -429,9 +429,9 @@ func ExampleReliableClient_appLoggerError() {
 	// rc.IsStandBy() false err <nil>
 	// rc.Close <nil>
 	// Log:
-	// ERROR Uncontrolled error when create status record in SendAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: While update nutsdb: db is closed
-	// ERROR Uncontrolled error when create status record in SendWTagAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: While update nutsdb: db is closed
-	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: While update nutsdb: db is closed
+	// ERROR Uncontrolled error when create status record in SendAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
+	// ERROR Uncontrolled error when create status record in SendWTagAndCompressorAsync, ID: non-conn-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX: while update nutsdb: db is closed
 }
 
 func ExampleReliableClient_extendedStats() {
