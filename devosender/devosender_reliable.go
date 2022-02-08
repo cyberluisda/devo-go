@@ -190,11 +190,11 @@ func (dsrcb *ReliableClientBuilder) MaxRecordsResendByFlush(max int) *ReliableCl
 func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Check required config
 	if dsrcb.statusBuilder == nil {
-		return nil, fmt.Errorf("Undefined status builder")
+		return nil, fmt.Errorf("undefined status builder")
 	}
 
 	if dsrcb.clientBuilder == nil {
-		return nil, fmt.Errorf("Undefined inner client builder")
+		return nil, fmt.Errorf("undefined inner client builder")
 	}
 
 	// Build inner Client
@@ -221,7 +221,7 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 	// Status DB
 	r.status, err = dsrcb.statusBuilder.Build()
 	if err != nil {
-		return nil, fmt.Errorf("Error while load satus engine: %w", err)
+		return nil, fmt.Errorf("while load satus engine: %w", err)
 	}
 
 	// Ensure existing elements in status are marked as no-conn (to prevent daemons eviction)
@@ -234,13 +234,13 @@ func (dsrcb *ReliableClientBuilder) Build() (*ReliableClient, error) {
 			return newNoConnID()
 		})
 	if err != nil {
-		return nil, fmt.Errorf("While mark remaining IDs as no-conn in status engine: %w", err)
+		return nil, fmt.Errorf("while mark remaining IDs as no-conn in status engine: %w", err)
 	}
 
 	// Daemons startup
 	err = r.daemonsSartup()
 	if err != nil {
-		return r, fmt.Errorf("While initialize dameons: %w", err)
+		return r, fmt.Errorf("while initialize dameons: %w", err)
 	}
 
 	return r, nil
@@ -366,13 +366,13 @@ func (dsrc *ReliableClient) Flush() error {
 	// Recollect pending events
 	allIds, err := dsrc.status.AllIDs()
 	if err != nil {
-		return fmt.Errorf("Error when findAllRecords before flush: %w", err)
+		return fmt.Errorf("while findAllRecords before flush: %w", err)
 	}
 
 	if isClientUp {
 		err = dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.flushTimeout)
 		if err != nil {
-			return fmt.Errorf("Timeout %s reached when wait for pending async msgs: %w", dsrc.flushTimeout, err)
+			return fmt.Errorf("timeout %s reached when wait for pending async msgs: %w", dsrc.flushTimeout, err)
 		}
 
 		idsToBeResend := map[string]error{}
@@ -413,7 +413,7 @@ func (dsrc *ReliableClient) Flush() error {
 				// Evicted
 				evicted = append(evicted, k)
 			} else if err != nil {
-				return fmt.Errorf("Error when load record from status with id %s, order %d to be processed: %w", k, pos, err)
+				return fmt.Errorf("while load record from status with id %s, order %d to be processed: %w", k, pos, err)
 			} else {
 				record.LastError = v
 				err = dsrc.resendRecord(record)
@@ -428,7 +428,7 @@ func (dsrc *ReliableClient) Flush() error {
 				}
 
 				if err != nil {
-					return fmt.Errorf("Error when resend record with id %s: %w", k, err)
+					return fmt.Errorf("while resend record with id %s: %w", k, err)
 				}
 			}
 		}
@@ -443,7 +443,7 @@ func (dsrc *ReliableClient) Flush() error {
 					"Ignoring record %s after assuming that was send by reason: %v", ID, err,
 				)
 			} else if err != nil {
-				return fmt.Errorf("While delete one status record that I assumed that was sent: %w", err)
+				return fmt.Errorf("while delete one status record that I assumed that was sent: %w", err)
 			}
 		}
 
@@ -454,7 +454,7 @@ func (dsrc *ReliableClient) Flush() error {
 			if !isNoConnID(id) {
 				err = dsrc.status.Update(id, toNoConnID(id))
 				if err != nil {
-					return fmt.Errorf("While pass one status record with old id %s to no-conn state: %w", id, err)
+					return fmt.Errorf("while pass one status record with old id %s to no-conn state: %w", id, err)
 				}
 			}
 		}
@@ -469,18 +469,18 @@ func (dsrc *ReliableClient) Close() error {
 
 	err := dsrc.Flush()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("While flush events: %w", err))
+		errors = append(errors, fmt.Errorf("while flush events: %w", err))
 	}
 
 	err = dsrc.daemonsShutdown()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("While shutdown daemons: %w", err))
+		errors = append(errors, fmt.Errorf("while shutdown daemons: %w", err))
 	}
 
 	if dsrc.Client != nil {
 		dsrc.Client.Close()
 		if err != nil {
-			errors = append(errors, fmt.Errorf("While close client: %w", err))
+			errors = append(errors, fmt.Errorf("while close client: %w", err))
 		}
 	}
 
@@ -493,12 +493,12 @@ func (dsrc *ReliableClient) Close() error {
 			return newNoConnID()
 		})
 	if err != nil {
-		errors = append(errors, fmt.Errorf("While mark remaining IDs as no-conn in status engine: %w", err))
+		errors = append(errors, fmt.Errorf("while mark remaining IDs as no-conn in status engine: %w", err))
 	}
 
 	dsrc.status.Close()
 	if err != nil {
-		errors = append(errors, fmt.Errorf("While close status engine: %w", err))
+		errors = append(errors, fmt.Errorf("while close status engine: %w", err))
 	}
 
 	if len(errors) == 0 {
@@ -525,7 +525,7 @@ func (dsrc *ReliableClient) StandBy() error {
 		if dsrc.enableStandByModeTimeout > 0 {
 			err := dsrc.WaitForPendingAsyncMsgsOrTimeout(dsrc.enableStandByModeTimeout)
 			if err != nil {
-				return fmt.Errorf("Error when wait for pending async operations, timeout %s: %w",
+				return fmt.Errorf("while wait for pending async operations, timeout %s: %w",
 					dsrc.enableStandByModeTimeout, err)
 			}
 		}
@@ -533,7 +533,7 @@ func (dsrc *ReliableClient) StandBy() error {
 		err := dsrc.Client.Close()
 		if err != nil {
 			dsrc.standByMode = true
-			return fmt.Errorf("Error when close client passing to StandBy: %w", err)
+			return fmt.Errorf("while close client passing to StandBy: %w", err)
 		}
 		// Destroy curret client to ensure it will be recreated when WakeUp
 		dsrc.Client = nil
@@ -557,7 +557,7 @@ func (dsrc *ReliableClient) WakeUp() error {
 		var err error
 		dsrc.Client, err = dsrc.clientBuilder.Build()
 		if err != nil {
-			return fmt.Errorf("Error when creating new client. StandByMode deactivated anyway: %w", err)
+			return fmt.Errorf("while creating new client. StandByMode deactivated anyway: %w", err)
 		}
 	}
 
@@ -672,19 +672,19 @@ func (dsrc *ReliableClient) daemonsSartup() error {
 	// Pending events daemon
 	err := dsrc.startRetryEventsDaemon()
 	if err != nil {
-		return fmt.Errorf("While starts retry event daemon: %w", err)
+		return fmt.Errorf("while starts retry event daemon: %w", err)
 	}
 
 	// Client reconnection
 	err = dsrc.clientReconnectionDaemon()
 	if err != nil {
-		return fmt.Errorf("While starts client reconnection daemon: %w", err)
+		return fmt.Errorf("while starts client reconnection daemon: %w", err)
 	}
 
 	// status HouseKeeping
 	err = dsrc.statusHouseKeepingDaemon()
 	if err != nil {
-		return fmt.Errorf("While starts statusHouseKeeping daemon: %w", err)
+		return fmt.Errorf("while starts statusHouseKeeping daemon: %w", err)
 	}
 
 	return nil
@@ -703,7 +703,7 @@ func (dsrc *ReliableClient) daemonsShutdown() error {
 	for i := 0; i < 3; i++ {
 		select {
 		case <-time.After(dsrc.daemonStopTimeout):
-			errors = append(errors, fmt.Errorf("Timeout when wait for daemon number: %d", i))
+			errors = append(errors, fmt.Errorf("timeout when wait for daemon number: %d", i))
 		case <-dsrc.daemonStopped:
 			dsrc.appLogger.Log(
 				applogger.INFO,
@@ -720,7 +720,7 @@ func (dsrc *ReliableClient) daemonsShutdown() error {
 		err = fmt.Errorf("%v, %v", e, err)
 	}
 
-	return fmt.Errorf("Errors when shutdown daemons: %w", err)
+	return fmt.Errorf("while shutdown daemons: %w", err)
 }
 
 // startRetryEventsDaemon runs in background the retry send events daemon. This daemon checks
@@ -728,7 +728,7 @@ func (dsrc *ReliableClient) daemonsShutdown() error {
 // was saved by inner client. This actions are delegated to call Flush func
 func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 	if dsrc.retryDaemon.waitBtwChecks <= 0 {
-		return fmt.Errorf("Time to wait between each check to retry events is not enough: %s",
+		return fmt.Errorf("time to wait between each check to retry events is not enough: %s",
 			dsrc.retryDaemon.waitBtwChecks)
 	}
 	go func() {
@@ -766,7 +766,7 @@ func (dsrc *ReliableClient) startRetryEventsDaemon() error {
 // ErrPayloadNoDefined.
 func (dsrc *ReliableClient) clientReconnectionDaemon() error {
 	if dsrc.reconnDaemon.waitBtwChecks <= 0 {
-		return fmt.Errorf("Time to wait between each check to reconnect client is not enough: %s", dsrc.reconnDaemon.waitBtwChecks)
+		return fmt.Errorf("time to wait between each check to reconnect client is not enough: %s", dsrc.reconnDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
@@ -819,7 +819,7 @@ const (
 // periodically the status.HouseKeeping() method
 func (dsrc *ReliableClient) statusHouseKeepingDaemon() error {
 	if dsrc.houseKeepingDaemon.waitBtwChecks <= 0 {
-		return fmt.Errorf("Invalid time to wait between each HouseKeeping execution: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
+		return fmt.Errorf("invalid time to wait between each HouseKeeping execution: %s", dsrc.houseKeepingDaemon.waitBtwChecks)
 	}
 	go func() {
 		// Init delay
@@ -945,7 +945,7 @@ func (dsrc *ReliableClient) resendRecord(r *status.EventRecord) error {
 
 	err := dsrc.status.Update(r.EffectiveID(), newID)
 	if err != nil {
-		return fmt.Errorf("Error when update status record after resend with newID %s: %w", newID, err)
+		return fmt.Errorf("while update status record after resend with newID %s: %w", newID, err)
 	}
 
 	return nil
