@@ -1574,11 +1574,11 @@ func TestReliableClient_clientReconnectionDaemon__recreate_error(t *testing.T) {
 	time.Sleep(time.Millisecond * 120)
 
 	got := appLogBuf.String()
-	want := `ERROR Error While create new client in Reconnection daemon: Error when create ` +
-		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+	want := `ERROR Error While create new client in Reconnection daemon: while create ` +
+		`new DevoSender (Clear): while parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
 		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n" +
-		`ERROR Error While create new client in Reconnection daemon: Error when create ` +
-		`new DevoSender (Clear): Error when parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
+		`ERROR Error While create new client in Reconnection daemon: while create ` +
+		`new DevoSender (Clear): while parse entrypoint NO_VALID_PROTOCOL://localhost: ` +
 		`parse "NO_VALID_PROTOCOL://localhost": first path segment in URL cannot contain colon` + "\n"
 	if got != want {
 		t.Errorf("ReliableClient.clientReconnectionDaemon() log = %v, want %v", got, want)
@@ -1636,7 +1636,7 @@ func TestReliableClient_statusHouseKeepingDaemon__housekeeping_error(t *testing.
 
 	// Checks that message is expected
 	got := buf.String()
-	wantPrefix := "ERROR Error While perform status.HouseKeeping in statusHouseKeepingDaemon: Receiver func call with nil pointer\n"
+	wantPrefix := "ERROR Error While perform status.HouseKeeping in statusHouseKeepingDaemon: receiver func call with nil pointer\n"
 	if !strings.HasPrefix(got, wantPrefix) {
 		t.Errorf("ReliableClient.statusHouseKeepingDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}
