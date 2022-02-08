@@ -751,7 +751,6 @@ func TestReliableClient_Flush(t *testing.T) {
 		daemonStopTimeout           time.Duration
 		standByMode                 bool
 		enableStandByModeTimeout    time.Duration
-		dbInitCleanedup             bool
 		daemonStopped               chan bool
 		flushTimeout                time.Duration
 		maxRecordsResendInFlushCall int
@@ -962,7 +961,6 @@ func TestReliableClient_Close(t *testing.T) {
 		daemonStopTimeout        time.Duration
 		standByMode              bool
 		enableStandByModeTimeout time.Duration
-		dbInitCleanedup          bool
 		daemonStopped            chan bool
 		flushTimeout             time.Duration
 		appLogger                applogger.SimpleAppLogger
