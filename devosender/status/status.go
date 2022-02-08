@@ -132,13 +132,13 @@ func (nsb *NutsDBStatusBuilder) Build() (Status, error) {
 // NutsDBStatus.Initialize is called just after build connection
 func (nsb *NutsDBStatusBuilder) BuildNutsDBStatus() (*NutsDBStatus, error) {
 	if nsb.dbOpts.Dir == "" {
-		return nil, fmt.Errorf("Empty Dir in nutsdb.Opts")
+		return nil, fmt.Errorf("empty Dir in nutsdb.Opts")
 	}
 
 	// Open nutsdb
 	db, err := nutsdb.Open(nsb.dbOpts)
 	if err != nil {
-		return nil, fmt.Errorf("While open nutsdb: %w", err)
+		return nil, fmt.Errorf("while open nutsdb: %w", err)
 	}
 
 	r := &NutsDBStatus{
@@ -152,7 +152,7 @@ func (nsb *NutsDBStatusBuilder) BuildNutsDBStatus() (*NutsDBStatus, error) {
 
 	err = r.Initialize()
 	if err != nil {
-		return r, fmt.Errorf("While initialize NutsDBStatus: %w", err)
+		return r, fmt.Errorf("while initialize NutsDBStatus: %w", err)
 	}
 	return r, nil
 }
@@ -205,7 +205,7 @@ var (
 	// ErrRecordNotFoundInIdx is the error returned when EventRecord was not found in the index
 	ErrRecordNotFoundInIdx error = errors.New("EventRecord not found in index")
 	// ErrIdxNoIntialized is the error returned when Internal index was not propertly initialized
-	ErrIdxNoIntialized = fmt.Errorf("Idx was not properly initialized")
+	ErrIdxNoIntialized = fmt.Errorf("index was not properly initialized")
 )
 
 // New is the New implementation of Status interface for NutsDBStatus.
@@ -233,14 +233,14 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 		ID := []byte(IDStr)
 		_, err := getDataRecordInTx(tx, ID)
 		if !IsNotFoundErr(err) {
-			return fmt.Errorf("Record with %s id is present in status db", er.AsyncIDs[0])
+			return fmt.Errorf("record with %s id is present in status db", er.AsyncIDs[0])
 		}
 
 		if er.Timestamp.Add(time.Duration(ns.eventTTL) * time.Second).Before(time.Now()) {
 			// Event was expired with add as evicted only
 			err := inc(tx, statsBucket, evictedKey, 1, false)
 			if err != nil {
-				err = fmt.Errorf("While increment %s.%s: %w", statsBucket, string(evictedKey), err)
+				err = fmt.Errorf("while increment %s.%s: %w", statsBucket, string(evictedKey), err)
 			}
 			return err
 		}
@@ -252,14 +252,14 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 			shouldIncCount = false
 			err = removeFirstRecordInTx(tx, ns.idx, droppedKey)
 			if err != nil {
-				return fmt.Errorf("While drop event because buffer is full: %w", err)
+				return fmt.Errorf("while drop event because buffer is full: %w", err)
 			}
 		}
 
 		// Create new record
 		err = saveDataRecordInTx(tx, er, ns.eventTTL)
 		if err != nil {
-			return fmt.Errorf("While create new record in status db: %w", err)
+			return fmt.Errorf("while create new record in status db: %w", err)
 		}
 
 		// Update order
@@ -269,14 +269,14 @@ func (ns *NutsDBStatus) New(er *EventRecord) error {
 		if shouldIncCount {
 			err = inc(tx, statsBucket, countKey, 1, false)
 			if err != nil {
-				return fmt.Errorf("While increment %s.%s: %w", statsBucket, string(countKey), err)
+				return fmt.Errorf("while increment %s.%s: %w", statsBucket, string(countKey), err)
 			}
 		}
 
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("While update nutsdb: %w", err)
+		return fmt.Errorf("while update nutsdb: %w", err)
 	}
 
 	return nil
@@ -306,13 +306,13 @@ func (ns *NutsDBStatus) Update(oldID, newID string) error {
 		// Save event record
 		err = saveDataRecordInTx(tx, er, ns.eventTTL)
 		if err != nil {
-			return fmt.Errorf("While update IDs references in eventrecord %+v: %w", er, err)
+			return fmt.Errorf("while update IDs references in eventrecord %+v: %w", er, err)
 		}
 
 		// increment update stat
 		err = inc(tx, statsBucket, updatedKey, 1, false)
 		if err != nil {
-			return fmt.Errorf("While update updated counter: %w", err)
+			return fmt.Errorf("while update updated counter: %w", err)
 		}
 
 		return nil
@@ -332,7 +332,7 @@ func (ns *NutsDBStatus) BatchUpdate(f func(old string) string) error {
 	// Get all ids
 	allIds, err := ns.AllIDs()
 	if err != nil {
-		return fmt.Errorf("While load AllIDs: %w", err)
+		return fmt.Errorf("while load AllIDs: %w", err)
 	}
 
 	if len(allIds) == 0 {
@@ -353,7 +353,7 @@ func (ns *NutsDBStatus) BatchUpdate(f func(old string) string) error {
 			// Ignoring this kind of errors because it means that element
 			// was finished before doing the mapping
 		} else if err != nil {
-			return fmt.Errorf("While updating record with old id %s with new id %s: %w",
+			return fmt.Errorf("while updating record with old id %s with new id %s: %w",
 				old, new, err)
 		}
 	}
@@ -390,20 +390,20 @@ func (ns *NutsDBStatus) Get(ID string) (*EventRecord, int, error) {
 			// Assuming record was expired
 			err = removeFromIdxInTx(tx, ns.idx, pos, evictedKey)
 			if err != nil {
-				return fmt.Errorf("While mark %s as evicted: %w", ID, err)
+				return fmt.Errorf("while mark %s as evicted: %w", ID, err)
 			}
 
 			// Decrement buffer counter
 			err = inc(tx, statsBucket, countKey, -1, true)
 			if err != nil {
-				return fmt.Errorf("While decrement buffer counter: %w", err)
+				return fmt.Errorf("while decrement buffer counter: %w", err)
 			}
 
 			r = nil
 			pos = -1
 			evictedRecord = true // Instead of return return ErrRecordEvicted to prevent nutsdb rollback
 		} else if err != nil {
-			return fmt.Errorf("While load record: %w", err)
+			return fmt.Errorf("while load record: %w", err)
 		}
 		return nil
 	})
@@ -439,18 +439,18 @@ func (ns *NutsDBStatus) FinishRecord(ID string) error {
 		idInData := ns.idx.Refs[ID]
 		err := deleteDataRecordInTx(tx, []byte(idInData))
 		if err != nil {
-			return fmt.Errorf("While ensure record is removed from data (id: %s, key: %s.%s): %w",
+			return fmt.Errorf("while ensure record is removed from data (id: %s, key: %s.%s): %w",
 				ID, dataBucket, idInData, err)
 		}
 
 		err = removeFromIdxInTx(tx, ns.idx, pos, finishedKey)
 		if err != nil {
-			return fmt.Errorf("While remove form index: %w", err)
+			return fmt.Errorf("while remove form index: %w", err)
 		}
 
 		err = inc(tx, statsBucket, countKey, -1, true)
 		if err != nil {
-			return fmt.Errorf("While decrement %s.%s counter: %w", statsBucket, string(countKey), err)
+			return fmt.Errorf("while decrement %s.%s counter: %w", statsBucket, string(countKey), err)
 		}
 
 		return nil
@@ -484,7 +484,7 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 				// Assuming was expired
 				posToRemove = append(posToRemove, i)
 			} else if err != nil {
-				return fmt.Errorf("While look for %s.%s: %w", dataBucket, ID, err)
+				return fmt.Errorf("while look for %s.%s: %w", dataBucket, ID, err)
 			}
 		}
 
@@ -496,7 +496,7 @@ func (ns *NutsDBStatus) AllIDs() ([]string, error) {
 
 			err := inc(tx, statsBucket, evictedKey, len(posToRemove), false)
 			if err != nil {
-				return fmt.Errorf("While update evicted stat: %w", err)
+				return fmt.Errorf("while update evicted stat: %w", err)
 			}
 		}
 
@@ -518,7 +518,7 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 	err := ns.db.Update(func(tx *nutsdb.Tx) error {
 		entries, err := tx.GetAll(dataBucket)
 		if err != nil && !IsNotFoundErr(err) {
-			return fmt.Errorf("While load all entries from %s: %w", dataBucket, err)
+			return fmt.Errorf("while load all entries from %s: %w", dataBucket, err)
 		}
 
 		// Un marshall all records
@@ -541,7 +541,7 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 		entries = nil // easy gc
 
 		if len(errors) > 0 {
-			return fmt.Errorf("Event record unseriallize errors: %s", strings.Join(errors, ", "))
+			return fmt.Errorf("event record unseriallize errors: %s", strings.Join(errors, ", "))
 		}
 
 		expiredIDs := make(map[string]interface{}, 0)
@@ -556,11 +556,11 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 			// time in the same transaction. We will set evicted stats value later
 			evictedStat, err := cont(tx, statsBucket, evictedKey, false)
 			if err != nil {
-				return fmt.Errorf("While load %s.%s: %w", statsBucket, string(evictedKey), err)
+				return fmt.Errorf("while load %s.%s: %w", statsBucket, string(evictedKey), err)
 			}
 			countStat, err := cont(tx, statsBucket, countKey, false)
 			if err != nil {
-				return fmt.Errorf("While load %s.%s: %w", statsBucket, string(countKey), err)
+				return fmt.Errorf("while load %s.%s: %w", statsBucket, string(countKey), err)
 			}
 
 			// Remove expired events from idx one by one
@@ -568,18 +568,18 @@ func (ns *NutsDBStatus) FindAll() ([]*EventRecord, error) {
 				i := ns.idx.indexOf(ID)
 				err = removeFromIdxInTx(tx, ns.idx, i, nil)
 				if err != nil {
-					return fmt.Errorf("While remove expired %s ID (%d) from index: %w", ID, i, err)
+					return fmt.Errorf("while remove expired %s ID (%d) from index: %w", ID, i, err)
 				}
 			}
 
 			// Update stats
 			err = set(tx, statsBucket, evictedKey, evictedStat+len(expiredIDs))
 			if err != nil {
-				return fmt.Errorf("While update %s.%s: %w", statsBucket, string(evictedKey), err)
+				return fmt.Errorf("while update %s.%s: %w", statsBucket, string(evictedKey), err)
 			}
 			err = set(tx, statsBucket, countKey, countStat-len(expiredIDs))
 			if err != nil {
-				return fmt.Errorf("While update %s.%s: %w", statsBucket, string(countKey), err)
+				return fmt.Errorf("while update %s.%s: %w", statsBucket, string(countKey), err)
 			}
 		}
 
@@ -643,12 +643,12 @@ func (ns *NutsDBStatus) HouseKeeping() error {
 	nFiles := NumberOfFiles(ns.dbOpts.Dir)
 	if nFiles >= ns.filesToConsolidateDb {
 		if ns.db == nil {
-			return fmt.Errorf("Status db is nil")
+			return fmt.Errorf("status db is nil")
 		}
 
 		err := ns.db.Merge()
 		if err != nil {
-			return fmt.Errorf("While consolidate (Merge) status files, # files=%d: %w", nFiles, err)
+			return fmt.Errorf("while consolidate (Merge) status files, # files=%d: %w", nFiles, err)
 		}
 		merged = true
 	}
@@ -658,7 +658,7 @@ func (ns *NutsDBStatus) HouseKeeping() error {
 		var err error
 		ns.db, err = nutsdb.Open(ns.dbOpts)
 		if err != nil {
-			return fmt.Errorf("While recreate db client after consolidate status files: %w", err)
+			return fmt.Errorf("while recreate db client after consolidate status files: %w", err)
 		}
 	}
 
@@ -687,7 +687,7 @@ func (ns *NutsDBStatus) Initialize() error {
 	// Consolidate database
 	err := ns.HouseKeeping()
 	if err != nil {
-		return fmt.Errorf("While perform initial HouseKeeping: %w", err)
+		return fmt.Errorf("while perform initial HouseKeeping: %w", err)
 	}
 
 	ns.dbMtx.Lock()
@@ -702,13 +702,13 @@ func (ns *NutsDBStatus) Initialize() error {
 		// Reindex if needed
 		err := recreateIdxInTx(tx, ns.idx)
 		if err != nil {
-			return fmt.Errorf("While recreate index: %w", err)
+			return fmt.Errorf("while recreate index: %w", err)
 		}
 
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("While initialize internal db: %w", err)
+		return fmt.Errorf("while initialize internal db: %w", err)
 	}
 
 	ns.initialized = true
@@ -744,7 +744,7 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 		// We should set empty idx
 		idx.reset(0)
 	} else if err != nil {
-		return fmt.Errorf("While load instances to do initial index check: %w", err)
+		return fmt.Errorf("while load instances to do initial index check: %w", err)
 	} else {
 		fixRequired := false
 
@@ -775,12 +775,12 @@ func recreateIdxInTx(tx *nutsdb.Tx, idx *orderIdx) error {
 				er := &EventRecord{}
 				err = msgpack.Unmarshal(entry.Value, er)
 				if err != nil {
-					return fmt.Errorf("While unmarshall record from raw %v: %w", entry.Value, err)
+					return fmt.Errorf("while unmarshall record from raw %v: %w", entry.Value, err)
 				}
 
 				ID := er.EffectiveID()
 				if ID == "" {
-					return fmt.Errorf("Loaded record , %+v, without any value in ASyncIds", er)
+					return fmt.Errorf("loaded record , %+v, without any value in ASyncIds", er)
 				}
 				idsTs.Add(ID, er.Timestamp)
 				keysInStatus[ID] = string(entry.Key)
@@ -821,12 +821,12 @@ func saveDataRecordInTx(tx *nutsdb.Tx, er *EventRecord, ttl uint32) error {
 	ts := uint64(er.Timestamp.Unix())
 	raw, err := er.Serialize()
 	if err != nil {
-		return fmt.Errorf("While create new record in TX: %w", err)
+		return fmt.Errorf("while create new record in TX: %w", err)
 	}
 
 	err = tx.PutWithTimestamp(dataBucket, ID, raw, ttl, ts)
 	if err != nil {
-		return fmt.Errorf("While save new record in %s.%s in TX: %w", dataBucket, string(ID), err)
+		return fmt.Errorf("while save new record in %s.%s in TX: %w", dataBucket, string(ID), err)
 	}
 
 	return nil
@@ -843,13 +843,13 @@ type orderIdx struct {
 
 func removeFromIdxInTx(tx *nutsdb.Tx, oi *orderIdx, pos int, metricToIncrement []byte) error {
 	if pos < 0 || pos > len(oi.Order)-1 {
-		return fmt.Errorf("Pos is out of bounds")
+		return fmt.Errorf("pos is out of bounds")
 	}
 
 	if metricToIncrement != nil {
 		err := inc(tx, statsBucket, metricToIncrement, 1, false)
 		if err != nil {
-			return fmt.Errorf("While increment %s.%s: %w", statsBucket, string(metricToIncrement), err)
+			return fmt.Errorf("while increment %s.%s: %w", statsBucket, string(metricToIncrement), err)
 		}
 	}
 	oi.remove(pos)
@@ -865,12 +865,12 @@ func removeFirstRecordInTx(tx *nutsdb.Tx, oi *orderIdx, metricToIncrement []byte
 	ID := oi.Order[0]
 	err := deleteDataRecordInTx(tx, []byte(ID))
 	if err != nil {
-		return fmt.Errorf("While delete data record with id %s: %w", ID, err)
+		return fmt.Errorf("while delete data record with id %s: %w", ID, err)
 	}
 
 	err = removeFromIdxInTx(tx, oi, 0, metricToIncrement)
 	if err != nil {
-		return fmt.Errorf("While remove references of %s id from index: %w", ID, err)
+		return fmt.Errorf("while remove references of %s id from index: %w", ID, err)
 	}
 	return nil
 }
@@ -1054,7 +1054,7 @@ type EventRecord struct {
 func (er *EventRecord) Serialize() ([]byte, error) {
 	r, err := msgpack.Marshal(er)
 	if err != nil {
-		return nil, fmt.Errorf("While serialize record: %w", err)
+		return nil, fmt.Errorf("while serialize record: %w", err)
 	}
 	return r, nil
 }
