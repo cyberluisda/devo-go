@@ -70,7 +70,7 @@ func ExampleNutsDBStatus_newRecord() {
 	// Default timestamp implies event is evicted: {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:1 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:-1}
 	// IDs after event added: [id-1]
 	// Stats: {BufferCount:1 Updated:0 Finished:0 Dropped:0 Evicted:1 DbIdxSize:1 DbMaxFileID:0 DbDataEntries:-1}
-	// Error ID exists: While update nutsdb: Record with id-1 id is present in status db
+	// Error ID exists: while update nutsdb: record with id-1 id is present in status db
 	// Error more than one ID: AsyncIDs must be formed by one and only one value
 	// Stats after close: {BufferCount:0 Updated:0 Finished:0 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 
