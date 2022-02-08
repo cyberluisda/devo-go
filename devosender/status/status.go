@@ -875,18 +875,6 @@ func removeFirstRecordInTx(tx *nutsdb.Tx, oi *orderIdx, metricToIncrement []byte
 	return nil
 }
 
-func unSerialzeOrderIdx(raw []byte) (*orderIdx, error) {
-	r := orderIdx{}
-	err := msgpack.Unmarshal(raw, &r)
-	return &r, err
-}
-
-func (oi *orderIdx) serialize() ([]byte, error) {
-	v, err := msgpack.Marshal(oi)
-
-	return v, err
-}
-
 func (oi *orderIdx) indexOf(s string) int {
 	r := -1
 	if len(oi.Order) == 0 {
