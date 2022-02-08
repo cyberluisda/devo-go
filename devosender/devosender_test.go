@@ -2889,7 +2889,7 @@ func Test_connectionError_Error(t *testing.T) {
 				Mode: "test mode",
 				Err:  errors.New("test error"),
 			},
-			"Error when create new DevoSender (test mode): test error",
+			"while create new DevoSender (test mode): test error",
 		},
 	}
 	for _, tt := range tests {
