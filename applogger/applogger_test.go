@@ -106,7 +106,7 @@ func TestWriterAppLogger_Logf(t *testing.T) {
 				"test",
 				nil,
 			},
-			regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[-+]\d{2}:\d{2} DEBUG test\n$`),
+			regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[-+]\d{2}:\d{2}) DEBUG test\n$`),
 		},
 		{
 			"With time",
