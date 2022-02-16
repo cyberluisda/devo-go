@@ -237,9 +237,17 @@ func (lc *LazyClient) isStandByUnlocked() bool {
 }
 
 // WakeUp leave stand by mode creating new connection to Devo. Any action will be done
-// if Client is not in stand-by mode.
+// if Client is not in stand-by mode of if connection is not working.
+// ClientBuilder.IsConnWorkingCheckPayload must be set with a valid value ("\x00") as example
+// to allow check if connection is working.
 func (lc *LazyClient) WakeUp() error {
-	if lc.IsStandBy() {
+	shouldWakeUp := lc.IsStandBy()
+	if !shouldWakeUp {
+		if ok, err := lc.Client.IsConnWorking(); err != ErrPayloadNoDefined && !ok {
+			shouldWakeUp = true
+		}
+	}
+	if shouldWakeUp {
 		lc.clientMtx.Lock()
 
 		client, err := lc.clientBuilder.Build()

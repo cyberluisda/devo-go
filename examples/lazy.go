@@ -66,6 +66,7 @@ The main procedure implemented is:
 	sender, err := devosender.NewLazyClientBuilder().
 		ClientBuilder(
 			devosender.NewClientBuilder().
+				IsConnWorkingCheckPayload("\x00"). // Requiree to wake up force create connection after conection outage
 				EntryPoint(entrypoint),
 		).
 		Build()

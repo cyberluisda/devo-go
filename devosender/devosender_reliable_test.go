@@ -1725,7 +1725,7 @@ func TestReliableClient_statusHouseKeepingDaemon__recreateDb(t *testing.T) {
 	got := buf.String()
 	wantPrefix := "DEBUG statusHouseKeepingDaemon working: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
 		"DEBUG statusHouseKeepingDaemon shot: { waitBtwChecks: 100ms, initDelay: 0s, stop: false}\n" +
-		"DEBUG Status HouseKeeping results: Before: KeyCount: 38, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 17, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 3, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 5000000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
+		"DEBUG Status HouseKeeping results: Before: KeyCount: 38, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 17, initialized: true, bufferSize: 500000, eventTTL: 3600, recreateDbClientAfterConsolidation: true, After: KeyCount: 3, ListIdx: map[], consolidationDbNumFilesThreshold: 2, dbFiles: 2, initialized: true, bufferSize: 500000, eventTTL: 3600, recreateDbClientAfterConsolidation: true\n"
 	if !strings.HasPrefix(got, wantPrefix) {
 		t.Errorf("ReliableClient.statusHouseKeepingDaemon() logger msg = %v, wantPrefix %v", got, wantPrefix)
 	}

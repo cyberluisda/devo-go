@@ -36,7 +36,7 @@ const (
 	DefaultEventsTTLSeconds uint32 = 3600
 	// DefaultBufferSize is the default size of the total events buffer manged by Status
 	// implementation
-	DefaultBufferSize uint = 5000000
+	DefaultBufferSize uint = 500000
 	// DefaultFilesToConsolidateDb is the default value used when NutsDBStatusBuilder.FilesToConsolidateDb
 	// is not called or not set
 	DefaultFilesToConsolidateDb = 5

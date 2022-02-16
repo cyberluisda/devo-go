@@ -34,12 +34,12 @@ type daemonOpts struct {
 }
 
 const (
-	// DefaultDaemonWaitBtwChecks is the default time that daemons must wait between
-	// run checks or works
-	DefaultDaemonWaitBtwChecks = time.Second
-	// DefaultDaemonInitDelay is the default delay time that daemons must wait before
-	// start to work
-	DefaultDaemonInitDelay = time.Millisecond * 500
+	// DefaultClientReconnDaemonWaitBtwChecks is the default time that client reconnect daemon
+	// must wait between run checks or works
+	DefaultClientReconnDaemonWaitBtwChecks = 10 * time.Second
+	// DefaultClientReconnDaemonInitDelay is the default delay time that client reconnect daemon
+	// must wait before start to work
+	DefaultClientReconnDaemonInitDelay = time.Second * 30
 	// DefaultDaemonMicroWait is the default micro delay to check in the midle of daemon
 	// sleep time if daemon was marked to be stopped, then interrup sleep operation
 	DefaultDaemonMicroWait = time.Millisecond * 200
@@ -55,7 +55,16 @@ const (
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
 	// DefaultHouseKeepingDaemonWaitBtwChecks is the default time that status housekeeping daemon must wait
 	// between run checks or do any action
-	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute
+	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute * 5
+	// DefaultHouseKeepingDaemonInitDelay is the default delay time that status housekeeping daemon
+	// must wait before start to work
+	DefaultHouseKeepingDaemonInitDelay = time.Second * 5
+	// DefaultResendEventsDaemonWaitBtwChecks is the default time that resend pending events daemon must wait
+	// between run checks or do any action
+	DefaultResendEventsDaemonWaitBtwChecks = time.Second * 30
+	// DefaultResendEventsDaemonInitDelay is the default delay time that resend pending events daemon
+	// must wait before start to work
+	DefaultResendEventsDaemonInitDelay = time.Second * 20
 	// DefaultMaxRecordsResendByFlush is the default value for the max numbers of pending events to resend
 	// when Flush operation is called
 	DefaultMaxRecordsResendByFlush = 1000
@@ -65,9 +74,9 @@ const (
 func NewReliableClientBuilder() *ReliableClientBuilder {
 
 	r := &ReliableClientBuilder{
-		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
-		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
-		houseKeepingDaemonOpts:   daemonOpts{DefaultHouseKeepingDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		retryDaemonOpts:          daemonOpts{DefaultResendEventsDaemonWaitBtwChecks, DefaultResendEventsDaemonInitDelay},
+		clientReconnOpts:         daemonOpts{DefaultClientReconnDaemonWaitBtwChecks, DefaultClientReconnDaemonInitDelay},
+		houseKeepingDaemonOpts:   daemonOpts{DefaultHouseKeepingDaemonWaitBtwChecks, DefaultHouseKeepingDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		flushTimeout:             DefaultFlushAsyncTimeout,
@@ -167,8 +176,13 @@ func (dsrcb *ReliableClientBuilder) FlushTimeout(d time.Duration) *ReliableClien
 
 // ClientBuilder sets the ClientBuilder needed to build the underhood client. This is required
 // to initial setup and it is used by reconnect daemon too.
+// If IsConnWorkingCheckPayload is not defined in cb ClientBuilder then \x00 VALUE WILL BE fixed
+// to ensure that ClientReconn daemon can recreate connection after any outage
 func (dsrcb *ReliableClientBuilder) ClientBuilder(cb *ClientBuilder) *ReliableClientBuilder {
 	dsrcb.clientBuilder = cb
+	if cb.isConnWorkingCheckPayload == "" {
+		cb.IsConnWorkingCheckPayload("\x00")
+	}
 	return dsrcb
 }
 
@@ -576,39 +590,6 @@ func (dsrc *ReliableClient) IsConnWorking() (bool, error) {
 
 	return dsrc.Client.IsConnWorking()
 }
-
-// // ReliableClientStats represents the stats that can be queried
-// type ReliableClientStats struct {
-// 	// Number of events in buffer
-// 	Count int
-// 	// UPdaTotal events that are in buffer and daemon was tried to re-send
-// 	Updated int
-// 	// Finished is the total number of events that were processed (out of buffer)
-// 	Finished int
-// 	// Dropped is the total number of events that were removed from buffer without send because
-// 	// limit of the buffer size was reached
-// 	Dropped int
-// 	// Evicted is the total number of events that were removed from buffer because they were expired
-// 	// before stablish connection
-// 	Evicted int
-//
-// 	// DBDbKeyCount is the total keys that were at least one time saved in the internal db status.
-// 	// Save one event on internal status db implies use more than one key
-// 	DbKeyCount int
-// 	// DbKeysInOrderSize is the number of events that are currently saved in status on internal ordereded index.
-// 	// Each event has asociated one internal key that is saved in keysInOrder status zone.
-// 	DbKeysInOrderSize int
-// 	// DbMaxFileID is the file number(id) used by status db
-// 	DbMaxFileID int64
-// 	// DbDataEntries is the number of payload event entries saved on the status db, or -1 if this metric was
-// 	// nost solved. Resolution of this metric seriously affects the performance. For this reason Stats func
-// 	// will only resolve it if value of DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment varaiblable is "yes"
-// 	DbDataEntries int
-// 	// DbKeysSize is the number of events that are currently saved in status on internal unordered index.
-// 	// Each event has asociated one internal key that is saved in keysInOrder status zone.
-// 	// This value will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA == "yes" for performance reasons
-// 	DbKeysSize int
-// }
 
 // Stats returns the curren stats (session + persisted). Erros when load stas are ignored
 // DbDataEntries and DbKeysSize will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment variable
