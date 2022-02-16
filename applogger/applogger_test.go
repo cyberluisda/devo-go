@@ -202,7 +202,7 @@ func TestWriterAppLogger_Log(t *testing.T) {
 				DEBUG,
 				[]interface{}{"test"},
 			},
-			regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[-+]\d{2}:\d{2} DEBUG test\n$`),
+			regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[-+]\d{2}:\d{2}) DEBUG test\n$`),
 		},
 		{
 			"With time",
