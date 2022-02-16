@@ -124,6 +124,30 @@ func TestLazyClient_WakeUp(t *testing.T) {
 			}(),
 			true,
 		},
+		{
+			"Checking client conn not working",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://localhost:13000").
+							IsConnWorkingCheckPayload("\n"),
+					).
+					FlushTimeout(time.Second).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Closing connection to force IsConnWorking returns false
+				err = r.Client.conn.Close()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
