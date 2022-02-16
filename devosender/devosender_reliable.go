@@ -176,8 +176,13 @@ func (dsrcb *ReliableClientBuilder) FlushTimeout(d time.Duration) *ReliableClien
 
 // ClientBuilder sets the ClientBuilder needed to build the underhood client. This is required
 // to initial setup and it is used by reconnect daemon too.
+// If IsConnWorkingCheckPayload is not defined in cb ClientBuilder then \x00 VALUE WILL BE fixed
+// to ensure that ClientReconn daemon can recreate connection after any outage
 func (dsrcb *ReliableClientBuilder) ClientBuilder(cb *ClientBuilder) *ReliableClientBuilder {
 	dsrcb.clientBuilder = cb
+	if cb.isConnWorkingCheckPayload == "" {
+		cb.IsConnWorkingCheckPayload("\x00")
+	}
 	return dsrcb
 }
 
