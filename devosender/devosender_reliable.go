@@ -34,12 +34,12 @@ type daemonOpts struct {
 }
 
 const (
-	// DefaultDaemonWaitBtwChecks is the default time that daemons must wait between
-	// run checks or works
-	DefaultDaemonWaitBtwChecks = time.Second
-	// DefaultDaemonInitDelay is the default delay time that daemons must wait before
-	// start to work
-	DefaultDaemonInitDelay = time.Millisecond * 500
+	// DefaultClientReconnDaemonWaitBtwChecks is the default time that client reconnect daemon
+	// must wait between run checks or works
+	DefaultClientReconnDaemonWaitBtwChecks = 10 * time.Second
+	// DefaultClientReconnDaemonInitDelay is the default delay time that client reconnect daemon
+	// must wait before start to work
+	DefaultClientReconnDaemonInitDelay = time.Second * 30
 	// DefaultDaemonMicroWait is the default micro delay to check in the midle of daemon
 	// sleep time if daemon was marked to be stopped, then interrup sleep operation
 	DefaultDaemonMicroWait = time.Millisecond * 200
@@ -55,7 +55,16 @@ const (
 	DefaultFlushAsyncTimeout = time.Millisecond * 500
 	// DefaultHouseKeepingDaemonWaitBtwChecks is the default time that status housekeeping daemon must wait
 	// between run checks or do any action
-	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute
+	DefaultHouseKeepingDaemonWaitBtwChecks = time.Minute * 5
+	// DefaultHouseKeepingDaemonInitDelay is the default delay time that status housekeeping daemon
+	// must wait before start to work
+	DefaultHouseKeepingDaemonInitDelay = time.Second * 5
+	// DefaultResendEventsDaemonWaitBtwChecks is the default time that resend pending events daemon must wait
+	// between run checks or do any action
+	DefaultResendEventsDaemonWaitBtwChecks = time.Second * 30
+	// DefaultResendEventsDaemonInitDelay is the default delay time that resend pending events daemon
+	// must wait before start to work
+	DefaultResendEventsDaemonInitDelay = time.Second * 20
 	// DefaultMaxRecordsResendByFlush is the default value for the max numbers of pending events to resend
 	// when Flush operation is called
 	DefaultMaxRecordsResendByFlush = 1000
@@ -65,9 +74,9 @@ const (
 func NewReliableClientBuilder() *ReliableClientBuilder {
 
 	r := &ReliableClientBuilder{
-		retryDaemonOpts:          daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
-		clientReconnOpts:         daemonOpts{DefaultDaemonWaitBtwChecks, DefaultDaemonInitDelay},
-		houseKeepingDaemonOpts:   daemonOpts{DefaultHouseKeepingDaemonWaitBtwChecks, DefaultDaemonInitDelay},
+		retryDaemonOpts:          daemonOpts{DefaultResendEventsDaemonWaitBtwChecks, DefaultResendEventsDaemonInitDelay},
+		clientReconnOpts:         daemonOpts{DefaultClientReconnDaemonWaitBtwChecks, DefaultClientReconnDaemonInitDelay},
+		houseKeepingDaemonOpts:   daemonOpts{DefaultHouseKeepingDaemonWaitBtwChecks, DefaultHouseKeepingDaemonInitDelay},
 		daemonStopTimeout:        DefaultDaemonStopTimeout,
 		enableStandByModeTimeout: DefaultEnableStandByModeTimeout,
 		flushTimeout:             DefaultFlushAsyncTimeout,
