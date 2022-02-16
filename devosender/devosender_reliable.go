@@ -591,39 +591,6 @@ func (dsrc *ReliableClient) IsConnWorking() (bool, error) {
 	return dsrc.Client.IsConnWorking()
 }
 
-// // ReliableClientStats represents the stats that can be queried
-// type ReliableClientStats struct {
-// 	// Number of events in buffer
-// 	Count int
-// 	// UPdaTotal events that are in buffer and daemon was tried to re-send
-// 	Updated int
-// 	// Finished is the total number of events that were processed (out of buffer)
-// 	Finished int
-// 	// Dropped is the total number of events that were removed from buffer without send because
-// 	// limit of the buffer size was reached
-// 	Dropped int
-// 	// Evicted is the total number of events that were removed from buffer because they were expired
-// 	// before stablish connection
-// 	Evicted int
-//
-// 	// DBDbKeyCount is the total keys that were at least one time saved in the internal db status.
-// 	// Save one event on internal status db implies use more than one key
-// 	DbKeyCount int
-// 	// DbKeysInOrderSize is the number of events that are currently saved in status on internal ordereded index.
-// 	// Each event has asociated one internal key that is saved in keysInOrder status zone.
-// 	DbKeysInOrderSize int
-// 	// DbMaxFileID is the file number(id) used by status db
-// 	DbMaxFileID int64
-// 	// DbDataEntries is the number of payload event entries saved on the status db, or -1 if this metric was
-// 	// nost solved. Resolution of this metric seriously affects the performance. For this reason Stats func
-// 	// will only resolve it if value of DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment varaiblable is "yes"
-// 	DbDataEntries int
-// 	// DbKeysSize is the number of events that are currently saved in status on internal unordered index.
-// 	// Each event has asociated one internal key that is saved in keysInOrder status zone.
-// 	// This value will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA == "yes" for performance reasons
-// 	DbKeysSize int
-// }
-
 // Stats returns the curren stats (session + persisted). Erros when load stas are ignored
 // DbDataEntries and DbKeysSize will be filled only if DEVOGO_DEBUG_SENDER_STATS_COUNT_DATA environment variable
 // is set with "yes" value
