@@ -31,6 +31,7 @@ type SwitchDevoSender interface {
 	IsAsyncActive(id string) bool
 	Flush() error
 	IsLimitReachedLastFlush() bool
+	PendingEventsNoConn() int
 	StandBy() error
 	WakeUp() error
 	IsStandBy() bool
