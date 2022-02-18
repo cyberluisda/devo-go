@@ -212,6 +212,11 @@ func TestLazyClient_Close(t *testing.T) {
 				if err != nil {
 					panic(err)
 				}
+
+				r.SendWTagAsync("test.keep.free", "msg")
+				r.SendWTagAsync("test.keep.free", "msg")
+				r.SendWTagAsync("test.keep.free", "msg")
+
 				return r
 			}(),
 			true,

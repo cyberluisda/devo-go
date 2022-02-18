@@ -477,3 +477,107 @@ func ExampleReliableClient_extendedStats() {
 	// rc.Stats after flush {BufferCount:0 Updated:0 Finished:1 Dropped:0 Evicted:0 DbIdxSize:0 DbMaxFileID:0 DbDataEntries:0}
 	// error close: <nil>
 }
+
+func ExampleReliableClient_IsLimitReachedLastFlush() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	rc, err := NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"),
+		).
+		MaxRecordsResendByFlush(1).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	// Pass to standby mode to queue events
+	err = rc.StandBy()
+	if err != nil {
+		panic(err)
+	}
+
+	// Send events
+	rc.SendWTagAsync("test.keep.free", "event 1")
+	rc.SendWTagAsync("test.keep.free", "event 2")
+
+	fmt.Println("IsLimitReachedLastFlush after send events", rc.IsLimitReachedLastFlush())
+
+	// Wake up and
+	err = rc.WakeUp()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after Wakeup (Flush is not implicit)", rc.IsLimitReachedLastFlush())
+
+	//Flush
+	err = rc.Flush()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after flush", rc.IsLimitReachedLastFlush())
+
+	// Output:
+	// IsLimitReachedLastFlush after send events false
+	// IsLimitReachedLastFlush after Wakeup (Flush is not implicit) false
+	// IsLimitReachedLastFlush after flush true
+}
+
+func ExampleReliableClient_PendingEventsNoConn() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	rc, err := NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"),
+		).
+		RetryDaemonInitDelay(50 * time.Millisecond).
+		RetryDaemonInitDelay(75 * time.Millisecond). // Prevents retry daemon send events
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	// Pass to standby mode to queue events
+	err = rc.StandBy()
+	if err != nil {
+		panic(err)
+	}
+
+	// Send events
+	rc.SendWTagAsync("test.keep.free", "event 1")
+	rc.SendWTagAsync("test.keep.free", "event 2")
+
+	fmt.Println("PendingEventsNoConn after StandBy", rc.PendingEventsNoConn())
+
+	// Wake up and
+	err = rc.WakeUp()
+	if err != nil {
+		panic(err)
+	}
+	time.Sleep(time.Millisecond * 100) // wait time to get resend daemon works
+
+	fmt.Println("PendingEventsNoConn after Wakeup (Resend daemon flushs data)", rc.PendingEventsNoConn())
+
+	err = rc.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("PendingEventsNoConn after Close (-1 == error)", rc.PendingEventsNoConn())
+
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	// Output:
+	// PendingEventsNoConn after StandBy 2
+	// PendingEventsNoConn after Wakeup (Resend daemon flushs data) 0
+	// PendingEventsNoConn after Close (-1 == error) -1
+}

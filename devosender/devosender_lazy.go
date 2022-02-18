@@ -30,6 +30,8 @@ type SwitchDevoSender interface {
 	AreAsyncOps() bool
 	IsAsyncActive(id string) bool
 	Flush() error
+	IsLimitReachedLastFlush() bool
+	PendingEventsNoConn() int
 	StandBy() error
 	WakeUp() error
 	IsStandBy() bool
@@ -156,15 +158,16 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 // an "oversize" situation.
 type LazyClient struct {
 	*Client
-	clientBuilder    *ClientBuilder
-	bufferSize       uint32
-	flushTimeout     time.Duration
-	standByTimeout   time.Duration
-	buffer           []*lazyClientRecord
-	appLogger        applogger.SimpleAppLogger
-	clientMtx        sync.Mutex
-	maxRecordsResend int
-	Stats            LazyClientStats
+	clientBuilder         *ClientBuilder
+	bufferSize            uint32
+	flushTimeout          time.Duration
+	standByTimeout        time.Duration
+	buffer                []*lazyClientRecord
+	appLogger             applogger.SimpleAppLogger
+	clientMtx             sync.Mutex
+	maxRecordsResend      int
+	lastFlushLimitReached bool
+	Stats                 LazyClientStats
 }
 
 // lazyClientRecord is the internal structure to save in memory of the events while
@@ -269,6 +272,8 @@ func (lc *LazyClient) WakeUp() error {
 
 // Flush send all events in buffer only if client is not in stand by mode (IsStandBy == false)
 func (lc *LazyClient) Flush() error {
+	lc.lastFlushLimitReached = false
+
 	if !lc.IsStandBy() {
 		lc.clientMtx.Lock()
 
@@ -280,6 +285,8 @@ func (lc *LazyClient) Flush() error {
 			newIDs[i] = newID
 			events++
 			if lc.maxRecordsResend > 0 && events >= lc.maxRecordsResend {
+				lc.lastFlushLimitReached = true
+
 				lc.appLogger.Logf(
 					applogger.WARNING,
 					"Limit of max number of events to re-send while Flush (%d) reached", events,
@@ -303,6 +310,25 @@ func (lc *LazyClient) Flush() error {
 		lc.clientMtx.Unlock()
 	}
 	return nil
+}
+
+// IsLimitReachedLastFlush treturs true if there are pending events after flush
+// because max limit was reached, or false in the other case.
+func (lc *LazyClient) IsLimitReachedLastFlush() bool {
+	return lc.lastFlushLimitReached
+}
+
+// PendingEventsNoConn return the number of events that are pending to send
+// and was created when the connection does not was available
+func (lc *LazyClient) PendingEventsNoConn() int {
+	cont := 0
+	for _, rc := range lc.buffer {
+		if isNoConnID(rc.AsyncID) {
+			cont++
+		}
+	}
+
+	return cont
 }
 
 // Close send all events forcing WakeUp if it is in stand-by mode and then close the client

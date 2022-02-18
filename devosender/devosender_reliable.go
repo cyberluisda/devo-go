@@ -275,6 +275,7 @@ type ReliableClient struct {
 	daemonStopped               chan bool
 	flushTimeout                time.Duration
 	maxRecordsResendInFlushCall int
+	lastFlushLimitReached       bool
 	appLogger                   applogger.SimpleAppLogger
 }
 
@@ -369,6 +370,7 @@ func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *co
 // and update status of all of them. This func can call on demand but it is called by
 // internal retry send events daemon too
 func (dsrc *ReliableClient) Flush() error {
+	dsrc.lastFlushLimitReached = false
 
 	isClientUp := !dsrc.IsStandBy()
 	if isClientUp {
@@ -431,6 +433,8 @@ func (dsrc *ReliableClient) Flush() error {
 				err = dsrc.resendRecord(record)
 				eventsSent++
 				if dsrc.maxRecordsResendInFlushCall > 0 && eventsSent >= dsrc.maxRecordsResendInFlushCall {
+					dsrc.lastFlushLimitReached = true
+
 					dsrc.appLogger.Logf(
 						applogger.WARNING,
 						"Limit of max number of events to re-send while Flush (%d) reached", eventsSent,
@@ -473,6 +477,30 @@ func (dsrc *ReliableClient) Flush() error {
 	}
 
 	return nil
+}
+
+// IsLimitReachedLastFlush treturs true if there are pending events after flush
+// because max limit was reached, or false in the other case.
+func (dsrc *ReliableClient) IsLimitReachedLastFlush() bool {
+	return dsrc.lastFlushLimitReached
+}
+
+// PendingEventsNoConn return the number of events that are pending to send
+// and was created when the connection does not was available. -1 is returned
+// when value could not be solved
+func (dsrc *ReliableClient) PendingEventsNoConn() int {
+	ids, err := dsrc.status.AllIDs()
+	if err != nil {
+		return -1
+	}
+	cont := 0
+	for _, id := range ids {
+		if isNoConnID(id) {
+			cont++
+		}
+	}
+
+	return cont
 }
 
 // Close closes current client. This implies operations like shutdown daemons, call Flush func, etc.
