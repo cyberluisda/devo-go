@@ -337,7 +337,7 @@ func ExampleLazyClient_IsLimitReachedLastFlush() {
 	fmt.Println("IsLimitReachedLastFlush after flush", lc.IsLimitReachedLastFlush())
 
 	// Output:
-	// IsLimitReachedLastFlush send events false
+	// IsLimitReachedLastFlush after send events false
 	// IsLimitReachedLastFlush after Wakeup (Flush implicit) true
 	// IsLimitReachedLastFlush after flush false
 }
