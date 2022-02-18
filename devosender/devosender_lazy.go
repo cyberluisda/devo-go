@@ -30,6 +30,7 @@ type SwitchDevoSender interface {
 	AreAsyncOps() bool
 	IsAsyncActive(id string) bool
 	Flush() error
+	IsLimitReachedLastFlush() bool
 	StandBy() error
 	WakeUp() error
 	IsStandBy() bool
