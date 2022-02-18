@@ -272,6 +272,8 @@ func (lc *LazyClient) WakeUp() error {
 
 // Flush send all events in buffer only if client is not in stand by mode (IsStandBy == false)
 func (lc *LazyClient) Flush() error {
+	lc.lastFlushLimitReached = false
+
 	if !lc.IsStandBy() {
 		lc.clientMtx.Lock()
 
@@ -283,6 +285,8 @@ func (lc *LazyClient) Flush() error {
 			newIDs[i] = newID
 			events++
 			if lc.maxRecordsResend > 0 && events >= lc.maxRecordsResend {
+				lc.lastFlushLimitReached = true
+
 				lc.appLogger.Logf(
 					applogger.WARNING,
 					"Limit of max number of events to re-send while Flush (%d) reached", events,
@@ -306,6 +310,12 @@ func (lc *LazyClient) Flush() error {
 		lc.clientMtx.Unlock()
 	}
 	return nil
+}
+
+// IsLimitReachedLastFlush treturs true if there are pending events after flush
+// because max limit was reached, or false in the other case.
+func (lc *LazyClient) IsLimitReachedLastFlush() bool {
+	return lc.lastFlushLimitReached
 }
 
 // Close send all events forcing WakeUp if it is in stand-by mode and then close the client
