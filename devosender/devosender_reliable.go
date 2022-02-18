@@ -485,6 +485,24 @@ func (dsrc *ReliableClient) IsLimitReachedLastFlush() bool {
 	return dsrc.lastFlushLimitReached
 }
 
+// PendingEventsNoConn return the number of events that are pending to send
+// and was created when the connection does not was available. -1 is returned
+// when value could not be solved
+func (dsrc *ReliableClient) PendingEventsNoConn() int {
+	ids, err := dsrc.status.AllIDs()
+	if err != nil {
+		return -1
+	}
+	cont := 0
+	for _, id := range ids {
+		if isNoConnID(id) {
+			cont++
+		}
+	}
+
+	return cont
+}
+
 // Close closes current client. This implies operations like shutdown daemons, call Flush func, etc.
 func (dsrc *ReliableClient) Close() error {
 	errors := make([]error, 0)
