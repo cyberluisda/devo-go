@@ -318,6 +318,19 @@ func (lc *LazyClient) IsLimitReachedLastFlush() bool {
 	return lc.lastFlushLimitReached
 }
 
+// PendingEventsNoConn return the number of events that are pending to send
+// and was created when the connection does not was available
+func (lc *LazyClient) PendingEventsNoConn() int {
+	cont := 0
+	for _, rc := range lc.buffer {
+		if isNoConnID(rc.AsyncID) {
+			cont++
+		}
+	}
+
+	return cont
+}
+
 // Close send all events forcing WakeUp if it is in stand-by mode and then close the client
 func (lc *LazyClient) Close() error {
 	err := lc.WakeUp()
