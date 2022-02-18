@@ -478,6 +478,55 @@ func ExampleReliableClient_extendedStats() {
 	// error close: <nil>
 }
 
+func ExampleReliableClient_IsLimitReachedLastFlush() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	rc, err := NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"),
+		).
+		MaxRecordsResendByFlush(1).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	// Pass to standby mode to queue events
+	err = rc.StandBy()
+	if err != nil {
+		panic(err)
+	}
+
+	// Send events
+	rc.SendWTagAsync("test.keep.free", "event 1")
+	rc.SendWTagAsync("test.keep.free", "event 2")
+
+	fmt.Println("IsLimitReachedLastFlush after send events", rc.IsLimitReachedLastFlush())
+
+	// Wake up and
+	err = rc.WakeUp()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after Wakeup (Flush is not implicit)", rc.IsLimitReachedLastFlush())
+
+	//Flush
+	err = rc.Flush()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after flush", rc.IsLimitReachedLastFlush())
+
+	// Output:
+	// IsLimitReachedLastFlush after send events false
+	// IsLimitReachedLastFlush after Wakeup (Flush is not implicit) false
+	// IsLimitReachedLastFlush after flush true
+}
+
 func ExampleReliableClient_PendingEventsNoConn() {
 	// Ensure path is clean
 	os.RemoveAll("/tmp/test")
