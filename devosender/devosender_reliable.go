@@ -370,6 +370,7 @@ func (dsrc *ReliableClient) SendWTagAndCompressorAsync(t string, m string, c *co
 // and update status of all of them. This func can call on demand but it is called by
 // internal retry send events daemon too
 func (dsrc *ReliableClient) Flush() error {
+	dsrc.lastFlushLimitReached = false
 
 	isClientUp := !dsrc.IsStandBy()
 	if isClientUp {
@@ -432,6 +433,8 @@ func (dsrc *ReliableClient) Flush() error {
 				err = dsrc.resendRecord(record)
 				eventsSent++
 				if dsrc.maxRecordsResendInFlushCall > 0 && eventsSent >= dsrc.maxRecordsResendInFlushCall {
+					dsrc.lastFlushLimitReached = true
+
 					dsrc.appLogger.Logf(
 						applogger.WARNING,
 						"Limit of max number of events to re-send while Flush (%d) reached", eventsSent,
@@ -474,6 +477,12 @@ func (dsrc *ReliableClient) Flush() error {
 	}
 
 	return nil
+}
+
+// IsLimitReachedLastFlush treturs true if there are pending events after flush
+// because max limit was reached, or false in the other case.
+func (dsrc *ReliableClient) IsLimitReachedLastFlush() bool {
+	return dsrc.lastFlushLimitReached
 }
 
 // Close closes current client. This implies operations like shutdown daemons, call Flush func, etc.
