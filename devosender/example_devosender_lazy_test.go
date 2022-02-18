@@ -340,5 +340,39 @@ func ExampleLazyClient_IsLimitReachedLastFlush() {
 	// IsLimitReachedLastFlush send events false
 	// IsLimitReachedLastFlush after Wakeup (Flush implicit) true
 	// IsLimitReachedLastFlush after flush false
+}
 
+func ExampleLazyClient_PendingEventsNoConn() {
+	lc, err := NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"). // udp does not return error
+				DefaultDevoTag("test.keep.free")).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	// Pass to standby mode to queue events
+	err = lc.StandBy()
+	if err != nil {
+		panic(err)
+	}
+
+	// Send events
+	lc.SendWTagAsync("test.keep.free", "event 1")
+	lc.SendWTagAsync("test.keep.free", "event 2")
+
+	fmt.Println("PendingEventsNoConn after StandBy", lc.PendingEventsNoConn())
+
+	// Wake up and
+	err = lc.WakeUp()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("PendingEventsNoConn after Wakeup (Flush implicit)", lc.PendingEventsNoConn())
+
+	// Output:
+	// PendingEventsNoConn after StandBy 2
+	// PendingEventsNoConn after Wakeup (Flush implicit) 0
 }
