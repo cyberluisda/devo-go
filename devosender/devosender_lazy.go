@@ -158,15 +158,16 @@ func (lcb *LazyClientBuilder) Build() (*LazyClient, error) {
 // an "oversize" situation.
 type LazyClient struct {
 	*Client
-	clientBuilder    *ClientBuilder
-	bufferSize       uint32
-	flushTimeout     time.Duration
-	standByTimeout   time.Duration
-	buffer           []*lazyClientRecord
-	appLogger        applogger.SimpleAppLogger
-	clientMtx        sync.Mutex
-	maxRecordsResend int
-	Stats            LazyClientStats
+	clientBuilder         *ClientBuilder
+	bufferSize            uint32
+	flushTimeout          time.Duration
+	standByTimeout        time.Duration
+	buffer                []*lazyClientRecord
+	appLogger             applogger.SimpleAppLogger
+	clientMtx             sync.Mutex
+	maxRecordsResend      int
+	lastFlushLimitReached bool
+	Stats                 LazyClientStats
 }
 
 // lazyClientRecord is the internal structure to save in memory of the events while
