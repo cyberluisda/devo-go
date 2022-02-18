@@ -275,6 +275,7 @@ type ReliableClient struct {
 	daemonStopped               chan bool
 	flushTimeout                time.Duration
 	maxRecordsResendInFlushCall int
+	lastFlushLimitReached       bool
 	appLogger                   applogger.SimpleAppLogger
 }
 
