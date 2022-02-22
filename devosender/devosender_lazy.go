@@ -36,6 +36,7 @@ type SwitchDevoSender interface {
 	WakeUp() error
 	IsStandBy() bool
 	LastSendCallTimestamp() time.Time
+	OnlyInMemory() bool
 }
 
 // LazyClientBuilder is the builder to build LazyClient
