@@ -422,6 +422,12 @@ func (lc *LazyClient) SendAsync(m string) string {
 	return lc.SendWTagAsync(lc.defaultTag, m)
 }
 
+//OnlyInMemory is the implementation of SwitchDevoSender.OnlyInMemory.
+// Allways return true
+func (lc *LazyClient) OnlyInMemory() bool {
+	return true
+}
+
 var (
 	// ErrBufferOverflow is the error returned when buffer is full and element was lost
 	ErrBufferOverflow = errors.New("overwriting item(s) because buffer is full")
