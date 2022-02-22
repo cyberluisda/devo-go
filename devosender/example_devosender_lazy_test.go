@@ -376,3 +376,19 @@ func ExampleLazyClient_PendingEventsNoConn() {
 	// PendingEventsNoConn after StandBy 2
 	// PendingEventsNoConn after Wakeup (Flush implicit) 0
 }
+
+func ExampleLazyClient_OnlyInMemory() {
+	lc, err := NewLazyClientBuilder().
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000")). // udp does not return error
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("OnlyInMemory: %v\n", lc.OnlyInMemory())
+
+	// Output:
+	// OnlyInMemory: true
+}
