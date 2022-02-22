@@ -581,3 +581,28 @@ func ExampleReliableClient_PendingEventsNoConn() {
 	// PendingEventsNoConn after Wakeup (Resend daemon flushs data) 0
 	// PendingEventsNoConn after Close (-1 == error) -1
 }
+
+func ExampleReliableClient_OnlyInMemory() {
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	rc, err := NewReliableClientBuilder().
+		StatusBuilder(
+			status.NewNutsDBStatusBuilder().DbPath("/tmp/test")).
+		ClientBuilder(
+			NewClientBuilder().
+				EntryPoint("udp://localhost:13000"),
+		).
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("OnlyInMemory: %v\n", rc.OnlyInMemory())
+
+	// Ensure path is clean
+	os.RemoveAll("/tmp/test")
+
+	// Output:
+	// OnlyInMemory: false
+}
