@@ -36,6 +36,7 @@ type SwitchDevoSender interface {
 	WakeUp() error
 	IsStandBy() bool
 	LastSendCallTimestamp() time.Time
+	OnlyInMemory() bool
 }
 
 // LazyClientBuilder is the builder to build LazyClient
@@ -419,6 +420,12 @@ func (lc *LazyClient) SendWTagAsync(t, m string) string {
 // Lazy Client is in stand-by mode then the event is saved in buffer
 func (lc *LazyClient) SendAsync(m string) string {
 	return lc.SendWTagAsync(lc.defaultTag, m)
+}
+
+//OnlyInMemory is the implementation of SwitchDevoSender.OnlyInMemory.
+// Allways return true
+func (lc *LazyClient) OnlyInMemory() bool {
+	return true
 }
 
 var (

@@ -650,6 +650,12 @@ func (dsrc *ReliableClient) String() string {
 	)
 }
 
+//OnlyInMemory is the implementation of SwitchDevoSender.OnlyInMemory.
+// Allways return true
+func (dsrc *ReliableClient) OnlyInMemory() bool {
+	return false
+}
+
 // daemonsSartup perform init cleanup (only once) and starts the resend events and
 // reconnect daemons, capture interrumnt and term signals to close database, etc...
 func (dsrc *ReliableClient) daemonsSartup() error {
