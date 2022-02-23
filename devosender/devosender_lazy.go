@@ -518,8 +518,8 @@ type LazyClientStats struct {
 
 func (lcs LazyClientStats) String() string {
 	return fmt.Sprintf(
-		"AsyncEvents: %d, TotalBuffered: %d, BufferedLost: %d, SendFromBuffer: %d",
-		lcs.AsyncEvents, lcs.TotalBuffered, lcs.BufferedLost, lcs.SendFromBuffer)
+		"AsyncEvents: %d, TotalBuffered: %d, BufferedLost: %d, SendFromBuffer: %d BufferCount: %d",
+		lcs.AsyncEvents, lcs.TotalBuffered, lcs.BufferedLost, lcs.SendFromBuffer, lcs.BufferCount)
 }
 
 const nonConnIDPrefix = "non-conn-"
