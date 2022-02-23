@@ -1,10 +1,14 @@
 # 1.0.0
-**Release date**: 2022-02-08
+**Release date**: 2022-02-23
 
 **Bugs**
+* [#41](https://github.com/cyberluisda/devo-go/issues/41): devo-sender: `LazyClient` does not properly clean buffer after flush when _max flush items_ limit is reached
+* [#34](https://github.com/cyberluisda/devo-go/issues/34): devo-sender: `RelieableClient` does not reconnect after relay endpoint outage
 * [#28](https://github.com/cyberluisda/devo-go/issues/28): devo-sender: `RelieableClient` does not pass to "standby mode" state when connection is broken/closed
 
 **Features**
+* [#39](https://github.com/cyberluisda/devo-go/pull/39):  `SwitchDevoSender` interface must expose if client works in memory only
+* [#36](https://github.com/cyberluisda/devo-go/pull/36):  devo-sender: `SwitchDevoSender` should expose pending events info
 * [#32](https://github.com/cyberluisda/devo-go/pull/32):  devosender: Data and structs of `ReliableClient` internal status redesigned and improved
 * [#30](https://github.com/cyberluisda/devo-go/pull/30):  devosender: Improve `ReliableClient` to get internal status database clean
 
