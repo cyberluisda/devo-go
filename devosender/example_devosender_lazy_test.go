@@ -329,17 +329,24 @@ func ExampleLazyClient_IsLimitReachedLastFlush() {
 	}
 	fmt.Println("IsLimitReachedLastFlush after Wakeup (Flush implicit)", lc.IsLimitReachedLastFlush())
 
-	//Flush
+	//Flush one remaining event => limit reached too
 	err = lc.Flush()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("IsLimitReachedLastFlush after flush", lc.IsLimitReachedLastFlush())
+	fmt.Println("IsLimitReachedLastFlush after flush 1", lc.IsLimitReachedLastFlush())
+
+	err = lc.Flush()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after flush 2", lc.IsLimitReachedLastFlush())
 
 	// Output:
 	// IsLimitReachedLastFlush after send events false
 	// IsLimitReachedLastFlush after Wakeup (Flush implicit) true
-	// IsLimitReachedLastFlush after flush false
+	// IsLimitReachedLastFlush after flush 1 true
+	// IsLimitReachedLastFlush after flush 2 false
 }
 
 func ExampleLazyClient_PendingEventsNoConn() {
