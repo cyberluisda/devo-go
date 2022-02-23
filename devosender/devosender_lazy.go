@@ -307,9 +307,18 @@ func (lc *LazyClient) Flush() error {
 			return fmt.Errorf("while waiting for pending messages: %w", err)
 		}
 
-		lc.resetBuffer()
+		// Remove sent events from buffer
+		if lc.lastFlushLimitReached {
+			lc.resetBuffer(lc.maxRecordsResend)
+		} else {
+			lc.resetBuffer(-1) // all elements
+		}
 		lc.clientMtx.Unlock()
 	}
+
+	// Update buffer stat
+	lc.Stats.BufferCount = len(lc.buffer)
+
 	return nil
 }
 
@@ -403,6 +412,9 @@ func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *compressor.Comp
 		r = lc.Client.SendWTagAndCompressorAsync(t, m, c)
 	}
 
+	// Update buffer stat
+	lc.Stats.BufferCount = len(lc.buffer)
+
 	return r
 }
 
@@ -483,12 +495,23 @@ func (lc *LazyClient) undoPopBuffer(r *lazyClientRecord) error {
 	return nil
 }
 
-func (lc *LazyClient) resetBuffer() {
-	// Clean buffer
-	for i := 0; i < len(lc.buffer); i++ {
-		lc.buffer[i] = nil // To prevent memory leaks
+func (lc *LazyClient) resetBuffer(n int) {
+	if n == 0 {
+		// nothing to do
+		return
+	} else if n < 0 || n >= len(lc.buffer) {
+		// Clean full buffer
+		for i := 0; i < len(lc.buffer); i++ {
+			lc.buffer[i] = nil // To prevent memory leaks
+		}
+		lc.buffer = nil
+	} else {
+		// Remove only n fisrt elements
+		for i := 0; i < n; i++ {
+			lc.buffer[i] = nil // To prevent memory leaks
+		}
+		lc.buffer = lc.buffer[n:len(lc.buffer)]
 	}
-	lc.buffer = nil
 }
 
 // LazyClientStats is the metrics storage for LazyClient
@@ -497,12 +520,13 @@ type LazyClientStats struct {
 	BufferedLost   uint
 	TotalBuffered  uint
 	SendFromBuffer uint
+	BufferCount    int
 }
 
 func (lcs LazyClientStats) String() string {
 	return fmt.Sprintf(
-		"AsyncEvents: %d, TotalBuffered: %d, BufferedLost: %d, SendFromBuffer: %d",
-		lcs.AsyncEvents, lcs.TotalBuffered, lcs.BufferedLost, lcs.SendFromBuffer)
+		"AsyncEvents: %d, TotalBuffered: %d, BufferedLost: %d, SendFromBuffer: %d BufferCount: %d",
+		lcs.AsyncEvents, lcs.TotalBuffered, lcs.BufferedLost, lcs.SendFromBuffer, lcs.BufferCount)
 }
 
 const nonConnIDPrefix = "non-conn-"

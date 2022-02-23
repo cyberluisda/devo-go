@@ -122,10 +122,10 @@ func ExampleLazyClient_StandBy() {
 	// IsStandBy true
 	// SendWTag error receiver func call with nil pointer
 	// ID has non-conn- prefix true
-	// Stats AsyncEvents: 1, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
-	// Stats AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 0
+	// Stats AsyncEvents: 1, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 1
+	// Stats AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 0 BufferCount: 2
 	// LazyClient bufferSize: 2, standByMode: true, #eventsInBuffer: 2, flushTimeout: 2s, standByModeTimeout: 1s, Client: {<nil>}
-	// Stats after WakeUp AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 2
+	// Stats after WakeUp AsyncEvents: 3, TotalBuffered: 3, BufferedLost: 1, SendFromBuffer: 2 BufferCount: 0
 	// LazyClient after WakeUp bufferSize: 2, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {entryPoint: 'udp://localhost:13000'
 	// LazyClient as SwitchDevoSender closed bufferSize: 2, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 1s, Client: {<nil>}
 }
@@ -189,17 +189,17 @@ func ExampleLazyClient() {
 	// ID of msg 8 has non-conn- prefix: false
 	// ID of msg 9 has non-conn- prefix: false
 	// ID of msg 10 has non-conn- prefix: false
-	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
-	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// Stats AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 0
+	// Stats (after WakeUp) AsyncEvents: 9, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 0
 	// LazyClient (after WakeUp) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:13000'
 	// SwitchDevoSender.LastSendCallTimestamp (after WakeUp) is empty false
 	// LazyClient as SwitchDevoSender closed bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 	// ID has non-conn- prefix: true
 	// SwitchDevoSender (pending events after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 1, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
-	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0
+	// Stats (pending events after close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 1
 	// SwitchDevoSender.LastSendCallTimestamp (pending events after close) is empty true
 	// SwitchDevoSender (after last close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
-	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1
+	// Stats (after last close) AsyncEvents: 10, TotalBuffered: 1, BufferedLost: 0, SendFromBuffer: 1 BufferCount: 0
 }
 
 func ExampleLazyClient_SendAsync() {
@@ -246,9 +246,9 @@ func ExampleLazyClient_SendAsync() {
 	// LazyClient bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
 	// AsyncErrors associated with first id: tag can not be empty
 	// Second msg id is equal to first id: false, len(AsyncErrors): 1, AsyncErrors associated with first id: tag can not be empty
-	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// Stats AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 0
 	// LazyClient (after events) bufferSize: 256000, standByMode: false, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {entryPoint: 'udp://localhost:130
-	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0
+	// Stats (after close) AsyncEvents: 2, TotalBuffered: 0, BufferedLost: 0, SendFromBuffer: 0 BufferCount: 0
 	// LazyClient (after close) bufferSize: 256000, standByMode: true, #eventsInBuffer: 0, flushTimeout: 2s, standByModeTimeout: 0s, Client: {<nil>}
 }
 
@@ -329,17 +329,24 @@ func ExampleLazyClient_IsLimitReachedLastFlush() {
 	}
 	fmt.Println("IsLimitReachedLastFlush after Wakeup (Flush implicit)", lc.IsLimitReachedLastFlush())
 
-	//Flush
+	//Flush one remaining event => limit reached too
 	err = lc.Flush()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("IsLimitReachedLastFlush after flush", lc.IsLimitReachedLastFlush())
+	fmt.Println("IsLimitReachedLastFlush after flush 1", lc.IsLimitReachedLastFlush())
+
+	err = lc.Flush()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("IsLimitReachedLastFlush after flush 2", lc.IsLimitReachedLastFlush())
 
 	// Output:
 	// IsLimitReachedLastFlush after send events false
 	// IsLimitReachedLastFlush after Wakeup (Flush implicit) true
-	// IsLimitReachedLastFlush after flush false
+	// IsLimitReachedLastFlush after flush 1 true
+	// IsLimitReachedLastFlush after flush 2 false
 }
 
 func ExampleLazyClient_PendingEventsNoConn() {
