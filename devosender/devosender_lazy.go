@@ -483,12 +483,23 @@ func (lc *LazyClient) undoPopBuffer(r *lazyClientRecord) error {
 	return nil
 }
 
-func (lc *LazyClient) resetBuffer() {
-	// Clean buffer
-	for i := 0; i < len(lc.buffer); i++ {
-		lc.buffer[i] = nil // To prevent memory leaks
+func (lc *LazyClient) resetBuffer(n int) {
+	if n == 0 {
+		// nothing to do
+		return
+	} else if n < 0 || n >= len(lc.buffer) {
+		// Clean full buffer
+		for i := 0; i < len(lc.buffer); i++ {
+			lc.buffer[i] = nil // To prevent memory leaks
+		}
+		lc.buffer = nil
+	} else {
+		// Remove only n fisrt elements
+		for i := 0; i < n; i++ {
+			lc.buffer[i] = nil // To prevent memory leaks
+		}
+		lc.buffer = lc.buffer[n:len(lc.buffer)]
 	}
-	lc.buffer = nil
 }
 
 // LazyClientStats is the metrics storage for LazyClient
