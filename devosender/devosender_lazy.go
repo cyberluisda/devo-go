@@ -315,6 +315,10 @@ func (lc *LazyClient) Flush() error {
 		}
 		lc.clientMtx.Unlock()
 	}
+
+	// Update buffer stat
+	lc.Stats.BufferCount = len(lc.buffer)
+
 	return nil
 }
 
@@ -407,6 +411,9 @@ func (lc *LazyClient) SendWTagAndCompressorAsync(t, m string, c *compressor.Comp
 	} else {
 		r = lc.Client.SendWTagAndCompressorAsync(t, m, c)
 	}
+
+	// Update buffer stat
+	lc.Stats.BufferCount = len(lc.buffer)
 
 	return r
 }
