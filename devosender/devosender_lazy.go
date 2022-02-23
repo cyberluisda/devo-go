@@ -513,6 +513,7 @@ type LazyClientStats struct {
 	BufferedLost   uint
 	TotalBuffered  uint
 	SendFromBuffer uint
+	BufferCount    int
 }
 
 func (lcs LazyClientStats) String() string {
