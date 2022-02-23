@@ -584,6 +584,73 @@ func TestLazyClient_undoPopBuffer(t *testing.T) {
 	}
 }
 
+func TestLazyClient_resetBuffer(t *testing.T) {
+	type args struct {
+		n int
+	}
+	tests := []struct {
+		name       string
+		lc         *LazyClient
+		args       args
+		wantBuffer []*lazyClientRecord
+	}{
+		{
+			"n is 0",
+			&LazyClient{
+				buffer: []*lazyClientRecord{
+					{AsyncID: "1"},
+				},
+			},
+			args{n: 0},
+			[]*lazyClientRecord{
+				{AsyncID: "1"},
+			},
+		},
+		{
+			"n greater than buffer size",
+			&LazyClient{
+				buffer: []*lazyClientRecord{
+					{AsyncID: "1"},
+				},
+			},
+			args{n: 128},
+			nil,
+		},
+		{
+			"n is -1",
+			&LazyClient{
+				buffer: []*lazyClientRecord{
+					{AsyncID: "1"},
+				},
+			},
+			args{n: -1},
+			nil,
+		},
+		{
+			"n with value to partial clean",
+			&LazyClient{
+				buffer: []*lazyClientRecord{
+					{AsyncID: "1"},
+					{AsyncID: "2"},
+					{AsyncID: "3"},
+				},
+			},
+			args{n: 2},
+			[]*lazyClientRecord{
+				{AsyncID: "3"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.lc.resetBuffer(tt.args.n)
+			if !reflect.DeepEqual(tt.lc.buffer, tt.wantBuffer) {
+				t.Errorf("LazyClient.resetBuffer() remaining buffer got = %#v, want %#v", tt.lc.buffer, tt.wantBuffer)
+			}
+		})
+	}
+}
+
 type MemoryAppLogger struct {
 	Events []string
 	Level  applogger.Level
