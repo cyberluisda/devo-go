@@ -307,7 +307,12 @@ func (lc *LazyClient) Flush() error {
 			return fmt.Errorf("while waiting for pending messages: %w", err)
 		}
 
-		lc.resetBuffer()
+		// Remove sent events from buffer
+		if lc.lastFlushLimitReached {
+			lc.resetBuffer(lc.maxRecordsResend)
+		} else {
+			lc.resetBuffer(-1) // all elements
+		}
 		lc.clientMtx.Unlock()
 	}
 	return nil
