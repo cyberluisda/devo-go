@@ -396,6 +396,75 @@ func TestLazyClient_SendWTagAndCompressorAsync__server_stopped(t *testing.T) {
 	c.Close()
 }
 
+func TestLazyClient_SendAsync(t *testing.T) {
+
+	type args struct {
+		m string
+	}
+	tests := []struct {
+		name         string
+		lc           *LazyClient
+		args         args
+		wantNoConnID bool
+	}{
+		{
+			"In stand by mode",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80").
+							DefaultDevoTag("my.app.default"),
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Force stand by
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{"message"},
+			true,
+		},
+		{
+			"In waked up mode",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80").
+							DefaultDevoTag("my.app.default"),
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				return r
+			}(),
+			args{"message"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.lc.SendAsync(tt.args.m); isNoConnID(got) != tt.wantNoConnID {
+				t.Errorf(
+					"LazyClient.SendAsync() = %v, is no connid: %v, want no connection Id %v",
+					got,
+					isNoConnID(got),
+					tt.wantNoConnID,
+				)
+			}
+		})
+	}
+}
+
 func TestLazyClient_popBuffer(t *testing.T) {
 	type fields struct {
 		buffer []*lazyClientRecord
