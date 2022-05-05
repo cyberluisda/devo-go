@@ -108,7 +108,7 @@ func TestLazyClient_WakeUp(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					FlushTimeout(time.Microsecond).                                       // to force flush timeout error
+					FlushTimeout(time.Nanosecond).                                        // to force flush timeout error
 					Build()
 				if err != nil {
 					panic(err)
