@@ -1,3 +1,9 @@
+# 1.0.1
+**Release date**: 2022-05-05
+
+**Bugs**
+* [#43](https://github.com/cyberluisda/devo-go/issues/43): Panic error when call `devosender.LazyClient.SendAsync()` in _stand by mode_
+
 # 1.0.0
 **Release date**: 2022-02-23
 
