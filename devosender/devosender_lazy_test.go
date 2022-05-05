@@ -207,7 +207,7 @@ func TestLazyClient_Close(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					EnableStandByModeTimeout(time.Microsecond).                           // To force timeout
+					EnableStandByModeTimeout(time.Nanosecond).                            // To force timeout
 					Build()
 				if err != nil {
 					panic(err)
