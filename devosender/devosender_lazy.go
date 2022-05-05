@@ -431,7 +431,11 @@ func (lc *LazyClient) SendWTagAsync(t, m string) string {
 // SendAsync is the same as Client.SendAsync but if the
 // Lazy Client is in stand-by mode then the event is saved in buffer
 func (lc *LazyClient) SendAsync(m string) string {
-	return lc.SendWTagAsync(lc.defaultTag, m)
+	tag := lc.clientBuilder.defaultDevoTag
+	if lc.Client != nil {
+		tag = lc.defaultTag
+	}
+	return lc.SendWTagAsync(tag, m)
 }
 
 //OnlyInMemory is the implementation of SwitchDevoSender.OnlyInMemory.

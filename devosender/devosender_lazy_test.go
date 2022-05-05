@@ -22,7 +22,7 @@ func TestLazyClient_StandBy(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					EnableStandByModeTimeout(time.Microsecond).                           // To force timeout
+					EnableStandByModeTimeout(time.Nanosecond).                            // To force timeout
 					Build()
 				if err != nil {
 					panic(err)
@@ -108,7 +108,7 @@ func TestLazyClient_WakeUp(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					FlushTimeout(time.Microsecond).                                       // to force flush timeout error
+					FlushTimeout(time.Nanosecond).                                        // to force flush timeout error
 					Build()
 				if err != nil {
 					panic(err)
@@ -192,7 +192,7 @@ func TestLazyClient_Close(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					FlushTimeout(time.Microsecond).                                       // to force flush timeout error
+					FlushTimeout(time.Nanosecond).                                        // to force flush timeout error
 					Build()
 				if err != nil {
 					panic(err)
@@ -207,7 +207,7 @@ func TestLazyClient_Close(t *testing.T) {
 			func() *LazyClient {
 				r, err := NewLazyClientBuilder().
 					ClientBuilder(NewClientBuilder().EntryPoint("tcp://example.com:80")). // We need a real connection
-					EnableStandByModeTimeout(time.Microsecond).                           // To force timeout
+					EnableStandByModeTimeout(time.Nanosecond).                            // To force timeout
 					Build()
 				if err != nil {
 					panic(err)
@@ -394,6 +394,75 @@ func TestLazyClient_SendWTagAndCompressorAsync__server_stopped(t *testing.T) {
 		t.Errorf("LazyClient.SendWTagAndCompressorAsync() want no con id, got: %v", id)
 	}
 	c.Close()
+}
+
+func TestLazyClient_SendAsync(t *testing.T) {
+
+	type args struct {
+		m string
+	}
+	tests := []struct {
+		name         string
+		lc           *LazyClient
+		args         args
+		wantNoConnID bool
+	}{
+		{
+			"In stand by mode",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80").
+							DefaultDevoTag("my.app.default"),
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				// Force stand by
+				err = r.StandBy()
+				if err != nil {
+					panic(err)
+				}
+				return r
+			}(),
+			args{"message"},
+			true,
+		},
+		{
+			"In waked up mode",
+			func() *LazyClient {
+				r, err := NewLazyClientBuilder().
+					ClientBuilder(
+						NewClientBuilder().
+							EntryPoint("udp://example.com:80").
+							DefaultDevoTag("my.app.default"),
+					).
+					Build()
+				if err != nil {
+					panic(err)
+				}
+
+				return r
+			}(),
+			args{"message"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.lc.SendAsync(tt.args.m); isNoConnID(got) != tt.wantNoConnID {
+				t.Errorf(
+					"LazyClient.SendAsync() = %v, is no connid: %v, want no connection Id %v",
+					got,
+					isNoConnID(got),
+					tt.wantNoConnID,
+				)
+			}
+		})
+	}
 }
 
 func TestLazyClient_popBuffer(t *testing.T) {
