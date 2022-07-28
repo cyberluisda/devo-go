@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/devosender/compressor"
-	"github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 )
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
@@ -473,7 +473,8 @@ func (dsc *Client) SendAsync(m string) string {
 	}
 
 	dsc.waitGroup.Add(1)
-	id := uuid.NewV4().String()
+	rndUuid, _ := uuid.NewV4()
+	id := rndUuid.String()
 	// Save asyncItems ref ids
 	dsc.asyncItemsMutext.Lock()
 	dsc.asyncItems[id] = nil
@@ -518,7 +519,7 @@ func (dsc *Client) SendWTagAsync(t, m string) string {
 }
 
 // SendWTagAndCompressorAsync is similar to SendWTagAsync but send events with specific compressor.
-// This can be usefull, for example, to force disable compression for one message using
+// This can be useful, for example, to force disable compression for one message using
 // Client.SendWTagAndCompressorAsync(t, m, nil)
 // Empty string is returned in Client is nil
 func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *compressor.Compressor) string {
@@ -527,7 +528,8 @@ func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *compressor.Compres
 	}
 
 	dsc.waitGroup.Add(1)
-	id := uuid.NewV4().String()
+	rndUuid, _ := uuid.NewV4()
+	id := rndUuid.String()
 	// Save asyncItems ref ids
 	dsc.asyncItemsMutext.Lock()
 	dsc.asyncItems[id] = nil

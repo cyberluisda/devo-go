@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 
 	"github.com/cyberluisda/devo-go/applogger"
 	"github.com/cyberluisda/devo-go/devosender/compressor"
@@ -536,7 +536,8 @@ func (lcs LazyClientStats) String() string {
 const nonConnIDPrefix = "non-conn-"
 
 func newNoConnID() string {
-	return nonConnIDPrefix + uuid.NewV4().String()
+	id, _ := uuid.NewV4()
+	return nonConnIDPrefix + id.String()
 }
 
 func isNoConnID(id string) bool {
