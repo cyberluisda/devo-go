@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/cyberluisda/devo-go/devosender/compressor"
-	"github.com/satori/go.uuid"
+	"github.com/gofrs/uuid"
 )
 
 //DevoSender interface define the minimum behaviour required for Send data to Devo
