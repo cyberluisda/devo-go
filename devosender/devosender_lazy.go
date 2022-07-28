@@ -536,7 +536,8 @@ func (lcs LazyClientStats) String() string {
 const nonConnIDPrefix = "non-conn-"
 
 func newNoConnID() string {
-	return nonConnIDPrefix + uuid.NewV4().String()
+	id, _ := uuid.NewV4()
+	return nonConnIDPrefix + id.String()
 }
 
 func isNoConnID(id string) bool {
