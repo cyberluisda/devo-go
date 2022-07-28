@@ -473,7 +473,8 @@ func (dsc *Client) SendAsync(m string) string {
 	}
 
 	dsc.waitGroup.Add(1)
-	id := uuid.NewV4().String()
+	rndUuid, _ := uuid.NewV4()
+	id := rndUuid.String()
 	// Save asyncItems ref ids
 	dsc.asyncItemsMutext.Lock()
 	dsc.asyncItems[id] = nil
@@ -527,7 +528,8 @@ func (dsc *Client) SendWTagAndCompressorAsync(t, m string, c *compressor.Compres
 	}
 
 	dsc.waitGroup.Add(1)
-	id := uuid.NewV4().String()
+	rndUuid, _ := uuid.NewV4()
+	id := rndUuid.String()
 	// Save asyncItems ref ids
 	dsc.asyncItemsMutext.Lock()
 	dsc.asyncItems[id] = nil
