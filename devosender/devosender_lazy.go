@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 
 	"github.com/cyberluisda/devo-go/applogger"
 	"github.com/cyberluisda/devo-go/devosender/compressor"
