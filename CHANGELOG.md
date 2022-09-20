@@ -1,3 +1,13 @@
+# 1.0.2
+**Release date**: 2022-09-20
+
+**Bugs**
+N/A
+
+**Features**
+* [#47](https://github.com/cyberluisda/devo-go/issues/47): Change license to MIT
+* [#45](https://github.com/cyberluisda/devo-go/issues/45): `devo-sender`: CVE-2021-3538 vulnerability detected in `devo-sender`
+
 # 1.0.1
 **Release date**: 2022-05-05
 
