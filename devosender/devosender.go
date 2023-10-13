@@ -102,6 +102,8 @@ func (dsb *ClientBuilder) EntryPoint(entrypoint string) *ClientBuilder {
 }
 
 // TLSFiles sets keys and certs from files used to make Client using TLS connection
+// keyFileName and certFileName are the key and cert that identifies destination Devo domain and
+// chainFileName is the file with the private CA chain used to trust in Devo collector entry-point
 // TLSCerts overwrites calls to this method
 func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chainFileName *string) *ClientBuilder {
 	dsb.keyFileName, dsb.certFileName, dsb.chainFileName = keyFileName, certFileName, chainFileName
@@ -109,6 +111,8 @@ func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chai
 }
 
 // TLSCerts sets keys and certs used to make Client using TLS connection
+// key and cert are the key and cert that identifies destination Devo domain and
+// chain is the content of the private CA chain used to trust in Devo collector entry-point
 // Call to this method overwrite TLSFiles
 func (dsb *ClientBuilder) TLSCerts(key []byte, cert []byte, chain []byte) *ClientBuilder {
 	dsb.key, dsb.cert, dsb.chain = key, cert, chain
