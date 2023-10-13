@@ -23,7 +23,7 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-//DevoSender interface define the minimum behaviour required for Send data to Devo
+// DevoSender interface define the minimum behaviour required for Send data to Devo
 type DevoSender interface {
 	io.WriteCloser
 	Send(m string) error
@@ -72,6 +72,7 @@ type ClientBuilder struct {
 	chainFileName             *string
 	tlsInsecureSkipVerify     bool
 	tlsRenegotiation          tls.RenegotiationSupport
+	noLoadPublicCAs           bool
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
 	connExpiration            time.Duration
@@ -101,6 +102,8 @@ func (dsb *ClientBuilder) EntryPoint(entrypoint string) *ClientBuilder {
 }
 
 // TLSFiles sets keys and certs from files used to make Client using TLS connection
+// keyFileName and certFileName are the key and cert that identifies destination Devo domain and
+// chainFileName is the file with the private CA chain used to trust in Devo collector entry-point
 // TLSCerts overwrites calls to this method
 func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chainFileName *string) *ClientBuilder {
 	dsb.keyFileName, dsb.certFileName, dsb.chainFileName = keyFileName, certFileName, chainFileName
@@ -108,6 +111,8 @@ func (dsb *ClientBuilder) TLSFiles(keyFileName string, certFileName string, chai
 }
 
 // TLSCerts sets keys and certs used to make Client using TLS connection
+// key and cert are the key and cert that identifies destination Devo domain and
+// chain is the content of the private CA chain used to trust in Devo collector entry-point
 // Call to this method overwrite TLSFiles
 func (dsb *ClientBuilder) TLSCerts(key []byte, cert []byte, chain []byte) *ClientBuilder {
 	dsb.key, dsb.cert, dsb.chain = key, cert, chain
@@ -126,6 +131,13 @@ func (dsb *ClientBuilder) TLSRenegotiation(renegotiation tls.RenegotiationSuppor
 	return dsb
 }
 
+// TLSNoLoadPublicCAs prevent to load public CA certificates from OS when key and cert are provided and
+// append to chain CA provided in TLSFiles or TLSCerts
+func (dsb *ClientBuilder) TLSNoLoadPublicCAs(noLoadPublicCAs bool) *ClientBuilder {
+	dsb.noLoadPublicCAs = noLoadPublicCAs
+	return dsb
+}
+
 // DevoCentralEntryPoint Set One of the available Devo cental relays.
 // This value overwrite (and is overwritten) by EntryPoint
 func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRelay) *ClientBuilder {
@@ -137,13 +149,13 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
-//TCPTimeout allow to set Timeout value configured in net.Dialer
+// TCPTimeout allow to set Timeout value configured in net.Dialer
 func (dsb *ClientBuilder) TCPTimeout(t time.Duration) *ClientBuilder {
 	dsb.tcpTimeout = t
 	return dsb
 }
 
-//TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
+// TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
 func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
 	dsb.tcpKeepAlive = t
 	return dsb
@@ -220,14 +232,23 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		}
 
 		// Create pool with chain cert
-		pool := x509.NewCertPool()
+		var pool *x509.CertPool
+		if dsb.noLoadPublicCAs {
+			pool = x509.NewCertPool()
+		} else {
+			var err error
+			pool, err = x509.SystemCertPool()
+			if err != nil {
+				return nil, fmt.Errorf("while load SystemCertPool %w", err)
+			}
+		}
 		if len(dsb.chain) > 0 {
 			ok := pool.AppendCertsFromPEM(dsb.chain)
 			if !ok {
-				return nil, fmt.Errorf("ould not parse chain certificate, content %s", string(dsb.chain))
+				return nil, fmt.Errorf("could not parse chain certificate, content %s", string(dsb.chain))
 			}
-			TLSSetup.tlsConfig.RootCAs = pool
 		}
+		TLSSetup.tlsConfig.RootCAs = pool
 
 		// Load key and certificate
 		crts, err := tls.X509KeyPair(dsb.cert, dsb.key)
@@ -235,7 +256,6 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 			return nil, fmt.Errorf("while load key and cert: %w", err)
 		}
 		TLSSetup.tlsConfig.Certificates = []tls.Certificate{crts}
-		TLSSetup.tlsConfig.BuildNameToCertificate()
 	}
 
 	// Create client
@@ -381,7 +401,7 @@ func (dsc *Client) SetDefaultTag(t string) error {
 	return nil
 }
 
-//Send func send message using default tag (SetDefaultTag).
+// Send func send message using default tag (SetDefaultTag).
 // Meessage will be transformed before send, using ReplaceAll with values from Client.ReplaceSequences
 func (dsc *Client) Send(m string) error {
 	if dsc == nil {

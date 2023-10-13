@@ -1,10 +1,17 @@
 package devosender
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"reflect"
@@ -1585,6 +1592,71 @@ func TestClientBuilder_TLSRenegotiation(t *testing.T) {
 	}
 }
 
+func TestClientBuilder_TLSNoLoadPublicCAs(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		noLoadPublicCAs       bool
+	}
+	type args struct {
+		noLoadPublicCAs bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set noLoadPublicCAs to true",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+				false,
+			},
+			args{
+				true,
+			},
+			&ClientBuilder{
+				noLoadPublicCAs: true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				noLoadPublicCAs:       tt.fields.noLoadPublicCAs,
+			}
+			if got := dsb.TLSNoLoadPublicCAs(tt.args.noLoadPublicCAs); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TLSNoLoadPublicCAs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClientBuilder_DevoCentralEntryPoint(t *testing.T) {
 	type fields struct {
 		entrypoint            string
@@ -2140,7 +2212,7 @@ func TestClientBuilder_Build(t *testing.T) {
 			true,
 		},
 		{
-			"Error invaled tls key/cert",
+			"Error invalid tls key/cert",
 			fields{
 				entrypoint: "udp://example.org:80",
 				key:        []byte{00, 01},
@@ -2261,6 +2333,170 @@ func TestClientBuilder_Build(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestClientBuilder_Build__TLSNoLoadPublicCAs(t *testing.T) {
+
+	key, cert, _, certCA, err := createCerts()
+	if err != nil {
+		t.Errorf("While generate Devo domain key and cert and CA cert")
+		return
+	}
+
+	c, err := NewClientBuilder().
+		EntryPoint("tcp://example.com:80").
+		TLSCerts(
+			key,
+			cert,
+			[]byte{},
+		).
+		TLSNoLoadPublicCAs(true).
+		Build()
+	if err != nil {
+		t.Errorf("While build client and TLSNoLoadPublicCAs=true: %v", err)
+		return
+	}
+
+	sysCerts, err := x509.SystemCertPool()
+	if err != nil {
+		t.Errorf("While load system certs to compare with RootCAs: %v", err)
+		return
+	}
+	if c.tls.tlsConfig.RootCAs.Equal(sysCerts) {
+		t.Errorf("ClientBuilder.Build with TLSNoLoadPublicCAs(true) expecting empty RootCAs but got SystemCerts in RootCAs")
+	}
+
+	c, err = NewClientBuilder().
+		EntryPoint("tcp://example.com:80").
+		TLSCerts(
+			key,
+			cert,
+			[]byte{},
+		).
+		TLSNoLoadPublicCAs(false).
+		Build()
+	if err != nil {
+		t.Errorf("While build client and TLSNoLoadPublicCAs=false: %v", err)
+		return
+	}
+
+	if c.tls.tlsConfig.RootCAs == nil {
+		t.Errorf("ClientBuilder.Build with TLSNoLoadPublicCAs(false) expecting nil RootCAs: got = %v", c.tls.tlsConfig.RootCAs)
+	}
+
+	c, err = NewClientBuilder().
+		EntryPoint("tcp://example.com:80").
+		TLSCerts(
+			key,
+			cert,
+			certCA,
+		).
+		TLSNoLoadPublicCAs(true).
+		Build()
+	if err != nil {
+		t.Errorf("While build client and TLSNoLoadPublicCAs=false: %v", err)
+		return
+	}
+
+	if c.tls.tlsConfig.RootCAs == nil || c.tls.tlsConfig.RootCAs.Equal(sysCerts) {
+		t.Errorf(
+			"ClientBuilder.Build with TLSNoLoadPublicCAs(true) and custom CAS expecting RootCAs "+
+				"not nil and different from SystemCerts but got (RootCAS == nil) = %v, RootCAs.Equal(SystemCerts) = %v, RootCAS = %v",
+			c.tls.tlsConfig.RootCAs == nil,
+			c.tls.tlsConfig.RootCAs.Equal(sysCerts),
+			c.tls.tlsConfig.RootCAs,
+		)
+	}
+}
+
+// createCerts return a key, cert, keyCA, certCA, and error of generated
+// certs and CA used to sign the cert
+func createCerts() ([]byte, []byte, []byte, []byte, error) {
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	// create our private and public key
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	// create the CA
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	// pem encode
+	caPEM := new(bytes.Buffer)
+	pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	caPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(caPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+
+	// set up our server certificate
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization:  []string{"Company, INC."},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{"Golden Gate Bridge"},
+			PostalCode:    []string{"94016"},
+		},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, ca, &certPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	certPEM := new(bytes.Buffer)
+	pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	})
+
+	certPrivKeyPEM := new(bytes.Buffer)
+	pem.Encode(certPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(certPrivKey),
+	})
+
+	return certPrivKeyPEM.Bytes(), certPEM.Bytes(), caPrivKeyPEM.Bytes(), caPEM.Bytes(), nil
 }
 
 func TestClient_AsyncIds_nil(t *testing.T) {
