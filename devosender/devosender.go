@@ -228,14 +228,23 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 		}
 
 		// Create pool with chain cert
-		pool := x509.NewCertPool()
+		var pool *x509.CertPool
+		if dsb.noLoadPublicCAs {
+			pool = x509.NewCertPool()
+		} else {
+			var err error
+			pool, err = x509.SystemCertPool()
+			if err != nil {
+				return nil, fmt.Errorf("while load SystemCertPool %w", err)
+			}
+		}
 		if len(dsb.chain) > 0 {
 			ok := pool.AppendCertsFromPEM(dsb.chain)
 			if !ok {
-				return nil, fmt.Errorf("ould not parse chain certificate, content %s", string(dsb.chain))
+				return nil, fmt.Errorf("could not parse chain certificate, content %s", string(dsb.chain))
 			}
-			TLSSetup.tlsConfig.RootCAs = pool
 		}
+		TLSSetup.tlsConfig.RootCAs = pool
 
 		// Load key and certificate
 		crts, err := tls.X509KeyPair(dsb.cert, dsb.key)
