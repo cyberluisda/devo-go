@@ -1,10 +1,17 @@
 package devosender
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"os"
 	"reflect"
@@ -1580,6 +1587,71 @@ func TestClientBuilder_TLSRenegotiation(t *testing.T) {
 			}
 			if got := dsb.TLSRenegotiation(tt.args.renegotiation); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ClientBuilder.TLSRenegotiation() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientBuilder_TLSNoLoadPublicCAs(t *testing.T) {
+	type fields struct {
+		entrypoint            string
+		key                   []byte
+		cert                  []byte
+		chain                 []byte
+		keyFileName           string
+		certFileName          string
+		chainFileName         *string
+		tlsInsecureSkipVerify bool
+		tlsRenegotiation      tls.RenegotiationSupport
+		noLoadPublicCAs       bool
+	}
+	type args struct {
+		noLoadPublicCAs bool
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   *ClientBuilder
+	}{
+		{
+			"Set noLoadPublicCAs to true",
+			fields{
+				"",
+				nil,
+				nil,
+				nil,
+				"",
+				"",
+				nil,
+				false,
+				tls.RenegotiateNever,
+				false,
+			},
+			args{
+				true,
+			},
+			&ClientBuilder{
+				noLoadPublicCAs: true,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsb := &ClientBuilder{
+				entrypoint:            tt.fields.entrypoint,
+				key:                   tt.fields.key,
+				cert:                  tt.fields.cert,
+				chain:                 tt.fields.chain,
+				keyFileName:           tt.fields.keyFileName,
+				certFileName:          tt.fields.certFileName,
+				chainFileName:         tt.fields.chainFileName,
+				tlsInsecureSkipVerify: tt.fields.tlsInsecureSkipVerify,
+				tlsRenegotiation:      tt.fields.tlsRenegotiation,
+				noLoadPublicCAs:       tt.fields.noLoadPublicCAs,
+			}
+			if got := dsb.TLSNoLoadPublicCAs(tt.args.noLoadPublicCAs); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ClientBuilder.TLSNoLoadPublicCAs() = %v, want %v", got, tt.want)
 			}
 		})
 	}
