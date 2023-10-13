@@ -243,7 +243,6 @@ func (dsb *ClientBuilder) Build() (*Client, error) {
 			return nil, fmt.Errorf("while load key and cert: %w", err)
 		}
 		TLSSetup.tlsConfig.Certificates = []tls.Certificate{crts}
-		TLSSetup.tlsConfig.BuildNameToCertificate()
 	}
 
 	// Create client
