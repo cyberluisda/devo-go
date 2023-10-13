@@ -23,7 +23,7 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-//DevoSender interface define the minimum behaviour required for Send data to Devo
+// DevoSender interface define the minimum behaviour required for Send data to Devo
 type DevoSender interface {
 	io.WriteCloser
 	Send(m string) error
@@ -137,13 +137,13 @@ func (dsb *ClientBuilder) DevoCentralEntryPoint(relay ClienBuilderDevoCentralRel
 	return dsb
 }
 
-//TCPTimeout allow to set Timeout value configured in net.Dialer
+// TCPTimeout allow to set Timeout value configured in net.Dialer
 func (dsb *ClientBuilder) TCPTimeout(t time.Duration) *ClientBuilder {
 	dsb.tcpTimeout = t
 	return dsb
 }
 
-//TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
+// TCPKeepAlive allow to set KeepAlive value configured in net.Dialer
 func (dsb *ClientBuilder) TCPKeepAlive(t time.Duration) *ClientBuilder {
 	dsb.tcpKeepAlive = t
 	return dsb
@@ -381,7 +381,7 @@ func (dsc *Client) SetDefaultTag(t string) error {
 	return nil
 }
 
-//Send func send message using default tag (SetDefaultTag).
+// Send func send message using default tag (SetDefaultTag).
 // Meessage will be transformed before send, using ReplaceAll with values from Client.ReplaceSequences
 func (dsc *Client) Send(m string) error {
 	if dsc == nil {
