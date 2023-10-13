@@ -72,6 +72,7 @@ type ClientBuilder struct {
 	chainFileName             *string
 	tlsInsecureSkipVerify     bool
 	tlsRenegotiation          tls.RenegotiationSupport
+	noLoadPublicCAs           bool
 	tcpTimeout                time.Duration
 	tcpKeepAlive              time.Duration
 	connExpiration            time.Duration
@@ -123,6 +124,13 @@ func (dsb *ClientBuilder) TLSInsecureSkipVerify(insecureSkipVerify bool) *Client
 // TLSRenegotiation sets tlsRenegotiation support, this value is used only with TLS connections
 func (dsb *ClientBuilder) TLSRenegotiation(renegotiation tls.RenegotiationSupport) *ClientBuilder {
 	dsb.tlsRenegotiation = renegotiation
+	return dsb
+}
+
+// TLSNoLoadPublicCAs prevent to load public CA certificates from OS when key and cert are provided and
+// append to chain CA provided in TLSFiles or TLSCerts
+func (dsb *ClientBuilder) TLSNoLoadPublicCAs(noLoadPublicCAs bool) *ClientBuilder {
+	dsb.noLoadPublicCAs = noLoadPublicCAs
 	return dsb
 }
 
