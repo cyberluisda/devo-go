@@ -2212,7 +2212,7 @@ func TestClientBuilder_Build(t *testing.T) {
 			true,
 		},
 		{
-			"Error invaled tls key/cert",
+			"Error invalid tls key/cert",
 			fields{
 				entrypoint: "udp://example.org:80",
 				key:        []byte{00, 01},
