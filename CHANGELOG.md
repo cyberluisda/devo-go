@@ -1,3 +1,12 @@
+# 1.0.3
+**Release date**: 2023-10-13
+
+**Bugs**
+N/A
+
+**Features**
+* [#50](https://github.com/cyberluisda/devo-go/issues/50): `devo-sender`: Add SystemCerts to chain RootCA supported by `ClientBuilder`.
+
 # 1.0.2
 **Release date**: 2022-09-20
 
